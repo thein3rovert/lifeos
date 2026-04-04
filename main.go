@@ -20,6 +20,8 @@ func main() {
 
 	// When /'api is called -> handler -> function
 	http.HandleFunc("/api", apiHandler)
+	http.HandleFunc("/greetings", handleGreetings)
+	http.HandleFunc("/health", userHealthCheck)
 
 	fmt.Println("Starting sever at port 5837 ...")
 	if err := http.ListenAndServe(":5837", nil); err != nil {
@@ -33,4 +35,13 @@ func main() {
 // http.ResponseWriter -> backend writes it resposne
 func apiHandler(writeResponse http.ResponseWriter, userRequest *http.Request) {
 	fmt.Fprint(writeResponse, "HELLO THEIN3ROVERT")
+}
+
+func handleGreetings(writeResponse http.ResponseWriter, userRequest *http.Request) {
+	fmt.Fprint(writeResponse, "Trust you're fine")
+}
+
+func userHealthCheck(writeResponse http.ResponseWriter, userRequest *http.Request) {
+	//TODO: Add user variable to response later
+	fmt.Fprint(writeResponse, "I think i'm good, thanks for asking")
 }
