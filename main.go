@@ -22,3 +22,9 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 
 }
+
+// * httpRquest points to a location where user requewst abd param are persent
+// -> user provided data
+func apiHandler(writeResponse http.ResponseWriter, userRequest *http.Request) {
+
+}
