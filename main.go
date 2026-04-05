@@ -11,15 +11,25 @@ import (
 // Custom http handler
 type HomeHandler struct{}
 
-func (handleHome HomeHandler) ServeHTTP(writeResponse http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(writeResponse, "Welcome to thein3rovert Go Server!")
-}
-
 //===============NOTE=============
 // go build
 // use curl for all api testing
 
+// GO provide http.servemux which is a request multiplexer for routing
+// diff urls (Matches the URL of each incoming requesst against a list
+// of registerted patterns and calls the handlers fir the patterns that
+// most closely matches the URL)
+// Pattern is something with a host and a path of a request
+// For every GET /pokemon -> new handler (get all pokemon)
+// For every POST -> new handler (creat a new pokemon)
+
+// Response writer is use for sending response back to the client
+
+//===============END OF NOTE=============
+
 func main() {
+
+	// ============= 01 ==============
 	_ = fmt.Sprint
 	_ = http.StatusOK
 
@@ -37,13 +47,10 @@ func main() {
 	// }
 
 
-// GO provide http.servemux which is a request multiplexer for routing
-// diff urls (Matches the URL of each incoming requesst against a list
-// of registerted patterns and calls the handlers fir the patterns that
-// most closely matches the URL)
-// Pattern is something with a host and a path of a request
-// For every GET /pokemon -> new handler (get all pokemon)
-// For every POST -> new handler (creat a new pokemon)
+
+
+// ============= 02 ==============
+
 // ServerMux -> Multiplexer
 	mux := http.NewServeMux()
 
@@ -53,7 +60,7 @@ func main() {
 	// User -> localhosts:8080/hello -> routes it -> /hello | /status
 
 	mux.HandleFunc("/hello", func(writeResponse  http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(writeResponse, "Hello again from thein3rovert")
+		fmt.Fprintf(writeResponse, "Hello again from thein3rovert, You are accessing %s and %s using User Agent %s\n", r.URL.Path, r.URL.Host, r.Header.Get("User-Agent"))
 	})
 
 	mux.HandleFunc("/status", func(writeResponse http.ResponseWriter, r *http.Request) {
@@ -68,7 +75,7 @@ func main() {
 
 
 
-
+// ============= 01 ==============
 // * httpRquest points to a location where user requewst abd param are persent
 // -> user provided data
 // http.ResponseWriter -> backend writes it resposne
@@ -83,4 +90,10 @@ func handleGreetings(writeResponse http.ResponseWriter, userRequest *http.Reques
 func userHealthCheck(writeResponse http.ResponseWriter, userRequest *http.Request) {
 	//TODO: Add user variable to response later
 	fmt.Fprint(writeResponse, "I think i'm good, thanks for asking")
+}
+
+
+// ============= 02 ==============
+func (handleHome HomeHandler) ServeHTTP(writeResponse http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(writeResponse, "Welcome to thein3rovert Go Server!")
 }
