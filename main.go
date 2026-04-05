@@ -78,10 +78,12 @@ func main() {
 
 	// ============= 03 ==============
 	// Use http.handleFunc to call a function
-	mux.Handle("/aboutPage", http.HandlerFunc(aboutPageHandler))
-	mux.Handle("/about", http.HandlerFunc(aboutHandler))
+	// Wrap requst with created middleware
+	mux.Handle("/aboutPage", headerMiddleware(http.HandlerFunc(aboutPageHandler)))
+	mux.Handle("/about", headerMiddleware(http.HandlerFunc(aboutHandler)))
 
-	fmt.Println("Server starting on port 9057 ...")
+	// fmt.Println("Server starting on port 9057 ...")
+	log.Println("Starting Server on Port 9057 ...") // Better
 	if err := http.ListenAndServe(":9057", mux); err != nil {
 		log.Fatal("Server Failed or Running on Processs", err)
  }
@@ -121,4 +123,16 @@ func aboutPageHandler(w http.ResponseWriter, r *http.Request) {
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "My name is thein3rovert, but you can call me iv3..haha!")
+}
+
+// Middleware
+func headerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request ) {
+		// Implement Logics
+		// Ex. Authentication here! X-API-KEY: (check if exist or not and more..)
+		w.Header().Set("X-Custom-Header", "Pokemon")
+		//End of middleware logic
+		next.ServeHTTP(w, r)
+})
+
 }
