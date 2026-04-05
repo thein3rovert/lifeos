@@ -8,7 +8,7 @@ import (
 	"net/http"
 	// ==== 03 =====
 	"log"
-	// "time"
+	"time"
 )
 
 // Custom http handler
@@ -78,9 +78,10 @@ func main() {
 
 	// ============= 03 ==============
 	// Use http.handleFunc to call a function
-	// Wrap requst with created middleware
-	mux.Handle("/aboutPage", headerMiddleware(http.HandlerFunc(aboutPageHandler)))
-	mux.Handle("/about", headerMiddleware(http.HandlerFunc(aboutHandler)))
+	// Wrap Handler with created middleware
+	// Wrap Handler with logging middleware
+	mux.Handle("/aboutPage", loggingMiddleware(headerMiddleware(http.HandlerFunc(aboutPageHandler))))
+	mux.Handle("/about", loggingMiddleware(headerMiddleware(http.HandlerFunc(aboutHandler))))
 
 	// fmt.Println("Server starting on port 9057 ...")
 	log.Println("Starting Server on Port 9057 ...") // Better
@@ -133,6 +134,15 @@ func headerMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Custom-Header", "Pokemon")
 		//End of middleware logic
 		next.ServeHTTP(w, r)
-})
+	})
+}
 
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Log logic
+			start := time.Now()
+			log.Printf("%s %s %s", r.Method, r.RequestURI, time.Since(start))
+			next.ServeHTTP(w, r)
+	})
 }
