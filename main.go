@@ -2,10 +2,18 @@ package main
 
 // Go auto remove import that are unused
 import (
+	// Used for string manipulation
 	"fmt"
 	// Base library for go, standard lib for go (https://pkg.go.dev/net/http)
 	"net/http"
 )
+
+// Custom http handler
+type HomeHandler struct{}
+
+func (handleHome HomeHandler) ServeHTTP(writeResponse http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(writeResponse, "Welcome to thein3rovert Go Server!")
+}
 
 //===============NOTE=============
 // go build
@@ -23,12 +31,43 @@ func main() {
 	http.HandleFunc("/greetings", handleGreetings)
 	http.HandleFunc("/health", userHealthCheck)
 
-	fmt.Println("Starting sever at port 5837 ...")
-	if err := http.ListenAndServe(":5837", nil); err != nil {
-		fmt.Printf("Error starting server: %v\n", err)
-	}
+	// fmt.Println("Starting sever at port 5837 ...")
+	// if err := http.ListenAndServe(":5837", nil); err != nil {
+	// 	fmt.Printf("Error starting server: %v\n", err)
+	// }
 
+
+// GO provide http.servemux which is a request multiplexer for routing
+// diff urls (Matches the URL of each incoming requesst against a list
+// of registerted patterns and calls the handlers fir the patterns that
+// most closely matches the URL)
+// Pattern is something with a host and a path of a request
+// For every GET /pokemon -> new handler (get all pokemon)
+// For every POST -> new handler (creat a new pokemon)
+// ServerMux -> Multiplexer
+	mux := http.NewServeMux()
+
+	mux.Handle("/", HomeHandler{} )
+
+	// Functions
+	// User -> localhosts:8080/hello -> routes it -> /hello | /status
+
+	mux.HandleFunc("/hello", func(writeResponse  http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(writeResponse, "Hello again from thein3rovert")
+	})
+
+	mux.HandleFunc("/status", func(writeResponse http.ResponseWriter, r *http.Request) {
+		writeResponse.WriteHeader(http.StatusOK)
+		fmt.Fprint(writeResponse, `{"status": "OK"}`)
+	})
+
+	fmt.Println("Server starting on port 4089 ...")
+	// Route Request -> Multiplexer
+	http.ListenAndServe(":4089", mux)
 }
+
+
+
 
 // * httpRquest points to a location where user requewst abd param are persent
 // -> user provided data
