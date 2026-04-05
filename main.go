@@ -6,6 +6,9 @@ import (
 	"fmt"
 	// Base library for go, standard lib for go (https://pkg.go.dev/net/http)
 	"net/http"
+	// ==== 03 =====
+	"log"
+	// "time"
 )
 
 // Custom http handler
@@ -68,11 +71,23 @@ func main() {
 		fmt.Fprint(writeResponse, `{"status": "OK"}`)
 	})
 
-	fmt.Println("Server starting on port 4089 ...")
-	// Route Request -> Multiplexer
-	http.ListenAndServe(":4089", mux)
-}
+	// fmt.Println("Server starting on port 4089 ...")
+	// // Route Request -> Multiplexer
+	// http.ListenAndServe(":4089", mux)
 
+
+	// ============= 03 ==============
+	// Use http.handleFunc to call a function
+	mux.Handle("/aboutPage", http.HandlerFunc(aboutPageHandler))
+	mux.Handle("/about", http.HandlerFunc(aboutHandler))
+
+	fmt.Println("Server starting on port 9057 ...")
+	if err := http.ListenAndServe(":9057", mux); err != nil {
+		log.Fatal("Server Failed or Running on Processs", err)
+ }
+
+
+}
 
 
 // ============= 01 ==============
@@ -96,4 +111,14 @@ func userHealthCheck(writeResponse http.ResponseWriter, userRequest *http.Reques
 // ============= 02 ==============
 func (handleHome HomeHandler) ServeHTTP(writeResponse http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(writeResponse, "Welcome to thein3rovert Go Server!")
+}
+
+
+// ============= 03 ==============
+func aboutPageHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "Welcome to the About Me Page!")
+}
+
+func aboutHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "My name is thein3rovert, but you can call me iv3..haha!")
 }
