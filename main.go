@@ -84,11 +84,21 @@ func main() {
 	mux.Handle("/about", loggingMiddleware(headerMiddleware(http.HandlerFunc(aboutHandler))))
 
 	// fmt.Println("Server starting on port 9057 ...")
-	log.Println("Starting Server on Port 9057 ...") // Better
-	if err := http.ListenAndServe(":9057", mux); err != nil {
-		log.Fatal("Server Failed or Running on Processs", err)
- }
+	// log.Println("Starting Server on Port 9057 ...") // Better
+	// if err := http.ListenAndServe(":9057", mux); err != nil {
+	// 	log.Fatal("Server Failed or Running on Processs", err)
+ // }
 
+ // ========= 03 =================
+ // Default HTTP instead of Mux
+
+ http.HandleFunc("/blog", blogPageHandler)
+ 	fmt.Println("Listening at port 6060 ..")
+
+ // We are using default mux
+ if err := http.ListenAndServe(":6060", nil); err != nil {
+ 	fmt.Println("Failed to listen at port 6060", err)
+ }
 
 }
 
@@ -145,4 +155,18 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			log.Printf("%s %s %s", r.Method, r.RequestURI, time.Since(start))
 			next.ServeHTTP(w, r)
 	})
+}
+
+// ========= 03 =================
+// https://api.example.com/api/v1/blog?title="How to survice the apocalypes"
+// https://api.example.com/api/v1/blog
+func blogPageHandler(w http.ResponseWriter, r *http.Request) {
+
+	// https://api.example.com/api/v1/blog?title="How to survice the apocalypes"
+	query := r.URL.Query() //Get the full query path
+	title := query.Get("title")
+	if title == "" {
+		title = "blog-01"
+	}
+	fmt.Fprintf(w, "Welcome to my blog page, feel free to browser around\n let me know if you like what you see\n here is my first blog post, %s", title)
 }

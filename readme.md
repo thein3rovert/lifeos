@@ -1,4 +1,5 @@
 ## Practise
+### Net/HTTP and Handler Interface
 
 ### 3. Building Custom Middleware
 - Handler are backend logics (services in java)
@@ -26,6 +27,9 @@ Content-Type: text/plain; charset=utf-8
 #### Todo
 - Create and register cstom middleware function
 > Client -> middleware(set ex. custom-header) -> Handler
+- Chaining of middleware (Logs into middleware)
 
-- Chaining of middleware
-- Discuss routing packages
+## Query Param and Path Variable 
+- Handling dynamic url parameter and query (Managing url cominf from userss and more)
+- Parse query from url 
+- Extra path varuable using http.servemux
