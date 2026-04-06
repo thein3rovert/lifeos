@@ -7,6 +7,7 @@ import (
 
 	"github.com/thein3rovert/lifeos/internal/handler"
 	"github.com/thein3rovert/lifeos/internal/middleware"
+	"github.com/thein3rovert/lifeos/internal/store"
 )
 
 // go run cmd/server/main.go
@@ -26,4 +27,11 @@ func main() {
 		fmt.Println("Failed to listen at port 6060", err)
 		log.Fatal(err)
 	}
+
+	//
+	store, err := store.NewSQLiteStore("lifeos.db")
+	if err != nil {
+		log.Fatalf("Failed to initialise store: %v", err)
+	}
+	_ = store
 }
