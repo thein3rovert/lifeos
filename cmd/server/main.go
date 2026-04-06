@@ -13,6 +13,14 @@ import (
 // go run cmd/server/main.go
 // Every Request: Middleware(customlogge) -> Handler
 func main() {
+
+	// Initialise store
+	db, err := store.NewSQLiteStore("lifeos.db")
+	if err != nil {
+		log.Fatalf("Failed to initialise store: %v", err)
+	}
+
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +28,9 @@ func main() {
 	})
 
 	mux.HandleFunc("/photos", handler.Photos)
+	mux.HandleFunc("/photos/view", handler.ListPhotos(db))
+	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(db))
+
 	mux.HandleFunc("/skills", handler.Skills)
 
 	log.Println("Server starting on 6060")
@@ -28,10 +39,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Initialise store
-	store, err := store.NewSQLiteStore("lifeos.db")
-	if err != nil {
-		log.Fatalf("Failed to initialise store: %v", err)
-	}
-	_ = store
+
 }
