@@ -22,6 +22,7 @@
 **Step 5 — Photos handler**
 - `POST /photos/upload` — accept a file, save to `photos/` dir, save metadata to DB
 - `GET /photos` — fetch all photos from DB, pass to template, display them
+- We can use closure or struct in the handle the store request.
 
 **Step 6 — Skills handler**
 - `GET /skills` — read all `.md` files from `skills/` dir

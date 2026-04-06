@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/thein3rovert/lifeos/internal/model"
@@ -60,15 +61,18 @@ func (s *SQLiteStore) SavePhoto(p *model.Photo) error {
     p.CreatedAt = time.Now()
 
     res, err := s.db.Exec(
-        `INSERT INTO photos (filename, path, caption, description, created_at) VALUES (?, ?, ?, ?)`,
+        `INSERT INTO photos (filename, path, caption, description, created_at) VALUES (?, ?, ?, ?, ?)`,
         p.Filename, p.Path, p.Caption, p.Description, p.CreatedAt,
     )
     if err != nil {
+    log.Printf("SavePhoto error: %v", err)
         return err
     }
 
+
     // LastInsertId gives us the auto-generated ID so the caller gets a fully populated struct
     p.ID, err = res.LastInsertId()
+    log.Printf("SavePhoto Successfully")
     return err
 }
 
