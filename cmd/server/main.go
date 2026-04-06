@@ -6,9 +6,11 @@ import (
 	"net/http"
 
 	"github.com/thein3rovert/lifeos/internal/handler"
+	"github.com/thein3rovert/lifeos/internal/middleware"
 )
 
 // go run cmd/server/main.go
+// Every Request: Middleware(customlogge) -> Handler
 func main() {
 	mux := http.NewServeMux()
 
@@ -20,7 +22,7 @@ func main() {
 	mux.HandleFunc("/skills", handler.Skills)
 
 	log.Println("Server starting on 6060")
-	if err := http.ListenAndServe(":6060", mux); err != nil {
+	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
 		fmt.Println("Failed to listen at port 6060", err)
 		log.Fatal(err)
 	}
