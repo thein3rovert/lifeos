@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//
+	// Initialise store
 	store, err := store.NewSQLiteStore("lifeos.db")
 	if err != nil {
 		log.Fatalf("Failed to initialise store: %v", err)
