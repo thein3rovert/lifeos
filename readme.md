@@ -33,3 +33,5 @@ Content-Type: text/plain; charset=utf-8
 - Handling dynamic url parameter and query (Managing url cominf from userss and more)
 - Parse query from url 
 - Extra path varuable using http.servemux
+> [!important] 
+> String is a standard lub in golang used for string manipulations

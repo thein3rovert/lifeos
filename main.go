@@ -9,6 +9,9 @@ import (
 	// ==== 03 =====
 	"log"
 	"time"
+
+	// ==== 04 =====
+	"strings"
 )
 
 // Custom http handler
@@ -93,6 +96,7 @@ func main() {
  // Default HTTP instead of Mux
 
  http.HandleFunc("/blog", blogPageHandler)
+ http.HandleFunc("/user/", userHandler)
  	fmt.Println("Listening at port 6060 ..")
 
  // We are using default mux
@@ -160,6 +164,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 // ========= 03 =================
 // https://api.example.com/api/v1/blog?title="How to survice the apocalypes"
 // https://api.example.com/api/v1/blog
+
+// Understanding Query Parameters
 func blogPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://api.example.com/api/v1/blog?title="How to survice the apocalypes"
@@ -169,4 +175,19 @@ func blogPageHandler(w http.ResponseWriter, r *http.Request) {
 		title = "blog-01"
 	}
 	fmt.Fprintf(w, "Welcome to my blog page, feel free to browser around\n let me know if you like what you see\n here is my first blog post, %s", title)
+}
+
+// Extracting Path Variables
+// https://api.example.com/user/<userId>
+// 1 -> User
+// 2 -> UserID
+// This allows us to manage resource based on userId
+func userHandler(w http.ResponseWriter, r *http.Request) {
+	pathSegments := strings.Split(r.URL.Path, "/")
+	if len(pathSegments) >= 3 && pathSegments[1] == "user" {
+		userID := pathSegments[2]
+			fmt.Fprintf(w,  "User ID: %s", userID)
+	} else {
+		http.NotFound(w, r)
+	}
 }
