@@ -92,11 +92,13 @@ func main() {
 	// 	log.Fatal("Server Failed or Running on Processs", err)
  // }
 
- // ========= 03 =================
+ // ========= 03 ================
  // Default HTTP instead of Mux
-
+ // Path Variables
  http.HandleFunc("/blog", blogPageHandler)
  http.HandleFunc("/user/", userHandler)
+ http.HandleFunc("/username/", userDetailsHandler)
+
  	fmt.Println("Listening at port 6060 ..")
 
  // We are using default mux
@@ -189,5 +191,24 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w,  "User ID: %s", userID)
 	} else {
 		http.NotFound(w, r)
+	}
+}
+
+// Combining Both => Handling Query + Extracting Path Variables
+// Endpoints: https://api.example.com/username/<userId>?includeDetails=<boolean>
+func userDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	pathSegments := strings.Split(r.URL.Path, "/")
+	query := r.URL.Query()
+	includeDetails  := query.Get("includeDetails")
+
+	if len(pathSegments) >= 3 && pathSegments[1] == "username" {
+		userID := pathSegments[2]
+		response := fmt.Sprintf("User ID: %s", userID)
+		if includeDetails == "true" {
+			response += " (Details included)"
+		}
+		fmt.Fprintln(w, response)
+	} else {
+		http.NotFound(w,r)
 	}
 }
