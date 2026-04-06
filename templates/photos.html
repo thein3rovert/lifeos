@@ -1,4 +1,22 @@
 {{template "base" .}}
 {{define "content"}}
   <h1>Thein3rovert Photos</h1>
+
+  <form action="/photos/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="photo" required>
+    <input type="text" name="caption" placeholder="Caption (optional)">
+    <button type="submit">Upload</button>
+  </form>
+
+  <div>
+    {{range .}}
+      <div>
+        <p>{{.Filename}}</p>
+        <p>{{.Caption}}</p>
+        <p>{{.CreatedAt}}</p>
+      </div>
+    {{else}}
+      <p>No photos yet.</p>
+    {{end}}
+  </div>
 {{end}}
