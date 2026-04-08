@@ -32,6 +32,7 @@ func main() {
 	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(db))
 
 	mux.HandleFunc("/skills", handler.Skills)
+	mux.HandleFunc("/home", handler.Home)
 
 	log.Println("Server starting on 6060")
 	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
