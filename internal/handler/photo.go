@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,6 +32,11 @@ func ListPhotos(s store.Store) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "could not load photos", http.StatusInternalServerError)
 		}
+
+	 // Temporary — log paths to see what's in DB
+        for _, p := range photos {
+            log.Printf("photo path: %s", p.Path)
+        }
 
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",

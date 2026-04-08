@@ -34,6 +34,10 @@ func main() {
 	mux.HandleFunc("/skills", handler.Skills)
 	mux.HandleFunc("/home", handler.Home)
 
+	// Static file server for serving local photo
+	// Any request to eg. /static/photo/<filename> will server friom disk
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+
 	log.Println("Server starting on 6060")
 	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
 		fmt.Println("Failed to listen at port 6060", err)

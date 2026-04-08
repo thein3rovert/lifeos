@@ -4,7 +4,8 @@
   <div>
     {{range .}}
       <div>
-        <p>{{.Filename}}</p>
+        <img src="/static/{{.Path}}" alt="{{.Caption}}">
+        <!--<p>{{.Filename}}</p>-->
         <p>{{.Caption}}</p>
         <p>{{.CreatedAt}}</p>
       </div>
