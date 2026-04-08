@@ -27,16 +27,18 @@ func main() {
 		w.Write([]byte("LifeOS is running"))
 	})
 
+
+	mux.HandleFunc("/home", handler.Home)
+
 	mux.HandleFunc("/photos", handler.Photos)
 	mux.HandleFunc("/photos/view", handler.ListPhotos(db))
 	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(db))
 
-	mux.HandleFunc("/skills", handler.Skills)
-	mux.HandleFunc("/home", handler.Home)
-
 	// Static file server for serving local photo
 	// Any request to eg. /static/photo/<filename> will server friom disk
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+
+	mux.HandleFunc("/skills", handler.Skills)
 
 	log.Println("Server starting on 6060")
 	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
