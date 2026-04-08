@@ -40,9 +40,24 @@ func ListPhotos(s store.Store) http.HandlerFunc {
 	}
 }
 
-
+// The func handle two things, getting the form template on visit
+//  and uploading the image
 func UpdatePhoto(s store.Store) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		// When we visit browser -> get the form instead of
+		// hitting the /upload endpoints
+		switch r.Method {
+
+			case http.MethodGet:
+			tmpl := template.Must(template.ParseFiles(
+				"templates/base.html",
+				"templates/photo_upload.html",
+			))
+			tmpl.ExecuteTemplate(w, "base", nil)
+
+			// In case of /upload hit the upload endpoints
+		case http.MethodPost:
 		// Parse a request body as -> form-data
 		r.ParseMultipartForm(10 << 20)
 
@@ -83,6 +98,10 @@ func UpdatePhoto(s store.Store) http.HandlerFunc{
 			http.Error(w, "could not save to database", http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "/photos", http.StatusSeeOther)
+			http.Redirect(w, r, "/photos/view", http.StatusSeeOther)
+
+			default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	}
 }

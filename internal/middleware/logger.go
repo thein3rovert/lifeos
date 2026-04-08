@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-
+// Handle simple request log, log each HTTP request method, path and process
 func CustomLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
