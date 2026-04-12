@@ -117,3 +117,73 @@ func (s *SQLiteStore) ListPhotos() ([]model.Photo, error) {
     // rows.Err() catches any error that happened mid-iteration
     return photos, rows.Err()
 }
+
+func (s *SQLiteStore) SaveTag(name string) (int64, error) {
+	// INSERT OR IGNORE MEANS if the tag already exists, skip it
+	_, err := s.db.Exec(`INSERT OR IGNORE INTO tags (name) VALUES (?)`, name)
+	if err != nil {
+		return 0, err
+	}
+
+	// After creating the tag fetch the id, if already existed a;sp fetch the id
+	// used when we want to check if a tag already exist
+	var id int64
+	err = s.db.QueryRow(`SELECT id FROM tags WHERE name = ?`, name).Scan(&id)
+	return id, err
+}
+
+// Make sure we cannot add duplcate tags to a photo
+// AddTagToPhoto links a tag to a photo in the photo_tags join table
+func (s *SQLiteStore) AddTagToPhoto(photoID, tagID int64) error {
+	_, err := s.db.Exec(
+		`INSERT PR IGNORE INTO photo_tags (photo_id, tag_id) VALUES (?, ?)`, photoID, tagID,
+	)
+	return err
+}
+
+
+// ListTags returns all tags - used for the autocomplete detalist
+func (s *SQLiteStore) ListTags() ([]model.Tag, error) {
+	rows, err := s.db.Query(`SELECT id, name FROM tags ORDER BY name`)
+	// If unable to fetch tags
+	if err != nil {
+		return nil, err
+	}
+
+	var tags []model.Tag
+
+	// Loop through the rolls and get the id and name
+	for rows.Next() {
+		var t model.Tag
+		if err := rows.Scan(&t.ID, &t.Name); err != nil {
+			return nil, err
+		}
+		// Append the result from the loop to tags
+		tags = append(tags, t)
+	}
+	return tags, rows.Err()
+}
+
+// GetPhotoTags return all tags for a specific photo
+func (s *SQLiteStore) GetPhotoTags(photoID int64) ([]model.Tag, error) {
+	rows, err := s.db.Query(`
+		SELECT t.id, t,name FROM tags t
+		JOIN photo_tags pt ON pt.tags_id = t.id
+		WHERE pt.photo_id = ?
+		`, photoID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []model.Tag
+	for rows.Next() {
+		var t model.Tag
+		if err := rows.Scan(&t.ID, &t.Name); err != nil {
+			return nil, err
+		}
+		tags = append(tags, t)
+	}
+	return tags, rows.Err()
+}
