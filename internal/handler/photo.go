@@ -57,11 +57,18 @@ func UpdatePhoto(s store.Store) http.HandlerFunc {
 		switch r.Method {
 
 		case http.MethodGet:
+		// List available tags when uploading a photo with tags
+		tags, err := s.ListTags()
+		if err != nil {
+			http.Error(w, "could not load tags", http.StatusInternalServerError)
+			return
+		}
 			tmpl := template.Must(template.ParseFiles(
 				"templates/base.html",
 				"templates/photo_upload.html",
 			))
-			tmpl.ExecuteTemplate(w, "base", nil)
+			tmpl.ExecuteTemplate(w, "base", tags)
+
 
 			// In case of /upload hit the upload endpoints
 		case http.MethodPost:
