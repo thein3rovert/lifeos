@@ -99,12 +99,26 @@ func main() {
  http.HandleFunc("/user/", userHandler)
  http.HandleFunc("/username/", userDetailsHandler)
 
- 	fmt.Println("Listening at port 6060 ..")
+ 	// fmt.Println("Listening at port 6060 ..")
 
  // We are using default mux
- if err := http.ListenAndServe(":6060", nil); err != nil {
- 	fmt.Println("Failed to listen at port 6060", err)
- }
+ // if err := http.ListenAndServe(":6060", nil); err != nil {
+ // 	fmt.Println("Failed to listen at port 6060", err)
+ // }
+
+ // ========= 04 ===============
+ // Take http.filesystem and return as http.handler
+ fs := http.FileServer(http.Dir("../assets/images"))
+
+ http.Handle("/assets/images/", http.StripPrefix("/assets/images/", fs))
+ http.HandleFunc("/webpage", func(w http.ResponseWriter, r *http.Request) {
+
+ http.ServeFile(w, r, "../assets/webpage/index.html")
+ })
+
+ log.Println("Serving on http://localhost:6060")
+ log.Fatal(http.ListenAndServe(":6060", nil))
+
 
 }
 
