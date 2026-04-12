@@ -8,6 +8,6 @@ type Photo struct {
 	Path     string
 	Caption  string
 	Description string
-	tags 			[]Tag
+	Tags 			[]Tag
 	CreatedAt time.Time
 }

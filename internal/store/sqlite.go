@@ -109,6 +109,12 @@ func (s *SQLiteStore) ListPhotos() ([]model.Photo, error) {
 		if err := rows.Scan(&p.ID, &p.Filename, &p.Path, &p.Caption, &p.Description, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+
+		tags, err := s.GetPhotoTags(p.ID)
+		if err != nil {
+			return nil, err
+		}
+		p.Tags = tags
 		photos = append(photos, p)
 	}
 
