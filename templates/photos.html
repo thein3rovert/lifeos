@@ -7,6 +7,9 @@
         <img src="/static/{{.Path}}" alt="{{.Caption}}">
         <!--<p>{{.Filename}}</p>-->
         <p>{{.Caption}}</p>
+        {{if .Tags}}
+          <p>Tags: {{range .Tags}}{{.Name}} {{end}}</p>
+        {{end}}
         <p>{{.CreatedAt}}</p>
       </div>
     {{else}}

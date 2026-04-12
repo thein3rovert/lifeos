@@ -107,6 +107,8 @@ func main() {
  // }
 
  // ========= 04 ===============
+ // Serving Static Files
+
  // Take http.filesystem and return as http.handler
  fs := http.FileServer(http.Dir("../assets/images"))
 
