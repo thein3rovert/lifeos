@@ -1,8 +1,15 @@
 {{template "base" .}}
 {{define "content"}}
   <h1>Thein3rovert Photos</h1>
+  <form action="/photos/search" method="GET" style="margin: 1rem 0;">
+    <input type="text" name="q" placeholder="Search photos...">
+    <button type="submit">Search</button>
+  </form>
+  {{if .SearchQuery}}
+    <p>Search results for: <strong>{{.SearchQuery}}</strong></p>
+  {{end}}
   <div>
-    {{range .}}
+    {{range .Photos}}
       <div>
         <img src="/static/{{.Path}}" alt="{{.Caption}}">
         <!--<p>{{.Filename}}</p>-->
@@ -13,7 +20,11 @@
         <p>{{.CreatedAt}}</p>
       </div>
     {{else}}
-      <p>No photos yet.</p>
+      {{if .SearchQuery}}
+        <p>No photos found for "{{.SearchQuery}}".</p>
+      {{else}}
+        <p>No photos yet.</p>
+      {{end}}
     {{end}}
   </div>
   <div>
