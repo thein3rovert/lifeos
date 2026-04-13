@@ -1,14 +1,19 @@
 {{template "base" .}}
 {{define "content"}}
   <h1>Thein3rovert Photos</h1>
-  <form action="/photos/search" method="GET" style="margin: 1rem 0;">
-    <input type="text" name="q" placeholder="Search photos...">
-    <button type="submit">Search</button>
-  </form>
+  <div style="margin: 1rem 0;">
+    <input type="text" name="q" placeholder="Search photos..."
+           hx-get="/photos/search" 
+           hx-target="#photo-results"
+           hx-trigger="keyup changed delay:300ms"
+           hx-indicator=".htmx-indicator"
+           {{if .SearchQuery}}value="{{.SearchQuery}}"{{end}}>
+    <span class="htmx-indicator" style="display:none;">Searching...</span>
+  </div>
   {{if .SearchQuery}}
     <p>Search results for: <strong>{{.SearchQuery}}</strong></p>
   {{end}}
-  <div>
+  <div id="photo-results">
     {{range .Photos}}
       <div>
         <img src="/static/{{.Path}}" alt="{{.Caption}}">

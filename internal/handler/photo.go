@@ -165,6 +165,13 @@ func SearchPhotos(s store.Store) http.HandlerFunc {
 				return
 			}
 			data := PhotoSearchData{Photos: photos, SearchQuery: searchQuery}
+			// HTMX request — return partial
+			if r.Header.Get("HX-Request") == "true" {
+				tmpl := template.Must(template.ParseFiles("templates/photos-list.html"))
+				tmpl.Execute(w, data)
+				return
+			}
+			// Normal request — return full page
 			tmpl := template.Must(template.ParseFiles(
 				"templates/base.html",
 				"templates/photos.html",
@@ -186,6 +193,13 @@ func SearchPhotos(s store.Store) http.HandlerFunc {
 			return
 		}
 		data := PhotoSearchData{Photos: photos, SearchQuery: searchQuery}
+		// HTMX request — return partial
+		if r.Header.Get("HX-Request") == "true" {
+			tmpl := template.Must(template.ParseFiles("templates/photos-list.html"))
+			tmpl.Execute(w, data)
+			return
+		}
+		// Normal request — return full page
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/photos.html",

@@ -1,0 +1,15 @@
+{{range .Photos}}
+  <div>
+    <img src="/static/{{.Path}}" alt="{{.Caption}}">
+    <p>{{.Caption}}</p>
+    {{if .Tags}}
+      <p>Tags: {{range .Tags}}{{.Name}} {{end}}</p>
+    {{end}}
+  </div>
+{{else}}
+  {{if .SearchQuery}}
+    <p>No photos found for "{{.SearchQuery}}".</p>
+  {{else}}
+    <p>No photos yet.</p>
+  {{end}}
+{{end}}
