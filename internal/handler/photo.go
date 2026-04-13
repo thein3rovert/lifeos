@@ -156,6 +156,9 @@ func SearchPhotos(s store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		searchQuery := r.URL.Query().Get("q")
 
+		// check if it's HTMX request
+		isHTMX := r.Header.Get("HX-Request") == "true"
+
 		// check if it's a tag search (starts with "tags:")
 		if strings.HasPrefix(searchQuery, "tags:") {
 			tagName := strings.TrimPrefix(searchQuery, "tags:")
@@ -165,13 +168,11 @@ func SearchPhotos(s store.Store) http.HandlerFunc {
 				return
 			}
 			data := PhotoSearchData{Photos: photos, SearchQuery: searchQuery}
-			// HTMX request — return partial
-			if r.Header.Get("HX-Request") == "true" {
+			if isHTMX {
 				tmpl := template.Must(template.ParseFiles("templates/photos-list.html"))
 				tmpl.Execute(w, data)
 				return
 			}
-			// Normal request — return full page
 			tmpl := template.Must(template.ParseFiles(
 				"templates/base.html",
 				"templates/photos.html",
@@ -193,13 +194,11 @@ func SearchPhotos(s store.Store) http.HandlerFunc {
 			return
 		}
 		data := PhotoSearchData{Photos: photos, SearchQuery: searchQuery}
-		// HTMX request — return partial
-		if r.Header.Get("HX-Request") == "true" {
+		if isHTMX {
 			tmpl := template.Must(template.ParseFiles("templates/photos-list.html"))
 			tmpl.Execute(w, data)
 			return
 		}
-		// Normal request — return full page
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/photos.html",

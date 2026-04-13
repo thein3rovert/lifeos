@@ -1,9 +1,10 @@
+<div id="photo-results" class="photo-grid">
 {{range .Photos}}
-  <div>
+  <div class="photo-card">
     <img src="/static/{{.Path}}" alt="{{.Caption}}">
     <p>{{.Caption}}</p>
     {{if .Tags}}
-      <p>Tags: {{range .Tags}}{{.Name}} {{end}}</p>
+      <p class="photo-tags">{{range .Tags}}<span class="tag">{{.Name}}</span> {{end}}</p>
     {{end}}
   </div>
 {{else}}
@@ -13,3 +14,4 @@
     <p>No photos yet.</p>
   {{end}}
 {{end}}
+</div>
