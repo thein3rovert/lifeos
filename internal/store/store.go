@@ -16,4 +16,9 @@ type Store interface {
 	SearchPhotos(query string) ([]model.Photo, error)
 	GetPhotoByTag(tagName string) ([]model.Photo, error)
 
+	// SkillStore interfac
+	ListSkills() ([]model.Skill, error)
+	GetSkills(id string) (*model.Skill, error)
+	SaveSkill(skill *model.Skill) error
+
 }
