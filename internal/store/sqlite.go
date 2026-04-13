@@ -190,3 +190,67 @@ func (s *SQLiteStore) GetPhotoTags(photoID int64) ([]model.Tag, error) {
 	}
 	return tags, rows.Err()
 }
+
+
+// Search photos by caption or filename
+func (s *SQLiteStore) SearchPhotos(query string) ([]model.Photo, error) {
+	// Filter the database for string pattern
+	rows, err := s.db.Query(`
+  SELECT id, filename, path, caption, description, created_at
+        FROM photos
+        WHERE caption LIKE ? OR filename LIKE ?
+        ORDER BY created_at DESC`, "%"+query+"%", "%"+query+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var photoData []model.Photo
+	for rows.Next() {
+		var p model.Photo
+		if err := rows.Scan(&p.ID, &p.Filename, &p.Path, &p.Caption, &p.Description, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		// Fetch tags for each fetched photo
+		photoTags, err := s.GetPhotoTags(p.ID)
+		if err != nil {
+			return nil, err
+		}
+		p.Tags = photoTags
+		photoData = append(photoData, p)
+	}
+	return photoData, rows.Err()
+}
+
+func (s *SQLiteStore) GetPhotoByTag(tagName string) ([]model.Photo, error) {
+	rows, err := s.db.Query(`
+	 SELECT p.id, p.filename, p.path, p.caption, p.description, p.created_at
+        FROM photos p
+        JOIN photo_tags pt ON pt.photo_id = p.id
+        JOIN tags t ON t.id = pt.tag_id
+        WHERE t.name = ?
+        ORDER BY p.created_at DESC`, tagName)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var photoData []model.Photo
+	for rows.Next() {
+			var p model.Photo
+			if err := rows.Scan(&p.ID, &p.Filename, &p.Path, &p.Caption, &p.Description, &p.CreatedAt); err != nil {
+				return nil, err
+	}
+
+	// Fetch tags for each fetched photo
+	photoTags, err := s.GetPhotoTags(p.ID)
+	if err != nil {
+		return nil, err
+	}
+	p.Tags = photoTags
+ 	photoData = append(photoData, p)
+	}
+	return photoData, rows.Err()
+}
