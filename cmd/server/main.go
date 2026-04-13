@@ -33,6 +33,7 @@ func main() {
 	mux.HandleFunc("/photos", handler.Photos)
 	mux.HandleFunc("/photos/view", handler.ListPhotos(db))
 	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(db))
+	mux.HandleFunc("/photos/search", handler.SearchPhotos(db))
 
 	// Static file server for serving local photo
 	// Any request to eg. /static/photo/<filename> will server friom disk

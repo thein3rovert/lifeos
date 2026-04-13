@@ -11,4 +11,9 @@ type Store interface {
 	AddTagToPhoto(photoID, tagID int64) error
 	ListTags() ([]model.Tag, error)
 	GetPhotoTags(photoID int64) ([]model.Tag, error)
+
+	//Search
+	SearchPhotos(query string) ([]model.Photo, error)
+	GetPhotoByTag(tagName string) ([]model.Photo, error)
+
 }

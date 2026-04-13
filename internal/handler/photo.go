@@ -140,3 +140,66 @@ func saveTags(s store.Store, photoID int64, tagsValue string) {
 		s.AddTagToPhoto(photoID, tagsID)
 	}
 }
+
+// Handle Photo Searching Functionalites
+// TODO: Slit each functionality into their own func or utils
+// so i can avoid long function
+func SearchPhotos(s store.Store) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		searchQuery := r.URL.Query().Get("q")
+
+		// Check and handle when query is empty/no query
+		if searchQuery == "" {
+			photos, err := s.ListPhotos()
+			if err != nil {
+				http.Error(w, "could not load photos", http.StatusInternalServerError)
+				return
+			}
+		   tmpl := template.Must(template.ParseFiles(
+                "templates/base.html",
+                "templates/photos.html",
+            ))
+      tmpl.ExecuteTemplate(w, "base", photos)
+      return
+		}
+
+		// check if it's a tag search
+		if strings.HasPrefix(searchQuery, "tags:") {
+			tagName := strings.TrimPrefix(searchQuery, "tags:")
+			photos, err := s.GetPhotoByTag(tagName)
+			if err != nil {
+				http.Error(w, "could not search photos", http.StatusInternalServerError)
+				return
+			}
+
+			// TODO: Separete this later into diff struct rather than having
+			// this here
+			data := struct {
+				Photos			[]model.Photo
+				SearchQuery	string
+		 }{photos, searchQuery}
+			tmpl := template.Must(template.ParseFiles(
+          "templates/base.html",
+          "templates/photos.html",
+        ))
+        tmpl.ExecuteTemplate(w, "base", data)
+        return
+		}
+
+		// Regular text search
+		photos, err := s.SearchPhotos(searchQuery)
+	 if err != nil {
+            http.Error(w, "could not search photos", http.StatusInternalServerError)
+            return
+        }
+        data := struct {
+            Photos      []model.Photo
+            SearchQuery string
+        }{photos, searchQuery}
+        tmpl := template.Must(template.ParseFiles(
+            "templates/base.html",
+            "templates/photos.html",
+        ))
+        tmpl.ExecuteTemplate(w, "base", data)
+	}
+}
