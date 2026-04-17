@@ -22,7 +22,7 @@
 **Step 5 — Photos handler**
 - [x] `POST /photos/upload` — accept a file, save to `photos/` dir, save metadata to DB
 - [x] `GET /photos` — fetch all photos from DB, pass to template, display them
-- [ ] `GET /photos/search` — search photos by caption, filename, or tag
+- [x] `GET /photos/search` — search photos by caption, filename, or tag
 
 **Display**
 - [x] Render photo in the ui using go static file server
@@ -46,11 +46,11 @@ photo_tags      — photo_id, tag_id (joins them together)
 - [x] `GetPhotosByTag(tagName string) ([]model.Photo, error)`
 
 **Search — Store methods needed:**
-- [ ] `SearchPhotos(query string) ([]model.Photo, error)`
+- [x] `SearchPhotos(query string) ([]model.Photo, error)`
 > SearchPhotos searches caption, filename with `LIKE %query%`
 > If query starts with `tag:`, treat as tag search (use GetPhotosByTag)
 
-> Completed 06-04-2026
+> Completed 04-13-2026
 
 ---
 

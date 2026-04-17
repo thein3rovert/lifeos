@@ -2,6 +2,7 @@ package store
 
 import "github.com/thein3rovert/lifeos/internal/model"
 
+// Store is for photos (SQLite-backed)
 type Store interface {
 	SavePhoto(photo *model.Photo) error
 	ListPhotos() ([]model.Photo, error)
@@ -16,9 +17,11 @@ type Store interface {
 	SearchPhotos(query string) ([]model.Photo, error)
 	GetPhotoByTag(tagName string) ([]model.Photo, error)
 
-	// SkillStore interfac
+}
+
+// SkillStore is for skills (file-based now, GitHub later)
+type SkillStore interface {
 	ListSkills() ([]model.Skill, error)
 	GetSkill(id string) (*model.Skill, error)
 	SaveSkill(skill *model.Skill) error
-
 }

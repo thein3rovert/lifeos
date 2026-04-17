@@ -1,25 +1,37 @@
-# Binaries for programs and plugins
+# Binaries
 *.exe
 *.exe~
 *.dll
 *.so
-*.dylib
+*.dysp
+lifeos
 
-# Test binary, built with `go test -c`
+# Test binary
 *.test
 
 # Output of the go coverage tool
 *.out
 
-# Go workspace file
-go.work
-
 # Dependency directories
 vendor/
 
-# Build output
-/bin/
-/dist/
+# Go workspace file
+go.work
+
+# SQLite database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Photos directory (user data)
+photos/
+
+# Skills directory (user data)
+skills/
+
+# direnv
+.direnv/
 
 # IDE
 .vscode/
@@ -32,10 +44,11 @@ vendor/
 .DS_Store
 Thumbs.db
 
-# Direnv
-.direnv/
-.envrc.cache
-
-# Environment
+# Environment variables
 .env
 .env.local
+
+# Build directories
+dist/
+build/
+tmp/
