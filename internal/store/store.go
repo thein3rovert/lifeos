@@ -18,7 +18,7 @@ type Store interface {
 
 	// SkillStore interfac
 	ListSkills() ([]model.Skill, error)
-	GetSkills(id string) (*model.Skill, error)
+	GetSkill(id string) (*model.Skill, error)
 	SaveSkill(skill *model.Skill) error
 
 }
