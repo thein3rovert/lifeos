@@ -1,17 +1,25 @@
-<div id="photo-results" class="photo-grid">
+<div id="photo-results" class="photo-grid grid grid-cols-4 gap-4">
 {{range .Photos}}
-  <div class="photo-card">
-    <img src="/static/{{.Path}}" alt="{{.Caption}}">
-    <p>{{.Caption}}</p>
-    {{if .Tags}}
-      <p class="photo-tags">{{range .Tags}}<span class="tag">{{.Name}}</span> {{end}}</p>
-    {{end}}
+  <div class="photo-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+    <div class="aspect-square overflow-hidden">
+      <img src="/static/{{.Path}}" alt="{{.Caption}}" class="w-full h-full object-cover">
+    </div>
+    <div class="p-3">
+      <p class="text-sm font-medium text-gray-800 text-center">{{.Caption}}</p>
+      {{if .Tags}}
+        <div class="flex flex-wrap justify-center gap-1 mt-2">
+          {{range .Tags}}
+            <span class="tag bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{{.Name}}</span>
+          {{end}}
+        </div>
+      {{end}}
+    </div>
   </div>
 {{else}}
   {{if .SearchQuery}}
-    <p>No photos found for "{{.SearchQuery}}".</p>
+    <p class="col-span-4 text-center text-gray-500">No photos found for "{{.SearchQuery}}".</p>
   {{else}}
-    <p>No photos yet.</p>
+    <p class="col-span-4 text-center text-gray-500">No photos yet.</p>
   {{end}}
 {{end}}
 </div>
