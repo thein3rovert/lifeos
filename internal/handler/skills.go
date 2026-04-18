@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/thein3rovert/lifeos/internal/model"
@@ -136,6 +137,34 @@ func AddNote(noteStore store.NoteStore) http.HandlerFunc {
 
         if err := noteStore.AddNote(skillID, content); err != nil {
             http.Error(w, "Failed to add note", http.StatusInternalServerError)
+            return
+        }
+        // Redirect back to skill page
+        http.Redirect(w, r, "/skills/"+skillID, http.StatusSeeOther)
+    }
+}
+
+// DeleteNote removes a single buffer note
+func DeleteNote(noteStore store.NoteStore) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+        noteIDStr := r.FormValue("note_id")
+        skillID := r.FormValue("skill_id")
+
+        if noteIDStr == "" || skillID == "" {
+            http.Error(w, "Missing note_id or skill_id", http.StatusBadRequest)
+            return
+        }
+        noteID, err := strconv.Atoi(noteIDStr)
+        if err != nil {
+            http.Error(w, "Invalid note_id", http.StatusBadRequest)
+            return
+        }
+        if err := noteStore.DeleteNote(noteID); err != nil {
+            http.Error(w, "Failed to delete note", http.StatusInternalServerError)
             return
         }
         // Redirect back to skill page

@@ -49,6 +49,12 @@ func (s *NoteStore) GetNotesBySkill(skillID string) ([]model.Note, error) {
 	return notes, rows.Err()
 }
 
+// DeleteNote removes a single note by ID
+func (s *NoteStore) DeleteNote(noteID int) error {
+    _, err := s.db.Exec("DELETE FROM skill_notes WHERE id = ?", noteID)
+    return err
+}
+
 // ClearNotes removes all notes for a skill (called after appending to skill)
 func (s *NoteStore) ClearNotes(skillID string) error {
 	_, err := s.db.Exec("DELETE FROM skill_notes WHERE skill_id = ?", skillID)
