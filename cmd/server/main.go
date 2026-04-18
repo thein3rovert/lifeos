@@ -47,6 +47,8 @@ func main() {
 
 	// mux.HandleFunc("/skills", handler.Skills)
 	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
+	// Skill with trailing / get a single skills
+	mux.HandleFunc("/skills/", handler.GetSkill(skillStore))
 
 
 	log.Println("Server starting on 6060")
