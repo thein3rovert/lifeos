@@ -28,8 +28,18 @@
       {{if .Notes}}
       <div class="space-y-3 mb-6">
         {{range .Notes}}
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-          <p class="text-gray-700 whitespace-pre-wrap">{{.Content}}</p>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded relative group">
+          <!-- Delete button -->
+          <form action="/skills/notes/delete" method="POST" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <input type="hidden" name="note_id" value="{{.ID}}">
+            <input type="hidden" name="skill_id" value="{{$.ID}}">
+            <button type="submit" class="text-red-400 hover:text-red-600 p-1" title="Delete note" onclick="return confirm('Delete this note?')">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </form>
+          <p class="text-gray-700 whitespace-pre-wrap pr-8">{{.Content}}</p>
           <p class="text-xs text-gray-500 mt-2">{{.CreatedAt.Format "Jan 02, 2006 3:04 PM"}}</p>
         </div>
         {{end}}
