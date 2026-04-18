@@ -20,10 +20,11 @@ func main() {
 		log.Fatalf("Failed to initialise store: %v", err)
 	}
 
+	// Initialise new photo store
 	photoStore := store.NewPhotoStore(db.DB())
 
 	// Initialise skills store (file-based) for now
-	// skillStore := store.NewFileSkillStore("skills")
+	skillStore := store.NewFileSkillStore("skills")
 
 
 	mux := http.NewServeMux()
@@ -44,7 +45,9 @@ func main() {
 	// Any request to eg. /static/photo/<filename> will server friom disk
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
 
-	mux.HandleFunc("/skills", handler.Skills)
+	// mux.HandleFunc("/skills", handler.Skills)
+	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
+
 
 	log.Println("Server starting on 6060")
 	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
