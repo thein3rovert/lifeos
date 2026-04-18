@@ -26,3 +26,10 @@ type SkillStore interface {
 	SaveSkill(skill *model.Skill) error
 	Sync() error // Force refresh from source
 }
+
+// NoteStore is for buffered skill notes
+type NoteStore interface {
+    AddNote(skillID, content string) error
+    GetNotesBySkill(skillID string) ([]model.Note, error)
+    ClearNotes(skillID string) error
+}
