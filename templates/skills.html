@@ -9,9 +9,13 @@
         <a href="/skills/{{.ID}}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-gray-200">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{{.Title}}</h2>
-            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{.Format}}</span>
+            {{if .Format}}
+              <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{.Format}}</span>
+            {{end}}
           </div>
-          <p class="text-sm text-gray-500">Last updated: {{.UpdatedAt}}</p>
+          {{if .UpdatedAt}}
+            <p class="text-sm text-gray-500">Last updated: {{.UpdatedAt}}</p>
+          {{end}}
         </a>
       {{else}}
         <div class="col-span-full text-center py-12">

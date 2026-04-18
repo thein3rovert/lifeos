@@ -71,20 +71,35 @@ func (s *SkillStore) GetSkill(id string) (*model.Skill, error) {
 		Content: content,
 	}
 
-	// Parse frontmatter
+	// Parse frontmatter (supports both LifeOS and Opencode formats)
 	if strings.HasPrefix(content, "---") {
 		lines := strings.Split(content, "\n")
 		for _, line := range lines[1:] {
+			// LifeOS format: title:
 			if strings.HasPrefix(line, "title:") {
 				skill.Title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
 			}
+			// Opencode format: name:
+			if strings.HasPrefix(line, "name:") {
+				skill.Title = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
+			}
+			// LifeOS format: format:
 			if strings.HasPrefix(line, "format:") {
 				skill.Format = strings.TrimSpace(strings.TrimPrefix(line, "format:"))
+			}
+			// Opencode format: compatibility:
+			if strings.HasPrefix(line, "compatibility:") {
+				skill.Format = strings.TrimSpace(strings.TrimPrefix(line, "compatibility:"))
 			}
 			if line == "---" {
 				break
 			}
 		}
+	}
+
+	// Fallback: use ID as title if no title found
+	if skill.Title == "" {
+		skill.Title = skill.ID
 	}
 
 	return skill, nil
