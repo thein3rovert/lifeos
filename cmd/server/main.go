@@ -10,6 +10,7 @@ import (
 	"github.com/thein3rovert/lifeos/internal/middleware"
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/github"
+	"github.com/thein3rovert/lifeos/internal/store/notes"
 )
 
 // go run cmd/server/main.go
@@ -29,13 +30,13 @@ func main() {
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	githubOwner := os.Getenv("GITHUB_OWNER")
 	githubRepo := os.Getenv("GITHUB_REPO")
-	
+
 	if githubToken == "" || githubOwner == "" || githubRepo == "" {
 		log.Fatal("GitHub credentials not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables")
 	}
-	
-	skillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
 
+	skillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
+	noteStore := notes.New(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -58,7 +59,11 @@ func main() {
 	// mux.HandleFunc("/skills", handler.Skills)
 	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
 	// Skill with trailing / get a single skills
-	mux.HandleFunc("/skills/", handler.GetSkill(skillStore))
+	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
+	// Add note to skill buffer
+mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
+// Append notes to skill and clear buffer
+mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
 	// Sync skills from GitHub (force refresh)
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
@@ -67,7 +72,7 @@ func main() {
 	if port == "" {
 		port = "6060"
 	}
-	
+
 	log.Printf("Server starting on %s", port)
 	if err := http.ListenAndServe(":"+port, middleware.CustomLogger(mux)); err != nil {
 		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
