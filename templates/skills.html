@@ -1,4 +1,25 @@
 {{template "base" .}}
 {{define "content"}}
-    <h1>Thein3rovert Skills</h1>
+<div class="min-h-screen bg-gray-50 py-8 px-4">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Thein3rovert Skills</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {{range .}}
+        <a href="/skills/{{.ID}}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-gray-200">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{{.Title}}</h2>
+            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{.Format}}</span>
+          </div>
+          <p class="text-sm text-gray-500">Last updated: {{.UpdatedAt}}</p>
+        </a>
+      {{else}}
+        <div class="col-span-full text-center py-12">
+          <p class="text-gray-500 text-lg">No skills yet.</p>
+          <p class="text-gray-400 text-sm mt-2">Add markdown files to the skills/ directory</p>
+        </div>
+      {{end}}
+    </div>
+  </div>
+</div>
 {{end}}
