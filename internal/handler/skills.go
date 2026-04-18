@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/yuin/goldmark"
@@ -51,41 +52,70 @@ func ListSkills(s store.SkillStore) http.HandlerFunc {
 
 func GetSkill(s store.SkillStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//Extract skills ID from the url path
+		// Extract skill ID from the url path
 		skillExtractedId := r.URL.Path[len("/skills/"):]
 		if skillExtractedId == "" {
 			http.Error(w, "skill not found", http.StatusNotFound)
 			return
-			}
+		}
 
-			//Get Skill
-			skill, err := s.GetSkill(skillExtractedId)
-			if err != nil {
-				http.Error(w, "could not load skills", http.StatusInternalServerError)
-				return
-			}
+		// Get Skill
+		skill, err := s.GetSkill(skillExtractedId)
+		if err != nil {
+			http.Error(w, "could not load skill", http.StatusInternalServerError)
+			return
+		}
 
-			// Convert the get markdown to html using bytes for conversion
-			// and goldmark for rendering
-			var buf bytes.Buffer
-			if err := goldmark.Convert([]byte(skill.Content), &buf); err != nil {
-				// If conversion fails, use raw content
-				buf.WriteString(skill.Content)
-			}
+		// Strip frontmatter and get only markdown content
+		markdownContent := stripMarkdownFrontMatter(skill.Content)
 
-			data := SkillViewData {
-				ID: skill.ID,
-				Title: skill.Title,
-				Format: skill.Format,
-				Content: skill.Content,
-				HTMLContent: template.HTML(buf.String()),
-				UpdatedAt: skill.UpdatedAt.String(),
-			}
+		// Convert markdown to HTML
+		var buf bytes.Buffer
+		if err := goldmark.Convert([]byte(markdownContent), &buf); err != nil {
+			buf.WriteString(markdownContent)
+		}
 
-			tmpl := template.Must(template.ParseFiles(
-				"templates/base.html",
-				"templates/skill.html",
-			))
-			tmpl.ExecuteTemplate(w, "base", data)
+		data := SkillViewData{
+			ID:          skill.ID,
+			Title:       skill.Title,
+			Format:      skill.Format,
+			Content:     skill.Content,
+			HTMLContent: template.HTML(buf.String()),
+			UpdatedAt:   skill.UpdatedAt.String(),
+		}
+
+		tmpl := template.Must(template.ParseFiles(
+			"templates/base.html",
+			"templates/skill.html",
+		))
+		tmpl.ExecuteTemplate(w, "base", data)
 	}
+}
+
+// TODO: Add to util
+// Remove everything btw the first two formatter "---" leaving the actual
+// markdown content
+func stripMarkdownFrontMatter(content string) string {
+	if !strings.HasPrefix(content, "---") {
+		return content
+	}
+
+	lines := strings.Split(content, "\n")
+	inFrontmatter := true
+	var result []string
+
+	for i, line := range lines {
+		if i == 0 && line == "---" {
+			continue
+		}
+
+	if inFrontmatter && line == "---" {
+		inFrontmatter = false
+		continue
+	}
+	if !inFrontmatter {
+		result = append(result, line)
+	}
+	}
+	return strings.Join(result, "\n")
 }
