@@ -1,0 +1,10 @@
+package model
+
+import "time"
+
+type Note struct {
+	  ID        int       `json:"id"`
+    SkillID   string    `json:"skill_id"`
+    Content   string    `json:"content"`
+    CreatedAt time.Time `json:"created_at"`
+}
