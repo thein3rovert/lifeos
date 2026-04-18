@@ -39,7 +39,7 @@ func ListSkills(s store.SkillStore) http.HandlerFunc {
 func GetSkill(s store.SkillStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//Extract skills ID from the url path
-		skillExtractedId := r.URL.Path[len("/skills"):]
+		skillExtractedId := r.URL.Path[len("/skills/"):]
 		if skillExtractedId == "" {
 			http.Error(w, "skill not found", http.StatusNotFound)
 			return
@@ -54,7 +54,7 @@ func GetSkill(s store.SkillStore) http.HandlerFunc {
 
 			tmpl := template.Must(template.ParseFiles(
 				"templates/base.html",
-				"templates/skills.html",
+				"templates/skill.html",
 			))
 			tmpl.ExecuteTemplate(w, "base", skill)
 	}
