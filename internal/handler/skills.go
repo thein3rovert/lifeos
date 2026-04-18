@@ -92,6 +92,19 @@ func GetSkill(s store.SkillStore) http.HandlerFunc {
 	}
 }
 
+// SyncSkills forces a refresh of skills from GitHub
+func SyncSkills(s store.SkillStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := s.Sync(); err != nil {
+			http.Error(w, "Failed to sync skills: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		// Redirect back to skills list
+		http.Redirect(w, r, "/skills", http.StatusSeeOther)
+	}
+}
+
 // TODO: Add to util
 // Remove everything btw the first two formatter "---" leaving the actual
 // markdown content

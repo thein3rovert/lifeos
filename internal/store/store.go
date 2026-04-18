@@ -24,4 +24,5 @@ type SkillStore interface {
 	ListSkills() ([]model.Skill, error)
 	GetSkill(id string) (*model.Skill, error)
 	SaveSkill(skill *model.Skill) error
+	Sync() error // Force refresh from source
 }

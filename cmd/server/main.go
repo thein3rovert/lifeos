@@ -59,6 +59,8 @@ func main() {
 	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
 	// Skill with trailing / get a single skills
 	mux.HandleFunc("/skills/", handler.GetSkill(skillStore))
+	// Sync skills from GitHub (force refresh)
+	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
 
 	port := os.Getenv("LIFEOS_PORT")

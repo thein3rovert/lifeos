@@ -80,3 +80,8 @@ func (s *FileSkillStore) SaveSkill(skill *model.Skill) error {
 	path := filepath.Join(s.dir, skill.ID+".md")
 	return os.WriteFile(path, []byte(skill.Content), 0644)
 }
+
+// Sync is a no-op for local file store (always fresh)
+func (s *FileSkillStore) Sync() error {
+	return nil
+}
