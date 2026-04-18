@@ -15,7 +15,7 @@ type SkillViewData struct {
 	Title string
 	Format string
 	Content string
-	HTMLContent string
+	HTMLContent template.HTML // Change so go doesnt escape it
 	UpdatedAt string
 }
 
@@ -78,7 +78,7 @@ func GetSkill(s store.SkillStore) http.HandlerFunc {
 				Title: skill.Title,
 				Format: skill.Format,
 				Content: skill.Content,
-				HTMLContent: buf.String(),
+				HTMLContent: template.HTML(buf.String()),
 				UpdatedAt: skill.UpdatedAt.String(),
 			}
 

@@ -17,10 +17,12 @@
     </div>
 
     <!-- Skill content -->
+    <!--.HTMLContent contains the rendered html from
+    goldmark-->
     <div class="bg-white rounded-xl shadow-md p-8 border border-gray-200">
-      <div class="prose prose-lg max-w-none">
-        <pre class="whitespace-pre-wrap font-mono text-sm text-gray-700">{{.Content}}</pre>
-      </div>
+      <article class="prose prose-lg max-w-none">
+        {{.HTMLContent}}
+      </article>
     </div>
 
     <!-- Edit button -->
