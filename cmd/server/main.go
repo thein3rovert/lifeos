@@ -14,11 +14,16 @@ import (
 // Every Request: Middleware(customlogge) -> Handler
 func main() {
 
-	// Initialise store
+	// Initialise store (Database store -> photos)
 	db, err := store.NewSQLiteStore("lifeos.db")
 	if err != nil {
 		log.Fatalf("Failed to initialise store: %v", err)
 	}
+
+	photoStore := store.NewPhotoStore(db.DB())
+
+	// Initialise skills store (file-based) for now
+	// skillStore := store.NewFileSkillStore("skills")
 
 
 	mux := http.NewServeMux()
@@ -31,9 +36,9 @@ func main() {
 	mux.HandleFunc("/home", handler.Home)
 
 	mux.HandleFunc("/photos", handler.Photos)
-	mux.HandleFunc("/photos/view", handler.ListPhotos(db))
-	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(db))
-	mux.HandleFunc("/photos/search", handler.SearchPhotos(db))
+	mux.HandleFunc("/photos/view", handler.ListPhotos(photoStore))
+	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(photoStore))
+	mux.HandleFunc("/photos/search", handler.SearchPhotos(photoStore))
 
 	// Static file server for serving local photo
 	// Any request to eg. /static/photo/<filename> will server friom disk
