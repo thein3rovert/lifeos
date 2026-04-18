@@ -27,6 +27,8 @@
 **Display**
 - [x] Render photo in the ui using go static file server
 - [x] We can use closure or struct in the handle the store request
+- [x] Add Tailwind CSS for styling
+- [x] HTMX for live search (no page reload)
 
 **Organisation**
 - [ ] Albums/collections — group photos together
@@ -55,9 +57,20 @@ photo_tags      — photo_id, tag_id (joins them together)
 ---
 
 **Step 6 — Skills handler**
-- [ ] `GET /skills` — read all `.md` files from `skills/` dir
-- [ ] Convert markdown to HTML (using `github.com/yuin/goldmark`)
-- [ ] Pass rendered HTML to template
+- [x] `GET /skills` — read all skills from GitHub repo (thein3rovert/polis)
+- [x] Convert markdown to HTML (using `github.com/yuin/goldmark`)
+- [x] Pass rendered HTML to template
+- [x] Support both LifeOS and Opencode skill formats
+- [x] Add caching (5-min TTL) with manual sync
+- [x] Sync button to force refresh from GitHub
+
+**Skills — Architecture**
+```
+internal/store/github/
+├── client.go      # GitHub API client (reusable, centralized auth)
+├── types.go       # API response types
+└── skill_store.go # GitHubSkillStore implementation
+```
 
 - **Functionalities**
 - [ ] 1. Edit skills
@@ -67,10 +80,13 @@ photo_tags      — photo_id, tag_id (joins them together)
 - [ ] 5. Ability to download skills and assets when requires
 
 **Step 7 — Tighten up**
-- [ ] Move config (port, paths) to env vars
+- [x] Move config (port, paths) to env vars — GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, LIFEOS_PORT
+- [x] Add direnv support with .envrc
 - [ ] Proper error handling across all layers
 - [ ] Clean up any shortcuts taken earlier
 
 **TODO: More features to add**
 - [ ] Glossary for nix and other tools [Static Webpage] (Useful for other people, we host it publicly later)
 - [ ] Cheatsheet Webpage [Static Webpage], contains all tools i've used, their command and description.
+
+> Last Updated: 04-18-2026
