@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/thein3rovert/lifeos/internal/handler"
 	"github.com/thein3rovert/lifeos/internal/middleware"
 	"github.com/thein3rovert/lifeos/internal/store"
+	"github.com/thein3rovert/lifeos/internal/store/github"
 )
 
 // go run cmd/server/main.go
@@ -23,8 +25,16 @@ func main() {
 	// Initialise new photo store
 	photoStore := store.NewPhotoStore(db.DB())
 
-	// Initialise skills store (file-based) for now
-	skillStore := store.NewFileSkillStore("skills")
+	// Initialise GitHub skills store
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubOwner := os.Getenv("GITHUB_OWNER")
+	githubRepo := os.Getenv("GITHUB_REPO")
+	
+	if githubToken == "" || githubOwner == "" || githubRepo == "" {
+		log.Fatal("GitHub credentials not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables")
+	}
+	
+	skillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
 
 
 	mux := http.NewServeMux()
@@ -51,9 +61,14 @@ func main() {
 	mux.HandleFunc("/skills/", handler.GetSkill(skillStore))
 
 
-	log.Println("Server starting on 6060")
-	if err := http.ListenAndServe(":6060", middleware.CustomLogger(mux)); err != nil {
-		fmt.Println("Failed to listen at port 6060", err)
+	port := os.Getenv("LIFEOS_PORT")
+	if port == "" {
+		port = "6060"
+	}
+	
+	log.Printf("Server starting on %s", port)
+	if err := http.ListenAndServe(":"+port, middleware.CustomLogger(mux)); err != nil {
+		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
 		log.Fatal(err)
 	}
 

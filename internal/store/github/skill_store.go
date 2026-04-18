@@ -29,19 +29,22 @@ func NewSkillStore(owner, repo, token string) *SkillStore {
 	}
 }
 
-// ListSkills fetches all markdown files from the repo
+// ListSkills fetches all skill directories from the repo
+// Each skill is a directory containing SKILL.md
 func (s *SkillStore) ListSkills() ([]model.Skill, error) {
 	ctx := context.Background()
 
+	// List all items in skills/ directory
 	contents, err := s.client.ListDirectoryContents(ctx, s.skillsPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var skills []model.Skill
-	for _, file := range contents {
-		if strings.HasSuffix(file.Name, ".md") {
-			id := strings.TrimSuffix(file.Name, ".md")
+	for _, item := range contents {
+		// Only process directories (skill folders)
+		if item.Type == "dir" {
+			id := item.Name
 			skill, err := s.GetSkill(id)
 			if err != nil {
 				continue
@@ -53,9 +56,10 @@ func (s *SkillStore) ListSkills() ([]model.Skill, error) {
 }
 
 // GetSkill fetches a single skill file from GitHub
+// Skills are stored as skills/{id}/SKILL.md
 func (s *SkillStore) GetSkill(id string) (*model.Skill, error) {
 	ctx := context.Background()
-	path := fmt.Sprintf("%s/%s.md", s.skillsPath, id)
+	path := fmt.Sprintf("%s/%s/SKILL.md", s.skillsPath, id)
 
 	content, err := s.client.GetFileContent(ctx, path)
 	if err != nil {
@@ -87,11 +91,12 @@ func (s *SkillStore) GetSkill(id string) (*model.Skill, error) {
 }
 
 // SaveSkill creates/updates a file and opens a PR
+// Skills are stored as skills/{id}/SKILL.md
 func (s *SkillStore) SaveSkill(skill *model.Skill) error {
 	ctx := context.Background()
 
 	// 1. Get current file SHA (if exists)
-	path := fmt.Sprintf("%s/%s.md", s.skillsPath, skill.ID)
+	path := fmt.Sprintf("%s/%s/SKILL.md", s.skillsPath, skill.ID)
 	sha, err := s.client.GetFileSHA(ctx, path)
 	if err != nil {
 		sha = ""
