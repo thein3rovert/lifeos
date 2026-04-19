@@ -2,7 +2,10 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -242,6 +245,53 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
         // Redirect back to skill page
         http.Redirect(w, r, "/skills/"+skillID, http.StatusSeeOther)
     }
+}
+
+func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
+	// TODO: Move type to appropraite or dedicated location
+	type sidecarRequest struct {
+		ExistingSkill 	string `json:"updatedSkill"`
+		NewNotes			 	string `json:"newNotes"`
+	}
+ type sidecarResponse struct {
+    UpdatedSkill string `json:"updatedSkill"`
+    Error        string `json:"error"`
+}
+ payload := sidecarRequest{
+    ExistingSkill: existingSkill,
+    NewNotes:      newNotes,
+ }
+
+ jsonData, err := json.Marshal(payload)
+ if err != nil {
+ 	return "", err
+ }
+
+ response, err := http.Post(
+	"http://localhost:3001/skill/update",
+  "application/json",
+  bytes.NewBuffer(jsonData),
+ )
+
+ if err != nil {
+ 	return "", err
+ }
+
+ defer response.Body.Close()
+
+ if response.StatusCode != http.StatusOK {
+ 	body, _ := io.ReadAll(response.Body)
+  return "", fmt.Errorf("sidecar return  %d: %s", response.StatusCode, string(body))
+ }
+
+ var result sidecarResponse
+ if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+     return "", err
+ }
+ if result.Error != "" {
+     return "", fmt.Errorf("sidecar error: %s", result.Error)
+ }
+ return result.UpdatedSkill, nil
 }
 
 
