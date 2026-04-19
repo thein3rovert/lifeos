@@ -8,7 +8,7 @@
                 <span class="mr-2">←</span> Back to skill
             </a>
             <h1 class="text-3xl font-bold text-gray-800">Preview AI Update: {{.Title}}</h1>
-            <p class="text-gray-600 mt-2">Review the AI-generated changes before saving</p>
+            <p class="text-gray-600 mt-2">Review and edit the AI-generated changes before saving</p>
         </div>
 
         <!-- Notes that were sent -->
@@ -21,33 +21,70 @@
             </ul>
         </div>
 
-        <!-- Preview -->
-        <div class="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Updated Skill Preview</h2>
-            <article class="markdown-body border-t pt-4">
-                {{.HTMLContent}}
-            </article>
-        </div>
+        <!-- Editable markdown form -->
+        <form action="/skills/save" method="POST" id="saveForm">
+            <input type="hidden" name="skill_id" value="{{.ID}}">
+            
+            <!-- Editor -->
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Edit Skill Markdown</h2>
+                    <button type="button" onclick="updatePreview()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Update Preview
+                    </button>
+                </div>
+                <textarea 
+                    name="updated_content" 
+                    id="markdownEditor"
+                    rows="20" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                >{{.UpdatedContent}}</textarea>
+            </div>
 
-        <!-- Raw markdown toggle -->
-        <details class="bg-gray-100 rounded-lg p-4 mb-6">
-            <summary class="font-semibold text-gray-700 cursor-pointer">View Raw Markdown</summary>
-            <pre class="mt-4 p-4 bg-gray-800 text-gray-100 rounded-lg overflow-x-auto text-sm"><code>{{.UpdatedContent}}</code></pre>
-        </details>
+            <!-- Live preview -->
+            <div id="previewSection" class="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Preview</h2>
+                <article class="markdown-body border-t pt-4" id="livePreview">
+                    {{.HTMLContent}}
+                </article>
+            </div>
 
-        <!-- Actions -->
-        <div class="flex gap-4">
-            <form action="/skills/save" method="POST" class="flex-1">
-                <input type="hidden" name="skill_id" value="{{.ID}}">
-                <input type="hidden" name="updated_content" value="{{.UpdatedContent}}">
-                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            <!-- Actions -->
+            <div class="flex gap-4">
+                <button type="submit" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
                     ✓ Save to GitHub (Create PR)
                 </button>
-            </form>
-            <a href="/skills/{{.ID}}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors">
-                ✕ Cancel
-            </a>
-        </div>
+                <a href="/skills/{{.ID}}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors">
+                    ✕ Cancel
+                </a>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+function updatePreview() {
+    const content = document.getElementById('markdownEditor').value;
+    const previewSection = document.getElementById('livePreview');
+    
+    // Show loading state
+    previewSection.innerHTML = '<p class="text-gray-500 italic">Rendering preview...</p>';
+    
+    // Send to server to render
+    fetch('/skills/preview-render', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'content=' + encodeURIComponent(content)
+    })
+    .then(response => response.text())
+    .then(html => {
+        previewSection.innerHTML = html;
+    })
+    .catch(error => {
+        previewSection.innerHTML = '<p class="text-red-500">Error rendering preview: ' + error.message + '</p>';
+    });
+}
+</script>
 {{end}}
