@@ -80,25 +80,45 @@ internal/store/github/
   - [x] "Append Notes" — direct append to skill
   - [x] "Preview AI Update" — AI rewrites skill with notes
   - [x] Review preview page (HTML render + raw markdown)
-  - [ ] Edit preview manually before creating PR ← NEXT
+  - [x] Edit preview manually before creating PR (with live preview update)
 - [ ] 3. Download skills in different formats (opencode, claude, copilot)
 - [ ] 4. Skills assets section (images, files)
 - [ ] 5. Download skills with assets
 
-**Skills — Note Buffer Flow**
+**Skills — Note Buffer Flow** ✅ COMPLETE
 ```
 Skill Page → Add Notes (buffered in SQLite)
     ↓
 Two options:
   1. "Append Notes to Skill" — direct append (original)
-  2. "Preview AI Update" → Sidecar → AI rewrites skill
+  2. "Preview AI Update" → Sidecar (Kimi K2.5) → AI rewrites skill
                               ↓
-                        Preview Page (review HTML + raw markdown)
+                        Preview Page (editable markdown + live preview)
                               ↓
-                        [Edit Preview] ← IN PROGRESS
+                        [Update Preview] — re-render with edits
                               ↓
                         [Save to GitHub] — creates PR, clears buffer
 ```
+
+**Running the Application**
+
+Start services in order:
+
+1. **Start OpenCode** (port 4097):
+   ```bash
+   opencode serve --port 4097
+   ```
+
+2. **Start Sidecar** (port 3001):
+   ```bash
+   cd sidecar
+   npm start
+   ```
+
+3. **Start LifeOS Server** (port 6060):
+   ```bash
+   go run cmd/server/main.go
+   ```
 
 **Step 7 — Tighten up**
 - [x] Move config (port, paths) to env vars — GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, LIFEOS_PORT
@@ -110,4 +130,4 @@ Two options:
 - [ ] Glossary for nix and other tools [Static Webpage] (Useful for other people, we host it publicly later)
 - [ ] Cheatsheet Webpage [Static Webpage], contains all tools i've used, their command and description.
 
-> Last Updated: 04-18-2026
+> Last Updated: 04-19-2026
