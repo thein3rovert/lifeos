@@ -61,11 +61,11 @@ func main() {
 	// Skill with trailing / get a single skills
 	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
 	// Add note to skill buffer
-mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
-// Delete a single note
-mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
-// Append notes to skill and clear buffer
-mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
+	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
+	// Delete a single note
+	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
+	// Append notes to skill and clear buffer
+	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
 	// Sync skills from GitHub (force refresh)
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
