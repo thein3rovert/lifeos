@@ -73,11 +73,32 @@ internal/store/github/
 ```
 
 - **Functionalities**
-- [ ] 1. Edit skills
-- [ ] 2. Option to update skills by pasting new text(memories) to a provided text box, click update button and it will trigger an ai agent that will review and update the memory as required, this will be a growing memory as we learn
-- [ ] 3. Each skills are downloaded in diff skills format (opencode, claude, copilot) metadata format
-- [ ] 4. Each skills have a assets section where we can add images, files and other things that are associated to the skills
-- [ ] 5. Ability to download skills and assets when requires
+- [x] 1. Buffer notes system — add/delete notes per skill (SQLite)
+- [x] 2. AI-powered skill updates via OpenCode sidecar
+  - [x] Create OPENCODE sidecar (Node.js + Express on port 3001)
+  - [x] Buffer notes accumulate in SQLite
+  - [x] "Append Notes" — direct append to skill
+  - [x] "Preview AI Update" — AI rewrites skill with notes
+  - [x] Review preview page (HTML render + raw markdown)
+  - [ ] Edit preview manually before creating PR ← NEXT
+- [ ] 3. Download skills in different formats (opencode, claude, copilot)
+- [ ] 4. Skills assets section (images, files)
+- [ ] 5. Download skills with assets
+
+**Skills — Note Buffer Flow**
+```
+Skill Page → Add Notes (buffered in SQLite)
+    ↓
+Two options:
+  1. "Append Notes to Skill" — direct append (original)
+  2. "Preview AI Update" → Sidecar → AI rewrites skill
+                              ↓
+                        Preview Page (review HTML + raw markdown)
+                              ↓
+                        [Edit Preview] ← IN PROGRESS
+                              ↓
+                        [Save to GitHub] — creates PR, clears buffer
+```
 
 **Step 7 — Tighten up**
 - [x] Move config (port, paths) to env vars — GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, LIFEOS_PORT
