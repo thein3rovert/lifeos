@@ -16,7 +16,6 @@ type Store interface {
 	//Search
 	SearchPhotos(query string) ([]model.Photo, error)
 	GetPhotoByTag(tagName string) ([]model.Photo, error)
-
 }
 
 // SkillStore is for skills (file-based now, GitHub later)
@@ -29,8 +28,8 @@ type SkillStore interface {
 
 // NoteStore is for buffered skill notes
 type NoteStore interface {
-    AddNote(skillID, content string) error
-    GetNotesBySkill(skillID string) ([]model.Note, error)
-    ClearNotes(skillID string) error
-     DeleteNote(noteID int) error
+	AddNote(skillID, content string) error
+	GetNotesBySkill(skillID string) ([]model.Note, error)
+	ClearNotes(skillID string) error
+	DeleteNote(noteID int) error
 }

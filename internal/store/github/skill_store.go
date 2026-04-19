@@ -17,16 +17,16 @@ type SkillStore struct {
 	repo       string
 	branch     string
 	skillsPath string
-	
+
 	// Cache
-	cache      map[string]cachedSkill
-	cacheMux   sync.RWMutex
-	ttl        time.Duration
+	cache    map[string]cachedSkill
+	cacheMux sync.RWMutex
+	ttl      time.Duration
 }
 
 type cachedSkill struct {
-	skill     *model.Skill
-	cachedAt  time.Time
+	skill    *model.Skill
+	cachedAt time.Time
 }
 
 // NewSkillStore creates a GitHub-backed skill store with caching
@@ -57,7 +57,7 @@ func (s *SkillStore) ListSkills() ([]model.Skill, error) {
 		}
 	}
 	s.cacheMux.RUnlock()
-	
+
 	// Fetch from GitHub
 	return s.fetchAndCacheAll()
 }
@@ -73,18 +73,18 @@ func (s *SkillStore) GetSkill(id string) (*model.Skill, error) {
 		}
 	}
 	s.cacheMux.RUnlock()
-	
+
 	// Fetch from GitHub
 	skill, err := s.fetchFromGitHub(id)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Update cache
 	s.cacheMux.Lock()
 	s.cache[id] = cachedSkill{skill: skill, cachedAt: time.Now()}
 	s.cacheMux.Unlock()
-	
+
 	return skill, nil
 }
 
@@ -93,7 +93,7 @@ func (s *SkillStore) Sync() error {
 	s.cacheMux.Lock()
 	s.cache = make(map[string]cachedSkill)
 	s.cacheMux.Unlock()
-	
+
 	_, err := s.fetchAndCacheAll()
 	return err
 }
@@ -109,7 +109,7 @@ func (s *SkillStore) InvalidateCache() {
 func (s *SkillStore) getAllFromCache() []model.Skill {
 	s.cacheMux.RLock()
 	defer s.cacheMux.RUnlock()
-	
+
 	var skills []model.Skill
 	for _, cached := range s.cache {
 		skills = append(skills, *cached.skill)
@@ -120,15 +120,15 @@ func (s *SkillStore) getAllFromCache() []model.Skill {
 // Internal: fetch all from GitHub and cache
 func (s *SkillStore) fetchAndCacheAll() ([]model.Skill, error) {
 	ctx := context.Background()
-	
+
 	contents, err := s.client.ListDirectoryContents(ctx, s.skillsPath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var skills []model.Skill
 	newCache := make(map[string]cachedSkill)
-	
+
 	for _, item := range contents {
 		if item.Type == "dir" {
 			id := item.Name
@@ -140,12 +140,12 @@ func (s *SkillStore) fetchAndCacheAll() ([]model.Skill, error) {
 			newCache[id] = cachedSkill{skill: skill, cachedAt: time.Now()}
 		}
 	}
-	
+
 	// Update cache
 	s.cacheMux.Lock()
 	s.cache = newCache
 	s.cacheMux.Unlock()
-	
+
 	return skills, nil
 }
 
@@ -153,17 +153,17 @@ func (s *SkillStore) fetchAndCacheAll() ([]model.Skill, error) {
 func (s *SkillStore) fetchFromGitHub(id string) (*model.Skill, error) {
 	ctx := context.Background()
 	path := fmt.Sprintf("%s/%s/SKILL.md", s.skillsPath, id)
-	
+
 	content, err := s.client.GetFileContent(ctx, path)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	skill := &model.Skill{
 		ID:      id,
 		Content: content,
 	}
-	
+
 	// Parse frontmatter (supports both LifeOS and Opencode formats)
 	if strings.HasPrefix(content, "---") {
 		lines := strings.Split(content, "\n")
@@ -185,34 +185,34 @@ func (s *SkillStore) fetchFromGitHub(id string) (*model.Skill, error) {
 			}
 		}
 	}
-	
+
 	if skill.Title == "" {
 		skill.Title = skill.ID
 	}
-	
+
 	return skill, nil
 }
 
 // SaveSkill creates/updates a file and opens a PR
 func (s *SkillStore) SaveSkill(skill *model.Skill) error {
 	ctx := context.Background()
-	
+
 	path := fmt.Sprintf("%s/%s/SKILL.md", s.skillsPath, skill.ID)
 	sha, err := s.client.GetFileSHA(ctx, path)
 	if err != nil {
 		sha = ""
 	}
-	
+
 	branchName := fmt.Sprintf("update-skill-%s-%d", skill.ID, time.Now().Unix())
 	if err := s.client.CreateBranch(ctx, branchName, s.branch); err != nil {
 		return err
 	}
-	
+
 	message := fmt.Sprintf("Update skill: %s", skill.ID)
 	if err := s.client.CommitFile(ctx, path, skill.Content, sha, branchName, message); err != nil {
 		return err
 	}
-	
+
 	title := fmt.Sprintf("Update skill: %s", skill.ID)
 	body := "Automated update from LifeOS"
 	return s.client.CreatePR(ctx, title, branchName, s.branch, body)

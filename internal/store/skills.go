@@ -8,15 +8,13 @@ import (
 	"github.com/thein3rovert/lifeos/internal/model"
 )
 
-
 type FileSkillStore struct {
 	dir string
 }
 
 func NewFileSkillStore(dir string) *FileSkillStore {
-	return &FileSkillStore{dir:dir}
+	return &FileSkillStore{dir: dir}
 }
-
 
 func (s *FileSkillStore) GetSkill(id string) (*model.Skill, error) {
 	path := filepath.Join(s.dir, id+".md")
@@ -26,14 +24,14 @@ func (s *FileSkillStore) GetSkill(id string) (*model.Skill, error) {
 	}
 
 	skill := &model.Skill{
-		ID: id,
+		ID:      id,
 		Content: string(data),
 	}
 
 	// Formatter parsing (title only for now)
-		line := strings.Split(string(data), "\n")
-		for _, line := range line[1:] {
-			if strings.HasPrefix(line, "title:") {
+	line := strings.Split(string(data), "\n")
+	for _, line := range line[1:] {
+		if strings.HasPrefix(line, "title:") {
 			skill.Title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
 		}
 
@@ -43,15 +41,14 @@ func (s *FileSkillStore) GetSkill(id string) (*model.Skill, error) {
 		if line == "---" {
 			break
 		}
-}
-info, _:= os.Stat(path)
-if info != nil {
-	skill.UpdatedAt = info.ModTime()
-}
+	}
+	info, _ := os.Stat(path)
+	if info != nil {
+		skill.UpdatedAt = info.ModTime()
+	}
 
-return skill, nil
+	return skill, nil
 }
-
 
 func (s *FileSkillStore) ListSkills() ([]model.Skill, error) {
 	entries, err := os.ReadDir(s.dir)
@@ -73,7 +70,7 @@ func (s *FileSkillStore) ListSkills() ([]model.Skill, error) {
 			skills = append(skills, *skill)
 		}
 	}
-return skills, nil
+	return skills, nil
 }
 
 func (s *FileSkillStore) SaveSkill(skill *model.Skill) error {
