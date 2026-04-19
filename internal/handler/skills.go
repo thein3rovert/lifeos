@@ -418,6 +418,36 @@ func SaveSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) htt
 	}
 }
 
+// RenderMarkdownPreview takes markdown content and returns rendered HTML
+// Used for live preview updates on the skill edit page
+func RenderMarkdownPreview() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		content := r.FormValue("content")
+		if content == "" {
+			w.Write([]byte(""))
+			return
+		}
+
+		// Strip frontmatter for display
+		markdownContent := stripMarkdownFrontMatter(content)
+
+		// Convert markdown to HTML
+		var buf bytes.Buffer
+		if err := goldmark.Convert([]byte(markdownContent), &buf); err != nil {
+			http.Error(w, "Failed to render markdown", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(buf.Bytes())
+	}
+}
+
 // TODO: Add to util
 // Remove everything btw the first two formatter "---" leaving the actual
 // markdown content

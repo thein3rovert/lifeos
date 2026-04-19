@@ -69,6 +69,8 @@ func main() {
 	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore))
 	// Save the AI-updated skill
 	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
+	// Render markdown preview (for live preview updates)
+	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	// Sync skills from GitHub (force refresh)
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
