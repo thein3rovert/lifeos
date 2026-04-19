@@ -207,16 +207,24 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
 
         // TODO: Move note builder to utils
         // Build notes content to append
+        // Join all note into one string
         var notesBuilder strings.Builder
-        notesBuilder.WriteString("\n\n## Notes\n\n")
-        for _, note := range notes {
-            notesBuilder.WriteString(note.Content)
-            notesBuilder.WriteString("\n\n")
+        for i, note := range notes {
+        		if i > 0 {
+          notesBuilder.WriteString("\n\n")
+          }
+          notesBuilder.WriteString(note.Content)
         }
+        newNotes := notesBuilder.String()
 
-        // Append to skill content
-        // Add note builder content to skills
-        skill.Content = skill.Content + notesBuilder.String()
+        // Call sidecar to get AI-updated skills
+        // TODO: Move to Utilss
+        var skillContent = skill.Content
+        updatedContent, err := callSideCarForSkillUpdate(skillContent, newNotes)
+
+        // Add note builder content to skills by updating skills with AI-generated
+        // content
+        skill.Content = updatedContent
 
         // Save skill (this should create a PR or update local file)
         // For now, we'll save locally if it's a local skill
