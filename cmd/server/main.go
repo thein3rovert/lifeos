@@ -44,7 +44,6 @@ func main() {
 		w.Write([]byte("LifeOS is running"))
 	})
 
-
 	mux.HandleFunc("/home", handler.Home)
 
 	mux.HandleFunc("/photos", handler.Photos)
@@ -66,9 +65,12 @@ func main() {
 	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
 	// Append notes to skill and clear buffer
 	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
+	// Preview AI update (calls sidecar, shows preview)
+	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore))
+	// Save the AI-updated skill
+	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
 	// Sync skills from GitHub (force refresh)
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
-
 
 	port := os.Getenv("LIFEOS_PORT")
 	if port == "" {
@@ -80,6 +82,5 @@ func main() {
 		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
 		log.Fatal(err)
 	}
-
 
 }

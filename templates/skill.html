@@ -45,14 +45,25 @@
         {{end}}
       </div>
 
-      <!-- Append button (only show if there are notes) -->
-      <form action="/skills/notes/append" method="POST" class="mb-4">
-        <input type="hidden" name="skill_id" value="{{.ID}}">
-        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
-          Append Notes to Skill
-        </button>
-        <p class="text-sm text-gray-500 mt-2">This will add all notes to the skill content and clear the buffer</p>
-      </form>
+      <!-- Action buttons (only show if there are notes) -->
+      <div class="flex gap-4 mb-4">
+        <!-- Direct append (original) -->
+        <form action="/skills/notes/append" method="POST">
+          <input type="hidden" name="skill_id" value="{{.ID}}">
+          <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+            Append Notes to Skill
+          </button>
+        </form>
+        
+        <!-- AI Preview -->
+        <form action="/skills/preview" method="POST">
+          <input type="hidden" name="skill_id" value="{{.ID}}">
+          <button type="submit" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+            Preview AI Update
+          </button>
+        </form>
+      </div>
+      <p class="text-sm text-gray-500 mb-2">Append: Directly add notes to skill | Preview: Let AI rewrite skill with notes</p>
       {{else}}
       <p class="text-gray-500 italic mb-6">No buffer notes yet. Add some notes below!</p>
       {{end}}
