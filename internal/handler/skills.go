@@ -122,17 +122,31 @@ func GetSkill(skillStore store.SkillStore, noteStore store.NoteStore) http.Handl
 
 		if isHTMX {
 			// Return only the content block for HTMX
-			tmpl := template.Must(template.ParseFiles("templates/skill.html"))
-			tmpl.ExecuteTemplate(w, "content", data)
+			tmpl, err := template.ParseFiles("templates/skill.html")
+			if err != nil {
+				http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if err := tmpl.ExecuteTemplate(w, "content", data); err != nil {
+				http.Error(w, "Render error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 			return
 		}
 
 		// Return full page for regular requests
-		tmpl := template.Must(template.ParseFiles(
+		tmpl, err := template.ParseFiles(
 			"templates/base.html",
 			"templates/skill.html",
-		))
-		tmpl.ExecuteTemplate(w, "base", data)
+		)
+		if err != nil {
+			http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
+			http.Error(w, "Render error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
