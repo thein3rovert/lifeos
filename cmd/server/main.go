@@ -59,6 +59,8 @@ func main() {
 	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
 	// Skill with trailing / get a single skills
 	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
+	// Allow the ability to edit skills
+	mux.HandleFunc("/skills", handler.EditSkill(skillStore))
 	// Add note to skill buffer
 	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
 	// Delete a single note

@@ -30,14 +30,14 @@ type SkillViewData struct {
 func Skills(w http.ResponseWriter, r *http.Request) {
 	// Check if it's an HTMX request
 	isHTMX := r.Header.Get("HX-Request") == "true"
-	
+
 	if isHTMX {
 		// Return only the content block for HTMX
 		tmpl := template.Must(template.ParseFiles("templates/skills.html"))
 		tmpl.ExecuteTemplate(w, "content", nil)
 		return
 	}
-	
+
 	// Return full page for regular requests
 	tmpl := template.Must(template.ParseFiles(
 		"templates/base.html",
@@ -149,6 +149,46 @@ func GetSkill(skillStore store.SkillStore, noteStore store.NoteStore) http.Handl
 		}
 	}
 }
+
+// EditSkill handles updating skill content
+func EditSkill(skillStore store.SkillStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extract skill ID from URL
+		skillID := r.URL.Path[len("/skills/") : len(r.URL.Path)-len("/edit")]
+
+		// Get the new content from form
+		newContent := r.FormValue("content")
+		if newContent == "" {
+			http.Error(w, "Content cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		// Get current skill
+		skill, err := skillStore.GetSkill(skillID)
+		if err != nil {
+			http.Error(w, "Could not load skill", http.StatusInternalServerError)
+			return
+		}
+
+		// Update content
+		skill.Content = newContent
+
+		// Save back to store
+		if err := skillStore.SaveSkill(skill); err != nil {
+			http.Error(w, "Failed to save skill: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Redirect back to skill page
+		http.Redirect(w, r, "/skills/"+skillID, http.StatusSeeOther)
+	}
+}
+
 
 // SyncSkills forces a refresh of skills from GitHub
 func SyncSkills(s store.SkillStore) http.HandlerFunc {
