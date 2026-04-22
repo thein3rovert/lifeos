@@ -16,9 +16,17 @@ import (
 )
 
 func Photos(w http.ResponseWriter, r *http.Request) {
-	// w.Write([]byte("photo page"))
-
-	// Integrate template
+	// Check if it's an HTMX request
+	isHTMX := r.Header.Get("HX-Request") == "true"
+	
+	if isHTMX {
+		// Return only the content block for HTMX
+		tmpl := template.Must(template.ParseFiles("templates/photos.html"))
+		tmpl.ExecuteTemplate(w, "content", nil)
+		return
+	}
+	
+	// Return full page for regular requests
 	tmpl := template.Must(template.ParseFiles(
 		"templates/base.html",
 		"templates/photos.html",
@@ -41,6 +49,18 @@ func ListPhotos(s store.Store) http.HandlerFunc {
 
 		// Use same struct as search for consistent template
 		data := PhotoSearchData{Photos: photos, SearchQuery: ""}
+		
+		// Check if it's an HTMX request
+		isHTMX := r.Header.Get("HX-Request") == "true"
+		
+		if isHTMX {
+			// Return only the content block for HTMX
+			tmpl := template.Must(template.ParseFiles("templates/photos.html"))
+			tmpl.ExecuteTemplate(w, "content", data)
+			return
+		}
+		
+		// Return full page for regular requests
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/photos.html",
@@ -66,6 +86,18 @@ func UpdatePhoto(s store.Store) http.HandlerFunc {
 				http.Error(w, "could not load tags", http.StatusInternalServerError)
 				return
 			}
+			
+			// Check if it's an HTMX request
+			isHTMX := r.Header.Get("HX-Request") == "true"
+			
+			if isHTMX {
+				// Return only the content block for HTMX
+				tmpl := template.Must(template.ParseFiles("templates/photo_upload.html"))
+				tmpl.ExecuteTemplate(w, "content", tags)
+				return
+			}
+			
+			// Return full page for regular requests
 			tmpl := template.Must(template.ParseFiles(
 				"templates/base.html",
 				"templates/photo_upload.html",

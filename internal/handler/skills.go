@@ -28,9 +28,17 @@ type SkillViewData struct {
 }
 
 func Skills(w http.ResponseWriter, r *http.Request) {
-	// w.Write([]byte("skills page"))
-
-	// Integrate template
+	// Check if it's an HTMX request
+	isHTMX := r.Header.Get("HX-Request") == "true"
+	
+	if isHTMX {
+		// Return only the content block for HTMX
+		tmpl := template.Must(template.ParseFiles("templates/skills.html"))
+		tmpl.ExecuteTemplate(w, "content", nil)
+		return
+	}
+	
+	// Return full page for regular requests
 	tmpl := template.Must(template.ParseFiles(
 		"templates/base.html",
 		"templates/skills.html",
@@ -47,6 +55,17 @@ func ListSkills(s store.SkillStore) http.HandlerFunc {
 			return
 		}
 
+		// Check if it's an HTMX request
+		isHTMX := r.Header.Get("HX-Request") == "true"
+
+		if isHTMX {
+			// Return only the content block for HTMX
+			tmpl := template.Must(template.ParseFiles("templates/skills.html"))
+			tmpl.ExecuteTemplate(w, "content", skills)
+			return
+		}
+
+		// Return full page for regular requests
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/skills.html",
@@ -98,6 +117,17 @@ func GetSkill(skillStore store.SkillStore, noteStore store.NoteStore) http.Handl
 			Notes:       notes,
 		}
 
+		// Check if it's an HTMX request
+		isHTMX := r.Header.Get("HX-Request") == "true"
+
+		if isHTMX {
+			// Return only the content block for HTMX
+			tmpl := template.Must(template.ParseFiles("templates/skill.html"))
+			tmpl.ExecuteTemplate(w, "content", data)
+			return
+		}
+
+		// Return full page for regular requests
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/skill.html",
@@ -369,6 +399,17 @@ func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) 
 			Notes:           notes,
 		}
 
+		// Check if it's an HTMX request
+		isHTMX := r.Header.Get("HX-Request") == "true"
+
+		if isHTMX {
+			// Return only the content block for HTMX
+			tmpl := template.Must(template.ParseFiles("templates/skill-preview.html"))
+			tmpl.ExecuteTemplate(w, "content", data)
+			return
+		}
+
+		// Return full page for regular requests
 		tmpl := template.Must(template.ParseFiles(
 			"templates/base.html",
 			"templates/skill-preview.html",

@@ -6,9 +6,17 @@ import (
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
-	// w.Write([]byte("skills page"))
+	// Check if it's an HTMX request
+	isHTMX := r.Header.Get("HX-Request") == "true"
 
-	// Integrate template
+	if isHTMX {
+		// Return only the content block for HTMX
+		tmpl := template.Must(template.ParseFiles("templates/home.html"))
+		tmpl.ExecuteTemplate(w, "content", nil)
+		return
+	}
+
+	// Return full page for regular requests
 	tmpl := template.Must(template.ParseFiles(
 		"templates/base.html",
 		"templates/home.html",
