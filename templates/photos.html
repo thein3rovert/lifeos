@@ -1,55 +1,59 @@
-{{template "base" .}}
 {{define "content"}}
-<div class="min-h-screen bg-gray-50 py-8 px-4">
-  <div class="max-w-6xl mx-auto">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Thein3rovert Photos</h1>
-    
-    <div class="flex justify-center mb-6">
-      <input type="text" 
-             name="q" 
-             placeholder="Search photos..."
-             hx-get="/photos/search" 
-             hx-target="#photo-results"
-             hx-trigger="keyup changed delay:300ms"
-             hx-swap="outerHTML"
-             class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-             {{if .SearchQuery}}value="{{.SearchQuery}}"{{end}}>
-    </div>
+<div class="p-8 max-w-6xl mx-auto">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-800">Photos</h1>
+    <p class="text-gray-500 mt-2">Browse and search your photo collection</p>
+  </div>
+  
+  <div class="flex justify-center mb-6">
+    <input type="text" 
+           name="q" 
+           placeholder="Search photos..."
+           hx-get="/photos/search" 
+           hx-target="#photo-results"
+           hx-trigger="keyup changed delay:300ms"
+           hx-swap="outerHTML"
+           class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           {{if .SearchQuery}}value="{{.SearchQuery}}"{{end}}>
+  </div>
 
-    {{if .SearchQuery}}
-      <p class="text-center text-gray-600 mb-4">Search results for: <span class="font-semibold">{{.SearchQuery}}</span></p>
-    {{end}}
+  {{if .SearchQuery}}
+    <p class="text-center text-gray-600 mb-4">Search results for: <span class="font-semibold">{{.SearchQuery}}</span></p>
+  {{end}}
 
-    <div id="photo-results" class="photo-grid grid grid-cols-4 gap-4">
-      {{range .Photos}}
-        <div class="photo-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-          <div class="aspect-square overflow-hidden">
-            <img src="/static/{{.Path}}" alt="{{.Caption}}" class="w-full h-full object-cover">
-          </div>
-          <div class="p-3">
-            <p class="text-sm font-medium text-gray-800 text-center">{{.Caption}}</p>
-            {{if .Tags}}
-              <div class="flex flex-wrap justify-center gap-1 mt-2">
-                {{range .Tags}}
-                  <span class="tag bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{{.Name}}</span>
-                {{end}}
-              </div>
-            {{end}}
-            <p class="text-xs text-gray-400 text-center mt-2">{{.CreatedAt}}</p>
-          </div>
+  <div id="photo-results" class="photo-grid grid grid-cols-4 gap-4">
+    {{range .Photos}}
+      <div class="photo-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+        <div class="aspect-square overflow-hidden">
+          <img src="/static/{{.Path}}" alt="{{.Caption}}" class="w-full h-full object-cover">
         </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-800 text-center">{{.Caption}}</p>
+          {{if .Tags}}
+            <div class="flex flex-wrap justify-center gap-1 mt-2">
+              {{range .Tags}}
+                <span class="tag bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{{.Name}}</span>
+              {{end}}
+            </div>
+          {{end}}
+          <p class="text-xs text-gray-400 text-center mt-2">{{.CreatedAt}}</p>
+        </div>
+      </div>
+    {{else}}
+      {{if .SearchQuery}}
+        <p class="col-span-4 text-center text-gray-500">No photos found for "{{.SearchQuery}}".</p>
       {{else}}
-        {{if .SearchQuery}}
-          <p class="col-span-4 text-center text-gray-500">No photos found for "{{.SearchQuery}}".</p>
-        {{else}}
-          <p class="col-span-4 text-center text-gray-500">No photos yet.</p>
-        {{end}}
+        <p class="col-span-4 text-center text-gray-500">No photos yet.</p>
       {{end}}
-    </div>
+    {{end}}
+  </div>
 
-    <div class="text-center mt-8">
-      <a href="/photos/upload" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">Upload New Photos</a>
-    </div>
+  <div class="text-center mt-8">
+    <a href="/photos/upload" 
+       class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+       hx-get="/photos/upload"
+       hx-target="#main-content"
+       hx-push-url="true">Upload New Photos</a>
   </div>
 </div>
 {{end}}

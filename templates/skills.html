@@ -1,37 +1,41 @@
-{{template "base" .}}
 {{define "content"}}
-<div class="min-h-screen bg-gray-50 py-8 px-4">
-  <div class="max-w-6xl mx-auto">
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-800">Thein3rovert Skills</h1>
-      <a href="/skills/sync" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Sync
-      </a>
+<div class="p-8 max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Skills</h1>
+      <p class="text-gray-500 mt-2">Manage AI agent skills and knowledge base</p>
     </div>
+    <a href="/skills/sync" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Sync
+    </a>
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {{range .}}
-        <a href="/skills/{{.ID}}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-gray-200">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{{.Title}}</h2>
-            {{if .Format}}
-              <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{.Format}}</span>
-            {{end}}
-          </div>
-          {{if .UpdatedAt}}
-            <p class="text-sm text-gray-500">Last updated: {{.UpdatedAt}}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {{range .}}
+      <a href="/skills/{{.ID}}" 
+         class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-gray-200"
+         hx-get="/skills/{{.ID}}"
+         hx-target="#main-content"
+         hx-push-url="true">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{{.Title}}</h2>
+          {{if .Format}}
+            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{.Format}}</span>
           {{end}}
-        </a>
-      {{else}}
-        <div class="col-span-full text-center py-12">
-          <p class="text-gray-500 text-lg">No skills yet.</p>
-          <p class="text-gray-400 text-sm mt-2">Add markdown files to the skills/ directory</p>
         </div>
-      {{end}}
-    </div>
+        {{if .UpdatedAt}}
+          <p class="text-sm text-gray-500">Last updated: {{.UpdatedAt}}</p>
+        {{end}}
+      </a>
+    {{else}}
+      <div class="col-span-full text-center py-12">
+        <p class="text-gray-500 text-lg">No skills yet.</p>
+        <p class="text-gray-400 text-sm mt-2">Add markdown files to the skills/ directory</p>
+      </div>
+    {{end}}
   </div>
 </div>
 {{end}}
