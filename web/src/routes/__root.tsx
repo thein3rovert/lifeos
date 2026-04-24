@@ -1,10 +1,10 @@
 import { HeadContent, Scripts, createRootRoute, Link, useRouter } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { 
-  ImageIcon, 
-  BookOpen, 
-  StickyNote, 
+import {
+  ImageIcon,
+  BookOpen,
+  StickyNote,
   Settings
 } from 'lucide-react'
 import NotFound from '../components/NotFound'
@@ -53,7 +53,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <div className="h-9 flex items-center px-4 border-b border-[#1e1e1e]">
               <span className="text-sm font-semibold tracking-tight">LifeOS</span>
             </div>
-            
+
             {/* Navigation */}
             <nav className="flex-1 py-2 px-3 space-y-0.5">
               <NavItem to="/" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
@@ -66,7 +66,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 Notes
               </NavItem>
             </nav>
-            
+
             {/* Bottom settings */}
             <div className="py-2 px-3 border-t border-[#1e1e1e]">
               <NavItem to="/settings" icon={<Settings className="w-4 h-4" strokeWidth={1.5} />}>
@@ -74,15 +74,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               </NavItem>
             </div>
           </aside>
-          
+
           {/* Main content area */}
           <main className="flex-1 flex flex-col min-w-0 bg-black">
             {children}
           </main>
         </div>
-        
+
         <TanStackDevtools
           config={{
+
+
             position: 'bottom-right',
           }}
           plugins={[
@@ -102,15 +104,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 function NavItem({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
   const router = useRouter()
   const isActive = router.state.location.pathname === to
-  
+
   return (
     <Link
       to={to}
       className={`
         flex items-center gap-2.5 h-7 px-2 rounded text-[13px] font-medium
         transition-colors duration-150 ease-out
-        ${isActive 
-          ? 'bg-[rgba(255,255,255,0.06)] text-white' 
+        ${isActive
+          ? 'bg-[rgba(255,255,255,0.06)] text-white'
           : 'text-[#aaa] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
         }
       `}
