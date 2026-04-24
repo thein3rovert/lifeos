@@ -13,12 +13,12 @@ import (
 	"github.com/thein3rovert/lifeos/internal/store"
 )
 
-// PhotoHandler holds dependencies for photo API endpoints
+// Holds dependencies for photo API endpoints
 type PhotoHandler struct {
 	store store.Store
 }
 
-// NewPhotoHandler creates a new photo API handler
+// Creates a new photo API handler
 func NewPhotoHandler(s store.Store) *PhotoHandler {
 	return &PhotoHandler{store: s}
 }
