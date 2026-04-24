@@ -2,6 +2,19 @@
 
 JSON API for the Next.js frontend. All endpoints return JSON. All `/api/` routes run alongside the existing HTML routes.
 
+## Files
+
+```
+internal/api/
+├── README.md      # This file — endpoint reference
+├── response.go    # Shared JSON helpers: respondJSON(), respondError(), decodeJSON()
+├── photo.go       # Photo endpoints: list, get, upload, search
+├── skill.go       # Skill endpoints: list, get, edit, sync
+├── note.go        # Note endpoints: list, add, delete
+├── ai.go          # AI workflow endpoints: preview, save, render, append. Also contains callSideCarForSkillUpdate() and stripMarkdownFrontMatter()
+└── tag.go         # Tag endpoint: list all tags
+```
+
 ## Photos
 
 | Method | Path | Handler | Description |
