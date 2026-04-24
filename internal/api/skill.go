@@ -68,6 +68,7 @@ func (h *SkillHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 // GET /api/skills/{id}
 func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
+
 	if skillID == "" {
 		respondError(w, http.StatusBadRequest, "skill ID is required")
 		return
@@ -86,6 +87,7 @@ func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 	}
 	// Get Skill note from response
 	var skillNotes = resp.Notes
+
 	for _, n := range notes {
 		skillNotes = append(skillNotes, noteToResponse(&n))
 	}
@@ -93,7 +95,8 @@ func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
-// EditSkillRequest is the JSON body for editing a skill
+// JSON body required for editing a skill
+// TODO: Move later to util
 type EditSkillRequest struct {
 	SkillID string `json:"skill_id"`
 	Content string `json:"content"`
@@ -103,24 +106,31 @@ type EditSkillRequest struct {
 // POST /api/skills/edit
 func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 	var req EditSkillRequest
+
+	// Get skill content and id from request
 	var skillContent = req.Content
 	var skillID = req.SkillID
+
 	if err := decodeJSON(r, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
+	// Check if skill id and content are provided or empty
 	if skillID == "" || skillContent == "" {
 		respondError(w, http.StatusBadRequest, "skill_id and content are required")
 		return
 	}
 
+	// If true, get skill using skill id
 	skill, err := h.skillStore.GetSkill(skillID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to get skill")
 		return
 	}
 
+	// if true, save skill content after changes have
+	// been made to skill
 	skill.Content = skillContent
 	if err := h.skillStore.SaveSkill(skill); err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to save skill")
@@ -131,6 +141,7 @@ func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 }
 
 // SyncSkills forces a refresh of skills from GitHub
+// Doing this to avoid having to pull from github each time
 // GET /api/skills/sync
 func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 	if err := h.skillStore.Sync(); err != nil {
