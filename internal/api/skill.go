@@ -83,14 +83,15 @@ func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 
 	notes, _ := h.noteStore.GetNotesBySkill(skillID)
 
+	// Convert notes to response format
+	var noteResponses []NoteResponse
+	for _, n := range notes {
+		noteResponses = append(noteResponses, noteToResponse(&n))
+	}
+
 	resp := SkillDetailResponse{
 		Skill: skillToResponse(skill),
-	}
-	// Get Skill note from response
-	var skillNotes = resp.Notes
-
-	for _, n := range notes {
-		skillNotes = append(skillNotes, noteToResponse(&n))
+		Notes: noteResponses,
 	}
 
 	respondJSON(w, http.StatusOK, resp)
