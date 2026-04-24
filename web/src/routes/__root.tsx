@@ -7,6 +7,7 @@ import {
   StickyNote, 
   Settings
 } from 'lucide-react'
+import NotFound from '../components/NotFound'
 
 import appCss from '../styles.css?url'
 
@@ -33,6 +34,7 @@ export const Route = createRootRoute({
       },
     ],
   }),
+  notFoundComponent: NotFound,
   shellComponent: RootDocument,
 })
 
