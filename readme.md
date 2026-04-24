@@ -112,13 +112,6 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 
 ### 1. Start Go Backend (Port 6060)
 
-```bash
-# Set environment variables
-export GITHUB_TOKEN="your_github_token"
-export GITHUB_OWNER="thein3rovert"
-export GITHUB_REPO="polis"
-export CORS_ORIGINS="http://localhost:3000,http://100.105.217.77:3001"
-
 # Run server
 go run cmd/server/main.go
 ```
