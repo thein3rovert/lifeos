@@ -2,11 +2,16 @@ import { HeadContent, Scripts, createRootRoute, Link, useRouter } from '@tanstac
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import {
+  LayoutDashboard,
   ImageIcon,
   BookOpen,
   StickyNote,
-  Settings
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from 'lucide-react'
+import { useState } from 'react'
 import NotFound from '../components/NotFound'
 import ErrorComponent from '../components/ErrorComponent'
 
@@ -41,6 +46,8 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
@@ -49,16 +56,33 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-black text-white font-sans antialiased min-h-screen">
         <div className="flex h-screen overflow-hidden">
-          {/* Sidebar - 220px fixed width */}
-          <aside className="w-[220px] flex-shrink-0 bg-black border-r border-[#1e1e1e] flex flex-col">
-            {/* Logo area */}
-            <div className="h-9 flex items-center px-4 border-b border-[#1e1e1e]">
-              <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+          {/* Sidebar */}
+          <aside className={`
+            ${sidebarCollapsed ? 'w-0' : 'w-[220px]'}
+            flex-shrink-0 bg-black border-r border-[#1e1e1e]
+            flex flex-col overflow-hidden transition-all duration-200
+          `}>
+            {/* Logo area with collapse button */}
+            <div className="h-12 flex items-center justify-between px-4 border-b border-[#1e1e1e]">
+              {!sidebarCollapsed && (
+                <>
+                  <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+                  <button
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="p-1.5 hover:bg-[rgba(255,255,255,0.04)] rounded transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#777]" strokeWidth={1.5} />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-2 px-3 space-y-0.5">
-              <NavItem to="/" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
+            <nav className="flex-1 py-3 px-3 space-y-0.5">
+              <NavItem to="/" icon={<LayoutDashboard className="w-4 h-4" strokeWidth={1.5} />}>
+                Dashboard
+              </NavItem>
+              <NavItem to="/gallery" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
                 Gallery
               </NavItem>
               <NavItem to="/skills" icon={<BookOpen className="w-4 h-4" strokeWidth={1.5} />}>
@@ -70,12 +94,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             </nav>
 
             {/* Bottom settings */}
-            <div className="py-2 px-3 border-t border-[#1e1e1e]">
+            <div className="py-3 px-3 border-t border-[#1e1e1e]">
               <NavItem to="/settings" icon={<Settings className="w-4 h-4" strokeWidth={1.5} />}>
                 Settings
               </NavItem>
             </div>
           </aside>
+
+          {/* Expand sidebar button (when collapsed) */}
+          {sidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="absolute left-0 top-6 z-50 p-2 bg-[#0f0f0f] border border-[#1e1e1e] border-l-0 rounded-r hover:bg-[rgba(255,255,255,0.04)] transition-colors"
+            >
+              <Menu className="w-4 h-4 text-[#777]" strokeWidth={1.5} />
+            </button>
+          )}
 
           {/* Main content area */}
           <main className="flex-1 flex flex-col min-w-0 bg-black">
@@ -85,8 +119,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
         <TanStackDevtools
           config={{
-
-
             position: 'bottom-right',
           }}
           plugins={[

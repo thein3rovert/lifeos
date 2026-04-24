@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { 
-  ImageIcon, 
-  StickyNote, 
   TrendingUp,
+  Image as ImageIcon,
+  BookOpen,
   Search,
   Plus
 } from 'lucide-react'
@@ -12,7 +12,6 @@ export const Route = createFileRoute('/')({
   component: DashboardPage,
 })
 
-// API client (we'll move this to a proper file later)
 const API_URL = 'http://100.105.217.77:6060'
 
 async function fetchStats() {
@@ -27,7 +26,6 @@ async function fetchStats() {
   return {
     totalSkills: skills.length,
     totalPhotos: photos.length,
-    // Mock data for trends - replace with real data later
     skillsTrend: '+5',
     photosTrend: '+12'
   }
@@ -50,7 +48,7 @@ function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
-      {/* Top row - Stats cards */}
+      {/* Top row - Stats + Empty placeholder */}
       <div className="flex gap-4">
         {/* Stats cards - 2/3 width */}
         <div className="flex-1 flex gap-4">
@@ -58,14 +56,14 @@ function DashboardPage() {
             label="Total Skills"
             value={stats.totalSkills}
             trend={stats.skillsTrend}
-            icon={<ImageIcon className="w-5 h-5" strokeWidth={1.5} />}
+            icon={<BookOpen className="w-5 h-5" strokeWidth={1.5} />}
             loading={loading}
           />
           <StatCard 
             label="Total Photos"
             value={stats.totalPhotos}
             trend={stats.photosTrend}
-            icon={<StickyNote className="w-5 h-5" strokeWidth={1.5} />}
+            icon={<ImageIcon className="w-5 h-5" strokeWidth={1.5} />}
             loading={loading}
           />
         </div>
@@ -76,7 +74,7 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Middle row - Notes table + Empty */}
+      {/* Middle row - Notes table + Empty placeholder */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Today's Notes - 2/3 width */}
         <div className="flex-1 border border-[#1e1e1e] rounded bg-[#0a0a0a] flex flex-col">
@@ -136,7 +134,6 @@ function DashboardPage() {
   )
 }
 
-// Stat card component following Atlas patterns
 function StatCard({ 
   label, 
   value, 
@@ -151,7 +148,7 @@ function StatCard({
   loading: boolean
 }) {
   return (
-    <div className="flex-1 border border-[#1e1e1e] rounded bg-[#0a0a0a] p-3 flex items-start justify-between">
+    <div className="border border-[#1e1e1e] rounded bg-[#0a0a0a] p-4 flex items-start justify-between">
       <div className="space-y-1">
         <span className="text-[11px] text-[#777] uppercase tracking-wide">{label}</span>
         <div className="text-3xl font-semibold text-white">
