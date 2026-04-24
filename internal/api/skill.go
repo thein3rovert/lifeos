@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store"
@@ -43,7 +44,7 @@ func skillToResponse(s *model.Skill) SkillResponse {
 		Title:     s.Title,
 		Format:    s.Format,
 		Content:   s.Content,
-		UpdatedAt: s.UpdatedAt.String(),
+		UpdatedAt: s.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
