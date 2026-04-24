@@ -159,7 +159,7 @@ func EditSkill(skillStore store.SkillStore) http.HandlerFunc {
 		}
 
 		// Extract skill ID from URL
-		skillID := r.URL.Path[len("/skills/") : len(r.URL.Path)-len("/edit")]
+		skillID := r.FormValue("skill_id")
 
 		// Get the new content from form
 		newContent := r.FormValue("content")

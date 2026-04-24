@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/thein3rovert/lifeos/internal/api"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	"github.com/thein3rovert/lifeos/internal/middleware"
 	"github.com/thein3rovert/lifeos/internal/store"
@@ -14,7 +15,7 @@ import (
 )
 
 // go run cmd/server/main.go
-// Every Request: Middleware(customlogge) -> Handler
+// Every Request: Middleware(customLogger) -> CORS -> Handler
 func main() {
 
 	// Initialise store (Database store -> photos)
@@ -40,6 +41,41 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// ── Initialize API handlers ─────────────────────────────────────
+	photoAPI := api.NewPhotoHandler(photoStore)
+	skillAPI := api.NewSkillHandler(skillStore, noteStore)
+	noteAPI := api.NewNoteHandler(noteStore)
+	aiAPI := api.NewAIHandler(skillStore, noteStore)
+	tagAPI := api.NewTagHandler(photoStore)
+
+	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
+	// Photos
+	mux.HandleFunc("GET /api/photos", photoAPI.ListPhotos)
+	mux.HandleFunc("GET /api/photos/search", photoAPI.SearchPhotos)
+	mux.HandleFunc("POST /api/photos/upload", photoAPI.UploadPhoto)
+	mux.HandleFunc("GET /api/photos/{id}", photoAPI.GetPhoto)
+
+	// Skills
+	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
+	mux.HandleFunc("GET /api/skills/sync", skillAPI.SyncSkills)
+	mux.HandleFunc("POST /api/skills/edit", skillAPI.EditSkill)
+	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
+
+	// Notes
+	mux.HandleFunc("GET /api/skills/{id}/notes", noteAPI.GetNotes)
+	mux.HandleFunc("POST /api/skills/{id}/notes", noteAPI.AddNote)
+	mux.HandleFunc("DELETE /api/skills/{id}/notes/{noteId}", noteAPI.DeleteNote)
+
+	// AI workflow
+	mux.HandleFunc("POST /api/skills/{id}/preview", aiAPI.PreviewSkillUpdate)
+	mux.HandleFunc("POST /api/skills/{id}/save", aiAPI.SaveSkillUpdate)
+	mux.HandleFunc("POST /api/skills/{id}/notes/append", aiAPI.AppendNotesToSkill)
+	mux.HandleFunc("POST /api/skills/preview-render", aiAPI.RenderMarkdown)
+
+	// Tags
+	mux.HandleFunc("GET /api/tags", tagAPI.ListTags)
+
+	// ── HTML routes (existing, will be removed in Phase 4) ─────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("LifeOS is running"))
 	})
@@ -51,29 +87,18 @@ func main() {
 	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(photoStore))
 	mux.HandleFunc("/photos/search", handler.SearchPhotos(photoStore))
 
-	// Static file server for serving local photo
-	// Any request to eg. /static/photo/<filename> will server friom disk
+	// Static file server for serving local photos
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
 
-	// mux.HandleFunc("/skills", handler.Skills)
 	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
-	// Skill with trailing / get a single skills
 	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
-	// Allow the ability to edit skills
-	mux.HandleFunc("/skills", handler.EditSkill(skillStore))
-	// Add note to skill buffer
+	mux.HandleFunc("/skills/edit", handler.EditSkill(skillStore))
 	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
-	// Delete a single note
 	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
-	// Append notes to skill and clear buffer
 	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
-	// Preview AI update (calls sidecar, shows preview)
 	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore))
-	// Save the AI-updated skill
 	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
-	// Render markdown preview (for live preview updates)
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
-	// Sync skills from GitHub (force refresh)
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
 	port := os.Getenv("LIFEOS_PORT")
@@ -82,9 +107,8 @@ func main() {
 	}
 
 	log.Printf("Server starting on %s", port)
-	if err := http.ListenAndServe(":"+port, middleware.CustomLogger(mux)); err != nil {
+	if err := http.ListenAndServe(":"+port, middleware.CORS(middleware.CustomLogger(mux))); err != nil {
 		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
 		log.Fatal(err)
 	}
-
 }

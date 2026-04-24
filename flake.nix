@@ -19,6 +19,7 @@
             gotools
             go-tools
             sqlite
+            bun
           ];
 
           shellHook = ''
