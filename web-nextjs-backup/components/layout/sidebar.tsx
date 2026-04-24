@@ -19,10 +19,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-60 bg-[#0f0f0f] border-r border-[#1a1a1a]">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-60 bg-sidebar border-r border-sidebar-border">
       {/* Header */}
       <div className="flex h-14 items-center px-4">
-        <Link href="/" className="flex items-center gap-2 text-white">
+        <Link href="/" className="flex items-center gap-2 text-sidebar-foreground">
           <span className="text-lg">⚡</span>
           <span className="font-semibold">LifeOS</span>
         </Link>
@@ -35,7 +35,7 @@ export function Sidebar() {
           <input
             type="text"
             placeholder="Search"
-            className="h-9 w-full rounded-md border-0 bg-[#1a1a1a] pl-9 pr-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2a2a2a]"
+            className="h-9 w-full rounded-md border-0 bg-sidebar-accent pl-9 pr-3 text-sm text-sidebar-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
           />
         </div>
 
@@ -43,8 +43,8 @@ export function Sidebar() {
         <nav className="flex flex-col gap-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            
+            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`)) || (item.href === "/" && pathname === "/");
+
             return (
               <Link
                 key={item.href}
@@ -52,8 +52,8 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                   isActive
-                    ? "bg-[#1a1a1a] text-white"
-                    : "text-muted-foreground hover:bg-[#1a1a1a]/50 hover:text-white"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -63,14 +63,14 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="my-3 h-px bg-[#1a1a1a]" />
+        <div className="my-3 h-px bg-sidebar-border" />
 
         {/* Bottom Nav */}
         <nav className="flex flex-col gap-0.5">
           {bottomItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
-            
+
             return (
               <Link
                 key={item.href}
@@ -78,8 +78,8 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                   isActive
-                    ? "bg-[#1a1a1a] text-white"
-                    : "text-muted-foreground hover:bg-[#1a1a1a]/50 hover:text-white"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
