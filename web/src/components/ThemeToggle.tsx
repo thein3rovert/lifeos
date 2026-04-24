@@ -22,6 +22,7 @@ function applyThemeMode(mode: ThemeMode) {
   document.documentElement.classList.remove('light', 'dark')
   document.documentElement.classList.add(resolved)
 
+
   if (mode === 'auto') {
     document.documentElement.removeAttribute('data-theme')
   } else {

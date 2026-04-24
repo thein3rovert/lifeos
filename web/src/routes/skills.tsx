@@ -11,8 +11,7 @@ import {
   FileEdit
 } from 'lucide-react'
 import { api } from '../lib/api'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { RenderMarkdown } from '../components/RenderMarkdown'
 
 // Types
 type Skill = {
@@ -33,6 +32,31 @@ type Note = {
 type SkillDetail = {
   skill: Skill
   notes: Note[]
+}
+
+// Helper to strip YAML frontmatter from markdown
+function stripFrontmatter(content: string): string {
+  if (!content.startsWith('---')) {
+    return content
+  }
+  
+  const lines = content.split('\n')
+  let inFrontmatter = true
+  let contentStart = 0
+  
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') {
+      contentStart = i + 1
+      inFrontmatter = false
+      break
+    }
+  }
+  
+  if (contentStart > 0 && contentStart < lines.length) {
+    return lines.slice(contentStart).join('\n').trim()
+  }
+  
+  return content
 }
 
 export const Route = createFileRoute('/skills')({
@@ -126,7 +150,29 @@ function SkillsPage() {
   }
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr || dateStr === '0001-01-01T00:00:00Z' || dateStr.startsWith('0001-01-01')) {
+      return 'Unknown date'
+    }
+    
+    // Handle Go time format: "2026-04-24 22:34:14.340107457 +0100 BST"
+    // Extract just the date part before the space
+    const dateMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})/)
+    if (dateMatch) {
+      const date = new Date(dateMatch[1])
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      }
+    }
+    
+    // Fallback: try parsing the whole string
     const date = new Date(dateStr)
+    if (isNaN(date.getTime())) {
+      return 'Unknown date'
+    }
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -225,11 +271,9 @@ function SkillsPage() {
 
             {/* Markdown Content */}
             <div className="flex-1 overflow-auto p-4">
-              <div className="prose prose-invert prose-sm max-w-none text-[#aaa]">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {skillDetail.skill.content}
-                </ReactMarkdown>
-              </div>
+              <RenderMarkdown>
+                {stripFrontmatter(skillDetail.skill.content)}
+              </RenderMarkdown>
             </div>
 
             {/* Bottom placeholder */}
@@ -256,10 +300,10 @@ function SkillsPage() {
 
         {/* Notes List */}
         <div className="flex-1 overflow-auto p-3 space-y-2">
-          {skillDetail?.notes.length === 0 ? (
+          {!skillDetail?.notes || skillDetail.notes.length === 0 ? (
             <div className="text-center py-8 text-[#585858] text-xs">No notes yet</div>
           ) : (
-            skillDetail?.notes.map((note) => (
+            skillDetail.notes.map((note) => (
               <div 
                 key={note.id} 
                 className="p-3 bg-[#0f0f0f] border border-[#1e1e1e] rounded group"
