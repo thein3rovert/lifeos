@@ -6,6 +6,8 @@ export type Skill = {
   format: string
   content: string
   updated_at: string
+  synced_at?: string
+  pending_sync?: boolean
 }
 
 export type Note = {

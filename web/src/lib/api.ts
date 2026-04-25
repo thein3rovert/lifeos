@@ -26,6 +26,8 @@ export interface Skill {
   format: string
   content: string
   updated_at: string
+  synced_at?: string
+  pending_sync?: boolean
 }
 
 export interface Note {
@@ -45,6 +47,7 @@ export const api = {
     list: () => fetcher<Skill[]>('/api/skills'),
     get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
     sync: () => fetcher<Skill[]>('/api/skills/sync'),
+    push: () => fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
   },
   
   notes: {
