@@ -30,6 +30,8 @@ photos/
 # Skills directory (user data)
 skills/
 !web/src/routes/skills
+!web/src/lib/skills
+!web/src/components/skills
 
 # direnv
 .direnv/
