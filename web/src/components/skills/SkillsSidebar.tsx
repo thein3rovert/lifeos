@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
-import type { Skill } from '../../lib/skills/types'
+import type { Skill } from '@/lib/skills/types'
 
 type SkillsSidebarProps = {
   skills: Skill[]

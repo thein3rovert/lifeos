@@ -1,7 +1,7 @@
 import { FileEdit } from 'lucide-react'
-import type { SkillDetail } from '../../lib/skills/types'
-import { stripFrontmatter } from '../../lib/skills/utils'
-import { RenderMarkdown } from '../RenderMarkdown'
+import type { SkillDetail } from '@/lib/skills/types'
+import { stripFrontmatter } from '@/lib/skills/utils'
+import { RenderMarkdown } from '@/components/RenderMarkdown'
 
 type SkillContentProps = {
   skillDetail: SkillDetail | null

@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { api } from '../../lib/api'
-import type { Skill, SkillDetail } from '../../lib/skills/types'
-import { SkillsSidebar } from '../../components/skills/SkillsSidebar'
-import { SkillContent } from '../../components/skills/SkillContent'
-import { SkillNotes } from '../../components/skills/SkillNotes'
+import { api } from '@/lib/api'
+import type { Skill, SkillDetail } from '@/lib/skills/types'
+import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
+import { SkillContent } from '@/components/skills/SkillContent'
+import { SkillNotes } from '@/components/skills/SkillNotes'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,

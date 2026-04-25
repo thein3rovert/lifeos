@@ -1,6 +1,6 @@
 import { Plus, X, Upload } from 'lucide-react'
-import type { SkillDetail } from '../../lib/skills/types'
-import { formatDate } from '../../lib/skills/utils'
+import type { SkillDetail } from '@/lib/skills/types'
+import { formatDate } from '@/lib/skills/utils'
 
 type SkillNotesProps = {
   skillDetail: SkillDetail | null
