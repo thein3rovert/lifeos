@@ -24,11 +24,13 @@ func NewSkillHandler(skillStore store.SkillStore, noteStore store.NoteStore) *Sk
 
 // SkillResponse is the JSON shape returned by skill endpoints
 type SkillResponse struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Format    string `json:"format"`
-	Content   string `json:"content"`
-	UpdatedAt string `json:"updated_at"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Format      string `json:"format"`
+	Content     string `json:"content"`
+	UpdatedAt   string `json:"updated_at"`
+	SyncedAt    string `json:"synced_at"`
+	PendingSync bool   `json:"pending_sync"`
 }
 
 // SkillDetailResponse includes notes alongside the skill
@@ -39,13 +41,20 @@ type SkillDetailResponse struct {
 
 // skillToResponse converts a model.Skill to a SkillResponse
 func skillToResponse(s *model.Skill) SkillResponse {
-	return SkillResponse{
-		ID:        s.ID,
-		Title:     s.Title,
-		Format:    s.Format,
-		Content:   s.Content,
-		UpdatedAt: s.UpdatedAt.Format(time.RFC3339),
+	resp := SkillResponse{
+		ID:          s.ID,
+		Title:       s.Title,
+		Format:      s.Format,
+		Content:     s.Content,
+		UpdatedAt:   s.UpdatedAt.Format(time.RFC3339),
+		PendingSync: s.PendingSync,
 	}
+	
+	if !s.SyncedAt.IsZero() {
+		resp.SyncedAt = s.SyncedAt.Format(time.RFC3339)
+	}
+	
+	return resp
 }
 
 // ListSkills returns all skills as JSON

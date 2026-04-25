@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -66,7 +67,13 @@ func (s *SQLSkillStore) ListSkills() ([]model.Skill, error) {
 	}
 	defer rows.Close()
 	
-	return s.scanSkills(rows)
+	skills, err := s.scanSkills(rows)
+	if err != nil {
+		return nil, err
+	}
+	
+	log.Printf("[SQLite] Loaded %d skills from database", len(skills))
+	return skills, nil
 }
 
 // GetSkill returns a single skill from SQLite
@@ -78,7 +85,13 @@ func (s *SQLSkillStore) GetSkill(id string) (*model.Skill, error) {
 	`
 	
 	row := s.db.QueryRow(query, id)
-	return s.scanSkill(row)
+	skill, err := s.scanSkill(row)
+	if err != nil {
+		return nil, err
+	}
+	
+	log.Printf("[SQLite] Loaded skill '%s' from database", id)
+	return skill, nil
 }
 
 // SaveSkill saves to SQLite, marks as pending_sync
