@@ -165,3 +165,45 @@ func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, resp)
 }
+
+// Pusher interface for skills that support pushing to GitHub
+type SkillPusher interface {
+	PushToGitHub() error
+	GetPendingSkills() ([]model.Skill, error)
+}
+
+// PushSkills pushes pending local changes to GitHub
+// POST /api/skills/push
+func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
+	pusher, ok := h.skillStore.(SkillPusher)
+	if !ok {
+		respondError(w, http.StatusNotImplemented, "push not supported by current skill store")
+		return
+	}
+
+	// Get pending skills count first
+	pending, err := pusher.GetPendingSkills()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get pending skills")
+		return
+	}
+
+	if len(pending) == 0 {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "No pending changes to push",
+			"pushed":  0,
+		})
+		return
+	}
+
+	// Push to GitHub
+	if err := pusher.PushToGitHub(); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to push skills: "+err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Skills pushed successfully",
+		"pushed":  len(pending),
+	})
+}
