@@ -36,7 +36,29 @@ func main() {
 		log.Fatal("GitHub credentials not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables")
 	}
 
-	skillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
+	// Create GitHub store for sync operations
+	githubSkillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
+	
+	// Create SQLite-backed skill store (primary source, GitHub for sync)
+	skillStore, err := store.NewSQLSkillStore(db.DB(), githubSkillStore)
+	if err != nil {
+		log.Fatalf("Failed to initialise skill store: %v", err)
+	}
+	
+	// Sync from GitHub only if SQLite is empty (first run)
+	skills, _ := skillStore.ListSkills()
+	if len(skills) == 0 {
+		log.Println("SQLite empty, performing initial sync from GitHub...")
+		if err := skillStore.Sync(); err != nil {
+			log.Printf("Warning: initial sync failed: %v", err)
+			log.Println("Continuing with empty skill cache - use manual sync button to retry")
+		} else {
+			log.Println("Initial skills sync complete")
+		}
+	} else {
+		log.Printf("Loaded %d skills from SQLite (manual sync available)", len(skills))
+	}
+	
 	noteStore := notes.New(db.DB())
 
 	mux := http.NewServeMux()
@@ -58,6 +80,7 @@ func main() {
 	// Skills
 	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
 	mux.HandleFunc("GET /api/skills/sync", skillAPI.SyncSkills)
+	mux.HandleFunc("POST /api/skills/push", skillAPI.PushSkills)
 	mux.HandleFunc("POST /api/skills/edit", skillAPI.EditSkill)
 	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
 
