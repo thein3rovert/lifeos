@@ -15,7 +15,7 @@ import { useState } from 'react'
 import NotFound from '../components/NotFound'
 import ErrorComponent from '../components/ErrorComponent'
 
-import appCss from '../styles.css?url'
+import appCss from '../global.css?url'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -112,7 +112,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Main content area */}
-          <main className="flex-1 flex flex-col min-w-0 bg-black">
+          <main className="flex-1 min-w-0 bg-black overflow-hidden">
             {children}
           </main>
         </div>
