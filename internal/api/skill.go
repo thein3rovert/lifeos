@@ -118,23 +118,19 @@ type EditSkillRequest struct {
 func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 	var req EditSkillRequest
 
-	// Get skill content and id from request
-	var skillContent = req.Content
-	var skillID = req.SkillID
-
 	if err := decodeJSON(r, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	// Check if skill id and content are provided or empty
-	if skillID == "" || skillContent == "" {
+	if req.SkillID == "" || req.Content == "" {
 		respondError(w, http.StatusBadRequest, "skill_id and content are required")
 		return
 	}
 
 	// If true, get skill using skill id
-	skill, err := h.skillStore.GetSkill(skillID)
+	skill, err := h.skillStore.GetSkill(req.SkillID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to get skill")
 		return
@@ -142,7 +138,7 @@ func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 
 	// if true, save skill content after changes have
 	// been made to skill
-	skill.Content = skillContent
+	skill.Content = req.Content
 	if err := h.skillStore.SaveSkill(skill); err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to save skill")
 		return
