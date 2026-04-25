@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RefreshCw, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Upload, StickyNote } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 
 type SkillsSidebarProps = {
@@ -28,6 +28,8 @@ export function SkillsSidebar({
 }: SkillsSidebarProps) {
   // Calculate pending sync count
   const pendingCount = skills.filter(s => s.pending_sync).length
+  // Calculate skills with notes
+  const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
   
   // Get last synced time from skills
   const lastSynced = skills.length > 0 
@@ -43,10 +45,14 @@ export function SkillsSidebar({
         className="flex-shrink-0 w-8 h-8 self-start bg-[#0f0f0f] border border-[#1e1e1e] rounded hover:bg-[rgba(255,255,255,0.04)] transition-colors flex items-center justify-center relative"
       >
         <ChevronRight className="w-4 h-4 text-[#777]" strokeWidth={1.5} />
-        {pendingCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0070f3] rounded-full text-[10px] flex items-center justify-center text-white font-medium">
-            {pendingCount}
-          </span>
+        {(pendingCount > 0 || skillsWithNotes > 0) && (
+          <div className="absolute -top-1 -right-1 flex">
+            {pendingCount > 0 && (
+              <span className="w-4 h-4 bg-[#0070f3] rounded-full text-[10px] flex items-center justify-center text-white font-medium">
+                {pendingCount}
+              </span>
+            )}
+          </div>
         )}
       </button>
     )
@@ -61,6 +67,11 @@ export function SkillsSidebar({
           {pendingCount > 0 && (
             <span className="ml-2 px-1.5 py-0.5 bg-[#0070f3] rounded text-[9px] text-white">
               {pendingCount} pending
+            </span>
+          )}
+          {skillsWithNotes > 0 && !pendingCount && (
+            <span className="ml-2 px-1.5 py-0.5 bg-[#f5a623] rounded text-[9px] text-black">
+              {skillsWithNotes} notes
             </span>
           )}
         </span>
@@ -79,26 +90,44 @@ export function SkillsSidebar({
         ) : skills.length === 0 ? (
           <div className="px-3 py-2 text-xs text-[#777]">No skills yet</div>
         ) : (
-          skills.map((skill) => (
-            <button
-              key={skill.id}
-              onClick={() => onSelectSkill(skill.id)}
-              className={`
-                w-full flex items-center gap-2 px-3 py-2 text-left text-[13px]
-                transition-colors duration-150
-                ${selectedSkillId === skill.id
-                  ? 'bg-[rgba(255,255,255,0.06)] text-white border-l-2 border-[#0070f3]'
-                  : 'text-[#aaa] hover:bg-[rgba(255,255,255,0.04)] hover:text-white border-l-2 border-transparent'
-                }
-              `}
-            >
-              <ChevronRight className="w-3.5 h-3.5 text-[#585858]" strokeWidth={1.5} />
-              <span className="truncate flex-1">{skill.title}</span>
-              {skill.pending_sync && (
-                <span className="w-2 h-2 bg-[#0070f3] rounded-full flex-shrink-0" title="Pending sync" />
-              )}
-            </button>
-          ))
+          skills.map((skill) => {
+            const hasNotes = (skill.note_count || 0) > 0
+            const hasPendingSync = skill.pending_sync
+            
+            return (
+              <button
+                key={skill.id}
+                onClick={() => onSelectSkill(skill.id)}
+                className={`
+                  w-full flex items-center gap-2 px-3 py-2 text-left text-[13px]
+                  transition-colors duration-150
+                  ${selectedSkillId === skill.id
+                    ? 'bg-[rgba(255,255,255,0.06)] text-white border-l-2 border-[#0070f3]'
+                    : 'text-[#aaa] hover:bg-[rgba(255,255,255,0.04)] hover:text-white border-l-2 border-transparent'
+                  }
+                `}
+              >
+                <ChevronRight className="w-3.5 h-3.5 text-[#585858]" strokeWidth={1.5} />
+                <span className="truncate flex-1">{skill.title}</span>
+                
+                {/* Status indicators */}
+                <div className="flex items-center gap-1">
+                  {hasNotes && (
+                    <span 
+                      className="w-2 h-2 bg-[#f5a623] rounded-full flex-shrink-0" 
+                      title={`${skill.note_count} pending note${skill.note_count !== 1 ? 's' : ''}`}
+                    />
+                  )}
+                  {hasPendingSync && (
+                    <span 
+                      className="w-2 h-2 bg-[#0070f3] rounded-full flex-shrink-0" 
+                      title="Pending sync"
+                    />
+                  )}
+                </div>
+              </button>
+            )
+          })
         )}
       </div>
 

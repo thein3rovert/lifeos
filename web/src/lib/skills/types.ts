@@ -8,6 +8,7 @@ export type Skill = {
   updated_at: string
   synced_at?: string
   pending_sync?: boolean
+  note_count?: number
 }
 
 export type Note = {

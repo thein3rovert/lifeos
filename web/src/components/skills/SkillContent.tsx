@@ -49,6 +49,11 @@ export function SkillContent({ skillDetail, onSave, saving }: SkillContentProps)
                   Modified
                 </span>
               )}
+              {(skillDetail.skill.note_count || 0) > 0 && (
+                <span className="px-2 py-0.5 text-[10px] bg-[#f5a623] rounded text-black">
+                  {skillDetail.skill.note_count} note{skillDetail.skill.note_count !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
             
             {isEditing ? (
