@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCw, Upload, StickyNote } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
+import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 
 type SkillsSidebarProps = {
   skills: Skill[]
@@ -26,10 +28,13 @@ export function SkillsSidebar({
   collapsed,
   onToggleCollapse,
 }: SkillsSidebarProps) {
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+
   // Calculate pending sync count
   const pendingCount = skills.filter(s => s.pending_sync).length
   // Calculate skills with notes
   const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
+  const hasLocalChanges = pendingCount > 0 || skillsWithNotes > 0
   
   // Get last synced time from skills
   const lastSynced = skills.length > 0 
@@ -37,6 +42,28 @@ export function SkillsSidebar({
         new Date(b.synced_at!).getTime() - new Date(a.synced_at!).getTime()
       )[0]?.synced_at
     : null
+
+  const handleSyncClick = () => {
+    if (hasLocalChanges) {
+      setShowConfirmDialog(true)
+    } else {
+      onSync()
+    }
+  }
+
+  const handleCancel = () => {
+    setShowConfirmDialog(false)
+  }
+
+  const handlePushFirst = () => {
+    setShowConfirmDialog(false)
+    onPush?.()
+  }
+
+  const handlePullAnyway = () => {
+    setShowConfirmDialog(false)
+    onSync()
+  }
 
   if (collapsed) {
     return (
@@ -142,7 +169,7 @@ export function SkillsSidebar({
         
         {/* Sync button */}
         <button
-          onClick={onSync}
+          onClick={handleSyncClick}
           disabled={syncing}
           className="w-full h-7 flex items-center justify-center gap-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] disabled:opacity-50 text-[#aaa] text-xs font-medium rounded transition-colors duration-150"
         >
@@ -162,6 +189,15 @@ export function SkillsSidebar({
           </button>
         )}
       </div>
+
+      {/* Sync Confirmation Dialog */}
+      <SyncConfirmationDialog
+        isOpen={showConfirmDialog}
+        skills={skills}
+        onCancel={handleCancel}
+        onPushFirst={handlePushFirst}
+        onPullAnyway={handlePullAnyway}
+      />
     </aside>
   )
 }
