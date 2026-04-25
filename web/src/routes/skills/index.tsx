@@ -18,6 +18,7 @@ function SkillsPage() {
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [pushing, setPushing] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [addingNote, setAddingNote] = useState(false)
 
@@ -70,6 +71,21 @@ function SkillsPage() {
     }
   }
 
+  const handlePush = async () => {
+    setPushing(true)
+    try {
+      const result = await api.skills.push()
+      console.log('Push result:', result)
+      // Refresh skills to get updated pending_sync status
+      const data = await api.skills.list()
+      setSkills(data)
+    } catch (err) {
+      console.error('Push failed:', err)
+    } finally {
+      setPushing(false)
+    }
+  }
+
   const handleAddNote = async () => {
     if (!newNote.trim() || !selectedSkillId) return
 
@@ -107,6 +123,8 @@ function SkillsPage() {
         loading={loading}
         syncing={syncing}
         onSync={handleSync}
+        pushing={pushing}
+        onPush={handlePush}
         collapsed={sidebarCollapsed}
         onToggleCollapse={setSidebarCollapsed}
       />

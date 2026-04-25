@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Upload } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 
 type SkillsSidebarProps = {
@@ -8,6 +8,8 @@ type SkillsSidebarProps = {
   loading: boolean
   syncing: boolean
   onSync: () => void
+  pushing?: boolean
+  onPush?: () => void
   collapsed: boolean
   onToggleCollapse: (collapsed: boolean) => void
 }
@@ -19,16 +21,33 @@ export function SkillsSidebar({
   loading,
   syncing,
   onSync,
+  pushing,
+  onPush,
   collapsed,
   onToggleCollapse,
 }: SkillsSidebarProps) {
+  // Calculate pending sync count
+  const pendingCount = skills.filter(s => s.pending_sync).length
+  
+  // Get last synced time from skills
+  const lastSynced = skills.length > 0 
+    ? skills.filter(s => s.synced_at).sort((a, b) => 
+        new Date(b.synced_at!).getTime() - new Date(a.synced_at!).getTime()
+      )[0]?.synced_at
+    : null
+
   if (collapsed) {
     return (
       <button
         onClick={() => onToggleCollapse(false)}
-        className="flex-shrink-0 w-8 h-8 self-start bg-[#0f0f0f] border border-[#1e1e1e] rounded hover:bg-[rgba(255,255,255,0.04)] transition-colors flex items-center justify-center"
+        className="flex-shrink-0 w-8 h-8 self-start bg-[#0f0f0f] border border-[#1e1e1e] rounded hover:bg-[rgba(255,255,255,0.04)] transition-colors flex items-center justify-center relative"
       >
         <ChevronRight className="w-4 h-4 text-[#777]" strokeWidth={1.5} />
+        {pendingCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0070f3] rounded-full text-[10px] flex items-center justify-center text-white font-medium">
+            {pendingCount}
+          </span>
+        )}
       </button>
     )
   }
@@ -37,7 +56,14 @@ export function SkillsSidebar({
     <aside className="w-[220px] flex-shrink-0 bg-black border border-[#1e1e1e] rounded flex flex-col overflow-hidden">
       {/* Panel Header - Atlas: 32px height */}
       <div className="h-8 flex items-center justify-between px-3 border-b border-[#1e1e1e] flex-shrink-0">
-        <span className="text-[11px] font-medium text-[#aaa] uppercase tracking-[0.08em]">Skills</span>
+        <span className="text-[11px] font-medium text-[#aaa] uppercase tracking-[0.08em]">
+          Skills
+          {pendingCount > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 bg-[#0070f3] rounded text-[9px] text-white">
+              {pendingCount} pending
+            </span>
+          )}
+        </span>
         <button
           onClick={() => onToggleCollapse(true)}
           className="p-1 hover:bg-[rgba(255,255,255,0.04)] rounded transition-colors"
@@ -67,22 +93,45 @@ export function SkillsSidebar({
               `}
             >
               <ChevronRight className="w-3.5 h-3.5 text-[#585858]" strokeWidth={1.5} />
-              <span className="truncate">{skill.title}</span>
+              <span className="truncate flex-1">{skill.title}</span>
+              {skill.pending_sync && (
+                <span className="w-2 h-2 bg-[#0070f3] rounded-full flex-shrink-0" title="Pending sync" />
+              )}
             </button>
           ))
         )}
       </div>
 
-      {/* Sync button */}
-      <div className="p-3 border-t border-[#1e1e1e] flex-shrink-0">
+      {/* Sync status & buttons */}
+      <div className="p-3 border-t border-[#1e1e1e] flex-shrink-0 space-y-2">
+        {/* Last synced info */}
+        {lastSynced && (
+          <p className="text-[10px] text-[#666] text-center">
+            Last synced: {new Date(lastSynced).toLocaleDateString()}
+          </p>
+        )}
+        
+        {/* Sync button */}
         <button
           onClick={onSync}
           disabled={syncing}
-          className="w-full h-7 flex items-center justify-center gap-2 bg-[#ededed] hover:bg-white disabled:opacity-50 text-black text-xs font-medium rounded transition-colors duration-150"
+          className="w-full h-7 flex items-center justify-center gap-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] disabled:opacity-50 text-[#aaa] text-xs font-medium rounded transition-colors duration-150"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
-          {syncing ? 'Syncing...' : 'Sync Skills'}
+          {syncing ? 'Syncing...' : 'Pull from GitHub'}
         </button>
+        
+        {/* Push button - only show if pending changes */}
+        {pendingCount > 0 && onPush && (
+          <button
+            onClick={onPush}
+            disabled={pushing}
+            className="w-full h-7 flex items-center justify-center gap-2 bg-[#0070f3] hover:bg-[#0060d3] disabled:opacity-50 text-white text-xs font-medium rounded transition-colors duration-150"
+          >
+            <Upload className={`w-3.5 h-3.5 ${pushing ? 'animate-pulse' : ''}`} strokeWidth={1.5} />
+            {pushing ? 'Pushing...' : `Push ${pendingCount} change${pendingCount > 1 ? 's' : ''}`}
+          </button>
+        )}
       </div>
     </aside>
   )
