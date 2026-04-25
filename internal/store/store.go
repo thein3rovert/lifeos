@@ -32,4 +32,6 @@ type NoteStore interface {
 	GetNotesBySkill(skillID string) ([]model.Note, error)
 	ClearNotes(skillID string) error
 	DeleteNote(noteID int) error
+	CountNotesBySkill(skillID string) (int, error)
+	GetSkillNoteCounts() (map[string]int, error)
 }

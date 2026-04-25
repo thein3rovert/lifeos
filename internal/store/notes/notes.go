@@ -60,3 +60,35 @@ func (s *NoteStore) ClearNotes(skillID string) error {
 	_, err := s.db.Exec("DELETE FROM skill_notes WHERE skill_id = ?", skillID)
 	return err
 }
+
+// CountNotesBySkill returns the number of notes for a specific skill
+func (s *NoteStore) CountNotesBySkill(skillID string) (int, error) {
+	var count int
+	err := s.db.QueryRow(
+		"SELECT COUNT(*) FROM skill_notes WHERE skill_id = ?",
+		skillID,
+	).Scan(&count)
+	return count, err
+}
+
+// GetSkillNoteCounts returns a map of skill_id -> note count for all skills with notes
+func (s *NoteStore) GetSkillNoteCounts() (map[string]int, error) {
+	rows, err := s.db.Query(
+		"SELECT skill_id, COUNT(*) FROM skill_notes GROUP BY skill_id",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var skillID string
+		var count int
+		if err := rows.Scan(&skillID, &count); err != nil {
+			return nil, err
+		}
+		counts[skillID] = count
+	}
+	return counts, rows.Err()
+}

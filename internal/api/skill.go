@@ -31,6 +31,7 @@ type SkillResponse struct {
 	UpdatedAt   string `json:"updated_at"`
 	SyncedAt    string `json:"synced_at"`
 	PendingSync bool   `json:"pending_sync"`
+	NoteCount   int    `json:"note_count"`
 }
 
 // SkillDetailResponse includes notes alongside the skill
@@ -41,6 +42,11 @@ type SkillDetailResponse struct {
 
 // skillToResponse converts a model.Skill to a SkillResponse
 func skillToResponse(s *model.Skill) SkillResponse {
+	return skillToResponseWithNotes(s, 0)
+}
+
+// skillToResponseWithNotes converts a model.Skill to a SkillResponse with note count
+func skillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
 	resp := SkillResponse{
 		ID:          s.ID,
 		Title:       s.Title,
@@ -48,16 +54,17 @@ func skillToResponse(s *model.Skill) SkillResponse {
 		Content:     s.Content,
 		UpdatedAt:   s.UpdatedAt.Format(time.RFC3339),
 		PendingSync: s.PendingSync,
+		NoteCount:   noteCount,
 	}
-	
+
 	if !s.SyncedAt.IsZero() {
 		resp.SyncedAt = s.SyncedAt.Format(time.RFC3339)
 	}
-	
+
 	return resp
 }
 
-// ListSkills returns all skills as JSON
+// ListSkills returns all skills as JSON with note counts
 // GET /api/skills
 func (h *SkillHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 	skills, err := h.skillStore.ListSkills()
@@ -66,9 +73,12 @@ func (h *SkillHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get note counts for all skills
+	noteCounts, _ := h.noteStore.GetSkillNoteCounts()
+
 	var resp []SkillResponse
 	for _, s := range skills {
-		resp = append(resp, skillToResponse(&s))
+		resp = append(resp, skillToResponseWithNotes(&s, noteCounts[s.ID]))
 	}
 
 	respondJSON(w, http.StatusOK, resp)
