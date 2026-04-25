@@ -19,6 +19,7 @@ function SkillsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [pushing, setPushing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [addingNote, setAddingNote] = useState(false)
 
@@ -86,6 +87,23 @@ function SkillsPage() {
     }
   }
 
+  const handleSaveSkill = async (content: string) => {
+    if (!selectedSkillId) return
+
+    setSaving(true)
+    try {
+      const updatedSkill = await api.skills.save(selectedSkillId, content)
+      // Update local state
+      setSkillDetail(prev => prev ? { ...prev, skill: updatedSkill } : null)
+      // Update skills list to show pending sync indicator
+      setSkills(prev => prev.map(s => s.id === updatedSkill.id ? updatedSkill : s))
+    } catch (err) {
+      console.error('Failed to save skill:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleAddNote = async () => {
     if (!newNote.trim() || !selectedSkillId) return
 
@@ -129,7 +147,7 @@ function SkillsPage() {
         onToggleCollapse={setSidebarCollapsed}
       />
 
-      <SkillContent skillDetail={skillDetail} />
+      <SkillContent skillDetail={skillDetail} onSave={handleSaveSkill} saving={saving} />
 
       <SkillNotes
         skillDetail={skillDetail}

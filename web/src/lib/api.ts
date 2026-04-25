@@ -48,6 +48,11 @@ export const api = {
     get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
     sync: () => fetcher<Skill[]>('/api/skills/sync'),
     push: () => fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
+    save: (id: string, content: string) =>
+      fetcher<Skill>('/api/skills/edit', {
+        method: 'POST',
+        body: JSON.stringify({ skill_id: id, content }),
+      }),
   },
   
   notes: {
