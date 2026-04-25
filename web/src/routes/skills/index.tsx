@@ -20,7 +20,6 @@ function SkillsPage() {
   const [syncing, setSyncing] = useState(false)
   const [pushing, setPushing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [newNote, setNewNote] = useState('')
   const [addingNote, setAddingNote] = useState(false)
 
   // Load skills list on mount
@@ -104,14 +103,16 @@ function SkillsPage() {
     }
   }
 
-  const handleAddNote = async () => {
-    if (!newNote.trim() || !selectedSkillId) return
+  const handleAddNote = async (content: string) => {
+    if (!content.trim() || !selectedSkillId) return
 
     setAddingNote(true)
     try {
-      const updatedNotes = await api.notes.add(selectedSkillId, newNote)
+      const updatedNotes = await api.notes.add(selectedSkillId, content)
       setSkillDetail(prev => prev ? { ...prev, notes: updatedNotes } : null)
-      setNewNote('')
+      // Refresh skills list to update note counts
+      const skillsData = await api.skills.list()
+      setSkills(skillsData)
     } catch (err) {
       console.error('Failed to add note:', err)
     } finally {
@@ -151,8 +152,6 @@ function SkillsPage() {
 
       <SkillNotes
         skillDetail={skillDetail}
-        newNote={newNote}
-        onNewNoteChange={setNewNote}
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
         addingNote={addingNote}
