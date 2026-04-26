@@ -82,6 +82,7 @@ func main() {
 	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
 	mux.HandleFunc("GET /api/skills/sync", skillAPI.SyncSkills)
 	mux.HandleFunc("POST /api/skills/push", skillAPI.PushSkills)
+	mux.HandleFunc("POST /api/skills/{id}/push", skillAPI.PushSingleSkill)
 	mux.HandleFunc("POST /api/skills/edit", skillAPI.EditSkill)
 	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
 

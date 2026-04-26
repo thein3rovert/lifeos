@@ -284,3 +284,39 @@ func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
 		"pushed":  len(pending),
 	})
 }
+
+// Pusher interface extension for single skill push
+type SingleSkillPusher interface {
+	PushSingleSkill(skillID string) error
+}
+
+// PushSingleSkill pushes a single skill to GitHub
+// POST /api/skills/{id}/push
+func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
+	skillID := r.PathValue("id")
+	if skillID == "" {
+		respondError(w, http.StatusBadRequest, "skill ID is required")
+		return
+	}
+
+	pusher, ok := h.skillStore.(SingleSkillPusher)
+	if !ok {
+		respondError(w, http.StatusNotImplemented, "single skill push not supported")
+		return
+	}
+
+	// Push single skill
+	if err := pusher.PushSingleSkill(skillID); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to push skill: "+err.Error())
+		return
+	}
+
+	// Get updated skill
+	skill, err := h.skillStore.GetSkill(skillID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get updated skill")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, skillToResponse(skill))
+}

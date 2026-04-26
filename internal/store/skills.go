@@ -232,6 +232,38 @@ func (s *SQLSkillStore) PushToGitHub() error {
 	return nil
 }
 
+// PushSingleSkill pushes a single skill to GitHub
+func (s *SQLSkillStore) PushSingleSkill(skillID string) error {
+	if s.githubStore == nil {
+		return fmt.Errorf("no GitHub store configured")
+	}
+	
+	// Get the skill
+	skill, err := s.GetSkill(skillID)
+	if err != nil {
+		return fmt.Errorf("failed to get skill %s: %w", skillID, err)
+	}
+	
+	// Only push if it has pending changes
+	if !skill.PendingSync {
+		return fmt.Errorf("skill %s has no pending changes", skillID)
+	}
+	
+	// Push to GitHub
+	if err := s.githubStore.SaveSkill(skill); err != nil {
+		return fmt.Errorf("failed to push skill %s: %w", skillID, err)
+	}
+	
+	// Mark as synced
+	skill.PendingSync = false
+	skill.SyncedAt = time.Now()
+	if err := s.updateSyncStatus(skill); err != nil {
+		return fmt.Errorf("failed to update sync status for %s: %w", skillID, err)
+	}
+	
+	return nil
+}
+
 // updateSyncStatus updates only the sync-related fields
 func (s *SQLSkillStore) updateSyncStatus(skill *model.Skill) error {
 	query := `UPDATE skills SET pending_sync = ?, synced_at = ? WHERE id = ?`
