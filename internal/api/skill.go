@@ -2,11 +2,16 @@ package api
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store"
 )
+
+// ===============================
+// TYPES
+// ===============================
 
 // SkillHandler holds dependencies for skill API endpoints
 type SkillHandler struct {
@@ -40,6 +45,62 @@ type SkillDetailResponse struct {
 	Notes []NoteResponse `json:"notes"`
 }
 
+
+type CreateNewSkillRequest struct {
+	Title	string `json:"title"`
+	Format	string `json:"format"`
+	Content	string `json:"content"`
+}
+
+// Create new skills
+// POST /api/skills/create
+
+func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r *http.Request) {
+	var createSkillRequest CreateNewSkillRequest
+
+	if err := decodeJSON(r, &createSkillRequest); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body, unable to decode json")
+		return
+	}
+
+	// Validate require fields
+	if createSkillRequest.Title == "" || createSkillRequest.Content == "" {
+		respondError(w, http.StatusBadRequest, "title and content for new skill is required, please provide")
+		return
+	}
+
+	//Generate skill id from title
+	skillID := strings.ToLower(strings.ReplaceAll(createSkillRequest.Title, " ", "_"))
+	skillID = strings.ReplaceAll(skillID, "_", "_")
+
+	//Check if skill already exists in the database
+	existingSkills, _ := createSkillHandler.skillStore.GetSkill(skillID)
+	if existingSkills != nil {
+		respondError(w, http.StatusConflict, "skill with this name already exists")
+		return
+	}
+
+	// Create the skill
+	newSkill := &model.Skill{
+		ID: skillID,
+		Title: createSkillRequest.Title,
+		Content: createSkillRequest.Content,
+		Format: createSkillRequest.Format,
+		UpdatedAt: time.Now(),
+		PendingSync: true,
+	}
+
+	// Save skill to database
+	if err := createSkillHandler.skillStore.SaveSkill(newSkill); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to create new skills: "+err.Error())
+		return
+	}
+
+	// Return the created skill after creation
+	respondJSON(w, http.StatusCreated, skillToResponse(newSkill))
+
+
+}
 // skillToResponse converts a model.Skill to a SkillResponse
 func skillToResponse(s *model.Skill) SkillResponse {
 	return skillToResponseWithNotes(s, 0)
@@ -63,6 +124,7 @@ func skillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
 
 	return resp
 }
+
 
 // ListSkills returns all skills as JSON with note counts
 // GET /api/skills

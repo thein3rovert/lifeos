@@ -38,13 +38,13 @@ func main() {
 
 	// Create GitHub store for sync operations
 	githubSkillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
-	
+
 	// Create SQLite-backed skill store (primary source, GitHub for sync)
 	skillStore, err := store.NewSQLSkillStore(db.DB(), githubSkillStore)
 	if err != nil {
 		log.Fatalf("Failed to initialise skill store: %v", err)
 	}
-	
+
 	// Sync from GitHub only if SQLite is empty (first run)
 	skills, _ := skillStore.ListSkills()
 	if len(skills) == 0 {
@@ -58,7 +58,7 @@ func main() {
 	} else {
 		log.Printf("Loaded %d skills from SQLite (manual sync available)", len(skills))
 	}
-	
+
 	noteStore := notes.New(db.DB())
 
 	mux := http.NewServeMux()
@@ -78,6 +78,7 @@ func main() {
 	mux.HandleFunc("GET /api/photos/{id}", photoAPI.GetPhoto)
 
 	// Skills
+	mux.HandleFunc("POST /api/skills/create", skillAPI.CreateNewSkill)
 	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
 	mux.HandleFunc("GET /api/skills/sync", skillAPI.SyncSkills)
 	mux.HandleFunc("POST /api/skills/push", skillAPI.PushSkills)
