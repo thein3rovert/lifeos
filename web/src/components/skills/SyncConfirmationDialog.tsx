@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 
 type SyncConfirmationDialogProps = {
@@ -76,7 +76,7 @@ export function SyncConfirmationDialog({
           >
             Cancel
           </button>
-          
+
           {pendingSyncCount > 0 && (
             <button
               onClick={onPushFirst}
@@ -85,7 +85,7 @@ export function SyncConfirmationDialog({
               Push Changes First
             </button>
           )}
-          
+
           <button
             onClick={onPullAnyway}
             className="h-7 px-3 bg-[#ededed] hover:bg-white text-black text-[12px] font-medium rounded transition-colors duration-150"

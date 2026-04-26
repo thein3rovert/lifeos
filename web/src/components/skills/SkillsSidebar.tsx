@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw, Upload, StickyNote } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Upload } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 
@@ -35,10 +35,10 @@ export function SkillsSidebar({
   // Calculate skills with notes
   const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
   const hasLocalChanges = pendingCount > 0 || skillsWithNotes > 0
-  
+
   // Get last synced time from skills
-  const lastSynced = skills.length > 0 
-    ? skills.filter(s => s.synced_at).sort((a, b) => 
+  const lastSynced = skills.length > 0
+    ? skills.filter(s => s.synced_at).sort((a, b) =>
         new Date(b.synced_at!).getTime() - new Date(a.synced_at!).getTime()
       )[0]?.synced_at
     : null
@@ -120,7 +120,7 @@ export function SkillsSidebar({
           skills.map((skill) => {
             const hasNotes = (skill.note_count || 0) > 0
             const hasPendingSync = skill.pending_sync
-            
+
             return (
               <button
                 key={skill.id}
@@ -136,18 +136,18 @@ export function SkillsSidebar({
               >
                 <ChevronRight className="w-3.5 h-3.5 text-[#585858]" strokeWidth={1.5} />
                 <span className="truncate flex-1">{skill.title}</span>
-                
+
                 {/* Status indicators */}
                 <div className="flex items-center gap-1">
                   {hasNotes && (
-                    <span 
-                      className="w-2 h-2 bg-[#f5a623] rounded-full flex-shrink-0" 
+                    <span
+                      className="w-2 h-2 bg-[#f5a623] rounded-full flex-shrink-0"
                       title={`${skill.note_count} pending note${skill.note_count !== 1 ? 's' : ''}`}
                     />
                   )}
                   {hasPendingSync && (
-                    <span 
-                      className="w-2 h-2 bg-[#0070f3] rounded-full flex-shrink-0" 
+                    <span
+                      className="w-2 h-2 bg-[#0070f3] rounded-full flex-shrink-0"
                       title="Pending sync"
                     />
                   )}
@@ -166,7 +166,7 @@ export function SkillsSidebar({
             Last synced: {new Date(lastSynced).toLocaleDateString()}
           </p>
         )}
-        
+
         {/* Sync button */}
         <button
           onClick={handleSyncClick}
@@ -176,7 +176,7 @@ export function SkillsSidebar({
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           {syncing ? 'Syncing...' : 'Pull from GitHub'}
         </button>
-        
+
         {/* Push button - only show if pending changes */}
         {pendingCount > 0 && onPush && (
           <button

@@ -5,7 +5,7 @@ import type { Skill, SkillDetail } from '@/lib/skills/types'
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
 import { SkillContent } from '@/components/skills/SkillContent'
 import { SkillNotes } from '@/components/skills/SkillNotes'
-import { AIPreviewDialog } from '@/components/skills/AIPreviewDialog'
+import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -206,7 +206,7 @@ function SkillsPage() {
       />
 
       {/* AI Preview Dialog */}
-      <AIPreviewDialog
+      <SkillAIPreviewDialog
         isOpen={showAIPreview}
         preview={aiPreview}
         isLoading={aiLoading}

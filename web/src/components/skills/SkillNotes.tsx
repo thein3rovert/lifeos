@@ -1,4 +1,4 @@
-import { Plus, X, Sparkles, Minimize2, Edit3 } from 'lucide-react'
+import { Plus, X, Sparkles, Minimize2, Edit3, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { SkillDetail } from '@/lib/skills/types'
 import { formatDate } from '@/lib/skills/utils'
@@ -8,6 +8,8 @@ type SkillNotesProps = {
   onAddNote: (content: string) => void
   onDeleteNote: (noteId: number) => void
   addingNote: boolean
+  onAIPreview?: () => void
+  aiLoading?: boolean
 }
 
 export function SkillNotes({
@@ -15,6 +17,8 @@ export function SkillNotes({
   onAddNote,
   onDeleteNote,
   addingNote,
+  onAIPreview,
+  aiLoading,
 }: SkillNotesProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -137,11 +141,17 @@ export function SkillNotes({
         {noteCount > 0 && (
           <div className="p-3 border-t border-[#1e1e1e] flex-shrink-0">
             <button 
-              className="w-full h-7 flex items-center justify-center bg-[#0070f3]/10 hover:bg-[#0070f3]/20 border border-[#0070f3]/30 text-[#0070f3] text-xs font-medium rounded transition-colors duration-150"
+              onClick={onAIPreview}
+              disabled={aiLoading}
+              className="w-full h-7 flex items-center justify-center bg-[#0070f3]/10 hover:bg-[#0070f3]/20 disabled:opacity-50 border border-[#0070f3]/30 text-[#0070f3] text-xs font-medium rounded transition-colors duration-150"
               title="Send notes to AI for skill update"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" strokeWidth={1.5} />
-              Update with AI
+              {aiLoading ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" strokeWidth={1.5} />
+              )}
+              {aiLoading ? 'Processing...' : 'Update with AI'}
             </button>
           </div>
         )}
