@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://100.105.217.77:6060'
 
 async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
-  
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -11,12 +11,12 @@ async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   })
-  
+
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`API Error: ${response.status} - ${error}`)
   }
-  
+
   return response.json()
 }
 
@@ -42,19 +42,41 @@ export interface SkillDetail {
   notes: Note[]
 }
 
+export interface AIPreviewResponse {
+  skill_id: string
+  title: string
+  original_content: string
+  updated_content: string
+  rendered_html: string
+}
+
 export const api = {
   skills: {
     list: () => fetcher<Skill[]>('/api/skills'),
     get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
     sync: () => fetcher<Skill[]>('/api/skills/sync'),
     push: () => fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
+
+    // Save edited markdown to local
     save: (id: string, content: string) =>
       fetcher<Skill>('/api/skills/edit', {
         method: 'POST',
         body: JSON.stringify({ skill_id: id, content }),
       }),
+
+    // Preview ai updated content after its been passed in
+    // and processed by opencode
+    previewAIUpdate: (id: string) =>
+      fetcher<AIPreviewResponse>(`/api/skills/${id}/preview`, { method: 'POST' }),
+
+    // After the review is done same updated content
+    saveAIUpdate: (id: string, updatedContent: string) =>
+      fetcher<{ status: string; skill_id: string }>(`/api/skills/${id}/save`, {
+        method: 'POST',
+        body: JSON.stringify({ updated_content: updatedContent }),
+      }),
   },
-  
+
   notes: {
     list: (skillId: string) => fetcher<Note[]>(`/api/skills/${skillId}/notes`),
     add: (skillId: string, content: string) =>
