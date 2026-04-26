@@ -76,6 +76,13 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ updated_content: updatedContent }),
       }),
+
+    // Create new skill
+    create: (title: string, format: string, content: string) =>
+      fetcher<Skill>('/api/skills/create', {
+        method: 'POST',
+        body: JSON.stringify({ title, format, content }),
+      }),
   },
 
   notes: {

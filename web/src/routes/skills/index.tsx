@@ -25,6 +25,7 @@ function SkillsPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiPreview, setAiPreview] = useState<AIPreviewResponse | null>(null)
   const [showAIPreview, setShowAIPreview] = useState(false)
+  const [creatingSkill, setCreatingSkill] = useState(false)
 
   // Load skills list on mount
   useEffect(() => {
@@ -179,6 +180,21 @@ function SkillsPage() {
     setAiPreview(null)
   }
 
+  const handleCreateSkill = async (title: string, format: string, content: string) => {
+    setCreatingSkill(true)
+    try {
+      const newSkill = await api.skills.create(title, format, content)
+      // Refresh skills list and select the new skill
+      const skillsData = await api.skills.list()
+      setSkills(skillsData)
+      setSelectedSkillId(newSkill.id)
+    } catch (err) {
+      console.error('Failed to create new skill:', err)
+    } finally {
+      setCreatingSkill(false)
+    }
+  }
+
   return (
     <div className="flex h-full gap-3 p-4">
       <SkillsSidebar
@@ -192,6 +208,8 @@ function SkillsPage() {
         onPush={handlePush}
         collapsed={sidebarCollapsed}
         onToggleCollapse={setSidebarCollapsed}
+        onCreateSkill={handleCreateSkill}
+        creatingSkill={creatingSkill}
       />
 
       <SkillContent skillDetail={skillDetail} onSave={handleSaveSkill} saving={saving} />

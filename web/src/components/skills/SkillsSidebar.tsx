@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Upload, Plus } from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 import { SyncConfirmationDialog } from './SyncConfirmationDialog'
+import { CreateSkillDialog } from './CreateSkillDialog'
 
 type SkillsSidebarProps = {
   skills: Skill[]
@@ -14,6 +15,8 @@ type SkillsSidebarProps = {
   onPush?: () => void
   collapsed: boolean
   onToggleCollapse: (collapsed: boolean) => void
+  onCreateSkill?: (title: string, format: string, content: string) => void
+  creatingSkill?: boolean
 }
 
 export function SkillsSidebar({
@@ -27,8 +30,11 @@ export function SkillsSidebar({
   onPush,
   collapsed,
   onToggleCollapse,
+  onCreateSkill,
+  creatingSkill,
 }: SkillsSidebarProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
 
   const pendingCount = skills.filter(s => s.pending_sync).length
   const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
@@ -85,13 +91,24 @@ export function SkillsSidebar({
             </span>
           )}
         </span>
-        <button
-          onClick={() => onToggleCollapse(true)}
-          className="p-1 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
-        </button>
-      </div>
+          <div className="flex items-center gap-1">
+            {onCreateSkill && (
+              <button
+                onClick={() => setShowCreateDialog(true)}
+                className="p-1 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+                title="Create new skill"
+              >
+                <Plus className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+              </button>
+            )}
+            <button
+              onClick={() => onToggleCollapse(true)}
+              className="p-1 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
 
       {/* Skills list */}
       <div className="flex-1 overflow-auto py-1">
@@ -169,6 +186,16 @@ export function SkillsSidebar({
         onCancel={handleCancel}
         onPushFirst={handlePushFirst}
         onPullAnyway={handlePullAnyway}
+      />
+
+      <CreateSkillDialog
+        isOpen={showCreateDialog}
+        onCancel={() => setShowCreateDialog(false)}
+        onCreate={(title, format, content) => {
+          onCreateSkill?.(title, format, content)
+          setShowCreateDialog(false)
+        }}
+        isLoading={creatingSkill}
       />
     </aside>
   )
