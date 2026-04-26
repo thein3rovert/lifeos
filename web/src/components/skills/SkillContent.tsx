@@ -73,7 +73,7 @@ export function SkillContent({ skillDetail, onSave, saving }: SkillContentProps)
             ) : (
               <button 
                 onClick={handleEdit}
-                className="flex items-center gap-1.5 h-6 px-2.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-[var(--text-inverse)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
+                className="flex items-center gap-1.5 h-6 px-2.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-black text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
               >
                 <FileEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Edit

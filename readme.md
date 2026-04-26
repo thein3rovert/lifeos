@@ -15,9 +15,9 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 |-------|------------|
 | **Frontend** | TanStack Start (React + Vite + Tailwind CSS) |
 | **Backend** | Go 1.26 (stdlib http + Chi router) |
-| **Database** | SQLite (photos, notes, tags) |
+| **Database** | SQLite (photos, notes, tags, skills cache) |
 | **Skills Storage** | GitHub (thein3rovert/polis repo) |
-| **AI Sidecar** | Node.js + Express (port 3001) |
+| **AI Sidecar** | Node.js + Express (port 3002) |
 
 ---
 
@@ -30,6 +30,7 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 - [x] SQLite database with migrations
 - [x] Static file server for photos
 - [x] CORS middleware for frontend access
+- [x] Environment variable configuration (direnv)
 
 **Photos Module:**
 - [x] Upload photos (`POST /api/photos/upload`)
@@ -38,23 +39,33 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 - [x] Tag system (many-to-many: photos ↔ tags)
 - [x] Static file serving (`/static/photos/`)
 
-**Skills Module:**
-- [x] GitHub integration (thein3rovert/polis)
-- [x] Fetch skills from GitHub with caching (5-min TTL)
-- [x] Sync endpoint to force refresh (`GET /api/skills/sync`)
+**Skills Module (SQLite + GitHub Sync):**
+- [x] SQLite-backed skill store (primary source)
+- [x] GitHub integration for sync (thein3rovert/polis)
+- [x] Fetch skills from GitHub with caching
+- [x] **Sync from GitHub** (`GET /api/skills/sync`)
+- [x] **Push to GitHub** (`POST /api/skills/push`) - Creates PRs
+- [x] **Push single skill** (`POST /api/skills/{id}/push`)
+- [x] Edit skills locally (`POST /api/skills/edit`)
+- [x] Create new skills (`POST /api/skills/create`)
 - [x] Markdown content storage
 - [x] Support LifeOS + Opencode skill formats
+- [x] Visual sync indicators (pending, notes, modified)
+- [x] Conflict detection and warning dialogs
 
 **Notes Module:**
 - [x] Buffer notes per skill (SQLite)
 - [x] Add note to skill (`POST /api/skills/{id}/notes`)
 - [x] Delete note (`DELETE /api/skills/{id}/notes/{noteId}`)
 - [x] List notes for skill
+- [x] Clear notes after append/save
 
 **AI Workflow:**
-- [x] OpenCode sidecar (port 3001)
+- [x] OpenCode sidecar (port 3002) with Kimi K2.5
 - [x] Preview AI-updated skills (`POST /api/skills/{id}/preview`)
 - [x] Save AI changes to GitHub PR (`POST /api/skills/{id}/save`)
+- [x] Side-by-side diff view (Original vs AI Updated)
+- [x] Accept/Reject AI changes
 
 ---
 
@@ -65,6 +76,7 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 - [x] Configure Tailwind CSS with Atlas design system
 - [x] File-based routing
 - [x] API client module
+- [x] Atlas CSS variables integration
 
 **Layout & Navigation:**
 - [x] Collapsible sidebar (220px)
@@ -79,13 +91,26 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 - [x] Placeholder sections for future widgets
 
 **Skills Page (`/skills`):**
-- [x] 3-pane layout (sidebar + content + notes)
+- [x] **3-pane layout** (sidebar + content + notes)
 - [x] Skills list with format badges
+- [x] Visual indicators: blue dot (modified), yellow dot (notes)
+- [x] **Create new skill** dialog with templates
+- [x] **Edit skill** with raw markdown editor
 - [x] Markdown rendering with custom components
 - [x] Strip YAML frontmatter before display
 - [x] Collapsible left sidebar
-- [x] Notes panel (add/delete)
-- [x] Sync from GitHub button
+- [x] **Resizable note modal** with minimize/resume
+- [x] **Sync confirmation dialog** (warns about local changes)
+- [x] **Push selection dialog** (choose which skills to push)
+- [x] Note count badges
+- [x] Last synced timestamp
+
+**AI Integration:**
+- [x] "Update with AI" button (sends notes to sidecar)
+- [x] Loading spinner during AI processing
+- [x] Side-by-side preview (Original vs AI Updated)
+- [x] Accept/Reject changes
+- [x] Auto-clear notes after accepting
 
 **Gallery Page (`/gallery`):**
 - [ ] Photo grid display
@@ -109,27 +134,37 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 - Go 1.26+
 - Node.js 20+
 - GitHub personal access token (for skills sync)
+- OpenCode CLI (for AI sidecar)
 
-### 1. Start Go Backend (Port 6060)
+### 1. Start OpenCode (Port 4097)
+```bash
+opencode serve --port 4097
+```
+
+### 2. Start AI Sidecar (Port 3002)
+```bash
+cd sidecar
+npm install
+npm start
+```
+
+### 3. Start Go Backend (Port 6060)
+```bash
+# Set environment variables
+export GITHUB_TOKEN=your_token
+export GITHUB_OWNER=thein3rovert
+export GITHUB_REPO=polis
+export SIDECAR_URL=http://localhost:3002
 
 # Run server
 go run cmd/server/main.go
 ```
 
-### 2. Start TanStack Frontend (Port 3001)
-
+### 4. Start TanStack Frontend (Port 3000)
 ```bash
 cd web
 npm install
 npm run dev
-```
-
-### 3. Start AI Sidecar (Port 3001) - Optional
-
-```bash
-cd sidecar
-npm install
-npm start
 ```
 
 ---
@@ -143,10 +178,16 @@ npm start
 - `GET /static/photos/{filename}` - Serve photo file
 
 ### Skills
-- `GET /api/skills` - List all skills from GitHub
+- `GET /api/skills` - List all skills from SQLite (with note counts)
 - `GET /api/skills/{id}` - Get skill detail with notes
+- `POST /api/skills/create` - Create new skill
+- `POST /api/skills/edit` - Edit skill content
 - `GET /api/skills/sync` - Force refresh from GitHub
-- `POST /api/skills/{id}/preview` - Preview AI rewrite
+- `POST /api/skills/push` - Push all pending changes to GitHub
+- `POST /api/skills/{id}/push` - Push single skill to GitHub
+
+### AI Workflow
+- `POST /api/skills/{id}/preview` - Preview AI-updated skill
 - `POST /api/skills/{id}/save` - Save AI changes to PR
 
 ### Notes
@@ -166,8 +207,29 @@ We're using the **Atlas** design system (located in `skills/atlas/`):
 - Dense, information-rich UI
 - Near-white (#ededed) for CTAs
 - Blue (#0070f3) for focus/links
+- Yellow (#cd9731) for warnings/notes
 - Lucide icons (1.5px stroke)
 - Inter + JetBrains Mono fonts
+- CSS custom properties (variables)
+
+---
+
+## Skills Workflow
+
+### Daily Usage Flow:
+1. **Read skills** from SQLite cache (fast, offline-capable)
+2. **Add notes** to skills as you learn/think (yellow dot appears)
+3. **Edit skills** directly for quick fixes (blue dot appears)
+4. **AI Update** - Send notes to AI for skill rewrite (preview → accept)
+5. **Push changes** - Select which modified skills to push to GitHub
+6. **Pull updates** - Sync from GitHub to get latest (with conflict warning)
+
+### Visual Indicators:
+- 🔵 **Blue dot** = Modified locally, not pushed
+- 🟡 **Yellow dot** = Has pending notes
+- 🔵🟡 **Both dots** = Modified AND has notes
+- **Blue "Modified" badge** = Skill has unsaved changes
+- **Yellow "X notes" badge** = Skill has buffer notes
 
 ---
 
@@ -184,13 +246,16 @@ We're using the **Atlas** design system (located in `skills/atlas/`):
 - [ ] Agent daemon for local AI execution
 - [ ] Claude Code / Codex / OpenCode integration
 - [ ] Chat interface with skills context
+- [ ] AI-powered skill suggestions
 
 ### Phase 5: Advanced Features
 - [ ] Photo albums/collections
 - [ ] Advanced search (fuzzy, filters)
-- [ ] Skills export (multiple formats)
+- [ ] Skills export (multiple formats: opencode, claude, copilot)
+- [ ] Skills assets (images, attachments)
 - [ ] Glossary webpage (public)
 - [ ] Cheatsheet webpage (public)
+- [ ] Skill templates library
 
 ---
 
@@ -223,7 +288,8 @@ Migrations run automatically on startup. Schema in `internal/store/`.
 - **TanStack Start**: Full-stack React framework
 - **Chi Router**: Lightweight Go router
 - **SQLite**: Embedded database (no setup required)
+- **OpenCode**: AI coding assistant platform
 
 ---
 
-Last Updated: 2026-04-24
+Last Updated: 2026-04-26

@@ -82,19 +82,21 @@ export function SkillsSidebar({
     <aside className="w-[220px] flex-shrink-0 bg-[var(--bg-base)] border border-[var(--border-default)] rounded-[var(--radius-md)] flex flex-col overflow-hidden">
       {/* Panel Header */}
       <div className="h-8 flex items-center justify-between px-3 border-b border-[var(--border-default)] flex-shrink-0">
-        <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)] uppercase tracking-[0.08em]">
-          Skills
+        <div className="flex items-center gap-2">
+          <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+            Skills
+          </span>
           {pendingCount > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 bg-[var(--accent-highlight)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-white">
+            <span className="px-1.5 py-0.5 bg-[var(--accent-highlight)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-white whitespace-nowrap">
               {pendingCount} pending
             </span>
           )}
           {skillsWithNotes > 0 && !pendingCount && (
-            <span className="ml-2 px-1.5 py-0.5 bg-[var(--status-warning)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-black">
+            <span className="px-1.5 py-0.5 bg-[var(--status-warning)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-black whitespace-nowrap">
               {skillsWithNotes} notes
             </span>
           )}
-        </span>
+        </div>
           <div className="flex items-center gap-1">
             {onCreateSkill && (
               <button
