@@ -349,7 +349,7 @@ func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 	}
 
 	response, err := http.Post(
-		"http://localhost:3001/skill/update",
+		"http://localhost:3002/skill/update",
 		"application/json",
 		bytes.NewBuffer(jsonData),
 	)

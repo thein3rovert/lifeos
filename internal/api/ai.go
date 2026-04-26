@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/thein3rovert/lifeos/internal/store"
@@ -250,9 +251,13 @@ func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 		return "", err
 	}
 
-	sidecarURL := "http://localhost:3001/skill/update"
+	// Get sidecar URL from env or use default
+	sidecarURL := os.Getenv("SIDECAR_URL")
+	if sidecarURL == "" {
+		sidecarURL = "http://localhost:3002"
+	}
 
-	response, err := http.Post(sidecarURL, "application/json", bytes.NewBuffer(jsonData))
+	response, err := http.Post(sidecarURL+"/skill/update", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
