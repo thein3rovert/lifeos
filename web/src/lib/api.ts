@@ -42,6 +42,7 @@ export interface SkillDetail {
   notes: Note[]
 }
 
+// We need the title and id of skill to allow preview
 export interface AIPreviewResponse {
   skill_id: string
   title: string

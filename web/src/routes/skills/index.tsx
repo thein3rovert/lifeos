@@ -1,10 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, type AIPreviewResponse } from '@/lib/api'
 import type { Skill, SkillDetail } from '@/lib/skills/types'
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
 import { SkillContent } from '@/components/skills/SkillContent'
 import { SkillNotes } from '@/components/skills/SkillNotes'
+import { AIPreviewDialog } from '@/components/skills/AIPreviewDialog'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -21,6 +22,9 @@ function SkillsPage() {
   const [pushing, setPushing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [addingNote, setAddingNote] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiPreview, setAiPreview] = useState<AIPreviewResponse | null>(null)
+  const [showAIPreview, setShowAIPreview] = useState(false)
 
   // Load skills list on mount
   useEffect(() => {
@@ -128,9 +132,51 @@ function SkillsPage() {
       setSkillDetail(prev =>
         prev ? { ...prev, notes: prev.notes.filter(n => n.id !== noteId) } : null
       )
+      // Refresh skills list to update note counts
+      const skillsData = await api.skills.list()
+      setSkills(skillsData)
     } catch (err) {
       console.error('Failed to delete note:', err)
     }
+  }
+
+  const handleAIPreview = async () => {
+    if (!selectedSkillId) return
+
+    setAiLoading(true)
+    setShowAIPreview(true)
+    try {
+      const preview = await api.skills.previewAIUpdate(selectedSkillId)
+      setAiPreview(preview)
+    } catch (err) {
+      console.error('Failed to get AI preview:', err)
+      setShowAIPreview(false)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // Save ai aupdate after preview is done
+  const handleSaveAIUpdate = async () => {
+    if (!selectedSkillId || !aiPreview) return
+
+    try {
+      await api.skills.saveAIUpdate(selectedSkillId, aiPreview.updated_content)
+      // Refresh skill detail and skills list
+      const updatedDetail = await api.skills.get(selectedSkillId)
+      setSkillDetail(updatedDetail)
+      const skillsData = await api.skills.list()
+      setSkills(skillsData)
+      setShowAIPreview(false)
+      setAiPreview(null)
+    } catch (err) {
+      console.error('Failed to save AI update:', err)
+    }
+  }
+
+  const handleAIReject = () => {
+    setShowAIPreview(false)
+    setAiPreview(null)
   }
 
   return (
@@ -155,6 +201,18 @@ function SkillsPage() {
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
         addingNote={addingNote}
+        onAIPreview={handleAIPreview}
+        aiLoading={aiLoading}
+      />
+
+      {/* AI Preview Dialog */}
+      <AIPreviewDialog
+        isOpen={showAIPreview}
+        preview={aiPreview}
+        isLoading={aiLoading}
+        onCancel={handleAIReject}
+        onAccept={handleSaveAIUpdate}
+        onReject={handleAIReject}
       />
     </div>
   )
