@@ -149,7 +149,7 @@ function SkillsPage() {
       const preview = await api.skills.previewAIUpdate(selectedSkillId)
       setAiPreview(preview)
     } catch (err) {
-      console.error('Failed to get AI preview:', err)
+      console.error('Failed to get AI preview make sure your AI provider\n is connected and running:', err)
       setShowAIPreview(false)
     } finally {
       setAiLoading(false)
@@ -170,7 +170,7 @@ function SkillsPage() {
       setShowAIPreview(false)
       setAiPreview(null)
     } catch (err) {
-      console.error('Failed to save AI update:', err)
+      console.error('Failed to save AI update make sure your AI provider\n is connected and running:', err)
     }
   }
 
