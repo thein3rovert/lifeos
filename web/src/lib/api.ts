@@ -83,6 +83,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ title, format, content }),
       }),
+
+    // Push single skill to GitHub
+    pushSingle: (id: string) =>
+      fetcher<{ message: string; pushed: number }>(`/api/skills/${id}/push`, { method: 'POST' }),
   },
 
   notes: {

@@ -91,6 +91,23 @@ function SkillsPage() {
     }
   }
 
+  const handlePushSelected = async (skillIds: string[]) => {
+    setPushing(true)
+    try {
+      // Push each selected skill individually
+      for (const skillId of skillIds) {
+        await api.skills.pushSingle(skillId)
+      }
+      // Refresh skills list
+      const data = await api.skills.list()
+      setSkills(data)
+    } catch (err) {
+      console.error('Failed to push selected skills:', err)
+    } finally {
+      setPushing(false)
+    }
+  }
+
   const handleSaveSkill = async (content: string) => {
     if (!selectedSkillId) return
 
@@ -206,6 +223,7 @@ function SkillsPage() {
         onSync={handleSync}
         pushing={pushing}
         onPush={handlePush}
+        onPushSelected={handlePushSelected}
         collapsed={sidebarCollapsed}
         onToggleCollapse={setSidebarCollapsed}
         onCreateSkill={handleCreateSkill}

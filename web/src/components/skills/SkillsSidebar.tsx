@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw, Upload, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Upload, Plus} from 'lucide-react'
 import type { Skill } from '@/lib/skills/types'
 import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 import { CreateSkillDialog } from './CreateSkillDialog'
+import { PushSelectionDialog } from './PushSelectionDialog'
 
 type SkillsSidebarProps = {
   skills: Skill[]
@@ -13,6 +14,7 @@ type SkillsSidebarProps = {
   onSync: () => void
   pushing?: boolean
   onPush?: () => void
+  onPushSelected?: (skillIds: string[]) => void
   collapsed: boolean
   onToggleCollapse: (collapsed: boolean) => void
   onCreateSkill?: (title: string, format: string, content: string) => void
@@ -28,6 +30,7 @@ export function SkillsSidebar({
   onSync,
   pushing,
   onPush,
+  onPushSelected,
   collapsed,
   onToggleCollapse,
   onCreateSkill,
@@ -35,6 +38,7 @@ export function SkillsSidebar({
 }: SkillsSidebarProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showPushDialog, setShowPushDialog] = useState(false)
 
   const pendingCount = skills.filter(s => s.pending_sync).length
   const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
@@ -120,7 +124,7 @@ export function SkillsSidebar({
           skills.map((skill) => {
             const hasNotes = (skill.note_count || 0) > 0
             const hasPendingSync = skill.pending_sync
-            
+
             return (
               <button
                 key={skill.id}
@@ -136,7 +140,7 @@ export function SkillsSidebar({
               >
                 <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" strokeWidth={1.5} />
                 <span className="truncate flex-1">{skill.title}</span>
-                
+
                 <div className="flex items-center gap-1">
                   {hasNotes && (
                     <span className="w-2 h-2 bg-[var(--status-warning)] rounded-full flex-shrink-0" />
@@ -158,7 +162,7 @@ export function SkillsSidebar({
             Last synced: {new Date(lastSynced).toLocaleDateString()}
           </p>
         )}
-        
+
         <button
           onClick={handleSyncClick}
           disabled={syncing}
@@ -167,10 +171,10 @@ export function SkillsSidebar({
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           {syncing ? 'Syncing...' : 'Pull from GitHub'}
         </button>
-        
-        {pendingCount > 0 && onPush && (
+
+        {pendingCount > 0 && (onPush || onPushSelected) && (
           <button
-            onClick={onPush}
+            onClick={() => onPushSelected ? setShowPushDialog(true) : onPush?.()}
             disabled={pushing}
             className="w-full h-7 flex items-center justify-center gap-2 bg-[var(--accent-highlight)] hover:bg-[var(--accent-highlight-hover)] disabled:opacity-50 text-white text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
           >
@@ -196,6 +200,17 @@ export function SkillsSidebar({
           setShowCreateDialog(false)
         }}
         isLoading={creatingSkill}
+      />
+
+      <PushSelectionDialog
+        isOpen={showPushDialog}
+        skills={skills}
+        onCancel={() => setShowPushDialog(false)}
+        onPush={(skillIds) => {
+          onPushSelected?.(skillIds)
+          setShowPushDialog(false)
+        }}
+        isLoading={pushing}
       />
     </aside>
   )
