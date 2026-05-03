@@ -7,6 +7,8 @@ import {
   Search,
   Plus
 } from 'lucide-react'
+import { api } from '@/lib/api'
+import type { Note, Skill } from '@/lib/api'
 
 export const Route = createFileRoute('/')({
   component: DashboardPage,
@@ -15,13 +17,10 @@ export const Route = createFileRoute('/')({
 const API_URL = 'http://100.105.217.77:6060'
 
 async function fetchStats() {
-  const [skillsRes, photosRes] = await Promise.all([
-    fetch(`${API_URL}/api/skills`),
-    fetch(`${API_URL}/api/photos`)
+  const [skills, photos] = await Promise.all([
+    api.skills.list(),
+    fetch(`${API_URL}/api/photos`).then(r => r.json())
   ])
-
-  const skills = await skillsRes.json()
-  const photos = await photosRes.json()
 
   return {
     totalSkills: skills.length,
@@ -31,6 +30,10 @@ async function fetchStats() {
   }
 }
 
+async function fetchNotes() {
+  return api.notes.listAll()
+}
+
 function DashboardPage() {
   const [stats, setStats] = useState({
     totalSkills: 0,
@@ -38,13 +41,40 @@ function DashboardPage() {
     skillsTrend: '+0',
     photosTrend: '+0'
   })
+  const [notes, setNotes] = useState<Note[]>([])
+  const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    fetchStats()
-      .then(setStats)
+    Promise.all([
+      fetchStats(),
+      fetchNotes(),
+      api.skills.list()
+    ])
+      .then(([statsData, notesData, skillsData]) => {
+        setStats(statsData)
+        setNotes(notesData)
+        setSkills(skillsData)
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  // Helper to get skill title by ID
+  const getSkillTitle = (skillId: string) => {
+    const skill = skills.find(s => s.id === skillId)
+    return skill?.title || skillId
+  }
+
+  // Filter notes by search query
+  const filteredNotes = notes.filter(note => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      note.content.toLowerCase().includes(query) ||
+      getSkillTitle(note.skill_id).toLowerCase().includes(query)
+    )
+  })
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
@@ -87,6 +117,8 @@ function DashboardPage() {
                 <input
                   type="text"
                   placeholder="Search notes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-6 pl-7 pr-2 text-xs bg-black border border-default rounded text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-40"
                 />
               </div>
@@ -104,19 +136,44 @@ function DashboardPage() {
             <span>Date</span>
           </div>
 
-          {/* Table body - placeholder rows */}
+          {/* Table body */}
           <div className="flex-1 overflow-auto">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="grid grid-cols-4 px-3 py-2 border-b border-subtle hover:bg-hover transition-colors duration-150"
-              >
-                <span className="text-xs text-secondary">Note {i} description here</span>
-                <span className="text-xs text-tertiary">Skill name</span>
-                <span className="text-xs text-tertiary">tag</span>
-                <span className="text-xs text-tertiary">Jan {i}, 2025</span>
+            {loading ? (
+              <div className="flex items-center justify-center h-32 text-muted text-xs">
+                Loading notes...
               </div>
-            ))}
+            ) : filteredNotes.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-muted text-xs">
+                {searchQuery ? 'No notes match your search' : 'No notes yet'}
+              </div>
+            ) : (
+              filteredNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className="grid grid-cols-4 px-3 py-2 border-b border-subtle hover:bg-hover transition-colors duration-150 cursor-pointer"
+                >
+                  <span className="text-xs text-secondary truncate" title={note.content}>
+                    {note.content}
+                  </span>
+                  <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
+                    {getSkillTitle(note.skill_id)}
+                  </span>
+                  <span className="text-xs text-tertiary">-</span>
+                  <span className="text-xs text-tertiary">
+                    {(() => {
+                      try {
+                        // Parse Go timestamp: "2026-04-24 22:34:14.340107457 +0100 BST"
+                        const dateStr = note.created_at.split(' ')[0] // Get just "2026-04-24"
+                        const date = new Date(dateStr)
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      } catch {
+                        return 'Invalid Date'
+                      }
+                    })()}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

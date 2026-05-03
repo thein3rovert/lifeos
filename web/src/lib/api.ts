@@ -90,6 +90,7 @@ export const api = {
   },
 
   notes: {
+    listAll: () => fetcher<Note[]>('/api/notes'),
     list: (skillId: string) => fetcher<Note[]>(`/api/skills/${skillId}/notes`),
     add: (skillId: string, content: string) =>
       fetcher<Note[]>(`/api/skills/${skillId}/notes`, {
