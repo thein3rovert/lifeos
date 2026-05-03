@@ -87,6 +87,7 @@ func main() {
 	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
 
 	// Notes
+	mux.HandleFunc("GET /api/notes", noteAPI.GetAllNotes)
 	mux.HandleFunc("GET /api/skills/{id}/notes", noteAPI.GetNotes)
 	mux.HandleFunc("POST /api/skills/{id}/notes", noteAPI.AddNote)
 	mux.HandleFunc("DELETE /api/skills/{id}/notes/{noteId}", noteAPI.DeleteNote)
