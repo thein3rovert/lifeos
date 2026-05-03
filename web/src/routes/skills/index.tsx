@@ -6,6 +6,8 @@ import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
 import { SkillContent } from '@/components/skills/SkillContent'
 import { SkillNotes } from '@/components/skills/SkillNotes'
 import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog'
+import { PullSelectionDialog } from '@/components/skills/PullSelectionDialog'
+import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -26,6 +28,9 @@ function SkillsPage() {
   const [aiPreview, setAiPreview] = useState<AIPreviewResponse | null>(null)
   const [showAIPreview, setShowAIPreview] = useState(false)
   const [creatingSkill, setCreatingSkill] = useState(false)
+  const [showPullDialog, setShowPullDialog] = useState(false)
+  const [showSyncConfirmation, setShowSyncConfirmation] = useState(false)
+  const [selectedPullIds, setSelectedPullIds] = useState<string[]>([])
 
   // Load skills list on mount
   useEffect(() => {
@@ -65,15 +70,56 @@ function SkillsPage() {
   }
 
   const handleSync = async () => {
+    setShowPullDialog(true) // Show selection dialog
+  }
+
+  const handlePullSelected = async (skillIds: string[]) => {
+    setShowPullDialog(false)
+
+    // Check if any selected skills have local changes
+    const selectedSkills = skills.filter(s => skillIds.includes(s.id))
+    const hasLocalChanges = selectedSkills.some(s => s.pending_sync || (s.note_count && s.note_count > 0))
+
+    if (hasLocalChanges) {
+      // Show confirmation dialog
+      setSelectedPullIds(skillIds)
+      setShowSyncConfirmation(true)
+    } else {
+      // No conflicts, pull directly
+      await performPull(skillIds)
+    }
+  }
+
+  const performPull = async (skillIds: string[]) => {
+    setShowSyncConfirmation(false)
     setSyncing(true)
     try {
-      const data = await api.skills.sync()
-      setSkills(data)
+      // Sync all from GitHub
+      await api.skills.sync()
+      // Reload skills list
+      const allSkills = await api.skills.list()
+      setSkills(allSkills)
+      // If currently viewing a pulled skill, reload it
+      if (selectedSkillId && skillIds.includes(selectedSkillId)) {
+        await loadSkillDetail(selectedSkillId)
+      }
     } catch (err) {
       console.error('Sync failed:', err)
     } finally {
       setSyncing(false)
     }
+  }
+
+  const handlePullAnyway = () => {
+    performPull(selectedPullIds)
+  }
+
+  const handlePushFirst = async () => {
+    setShowSyncConfirmation(false)
+    // Push pending changes first
+    await handlePush()
+    // Then pull
+    await performPull(selectedPullIds)
   }
 
   const handlePush = async () => {
@@ -249,6 +295,24 @@ function SkillsPage() {
         onCancel={handleAIReject}
         onAccept={handleSaveAIUpdate}
         onReject={handleAIReject}
+      />
+
+      {/* Pull Selection Dialog */}
+      <PullSelectionDialog
+        isOpen={showPullDialog}
+        skills={skills}
+        onCancel={() => setShowPullDialog(false)}
+        onPull={handlePullSelected}
+        isLoading={syncing}
+      />
+
+      {/* Sync Confirmation Dialog */}
+      <SyncConfirmationDialog
+        isOpen={showSyncConfirmation}
+        skills={skills.filter(s => selectedPullIds.includes(s.id))}
+        onCancel={() => setShowSyncConfirmation(false)}
+        onPushFirst={handlePushFirst}
+        onPullAnyway={handlePullAnyway}
       />
     </div>
   )

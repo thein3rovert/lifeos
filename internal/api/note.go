@@ -125,7 +125,7 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
-// GetAllNotes returns all notes across all skills
+// Returns all notes across all skills
 // GET /api/notes
 func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	notes, err := h.noteStore.GetAllNotes()
