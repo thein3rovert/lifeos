@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store"
 )
 
@@ -30,6 +31,23 @@ func NewChatHandler(skillStore *store.SQLSkillStore) *ChatHandler {
 	}
 }
 
+// Helper to get skill from request path and handle errors
+func (h *ChatHandler) getSkillFromRequest(w http.ResponseWriter, r *http.Request) (*model.Skill, bool) {
+	skillID := r.PathValue("id")
+	if skillID == "" {
+		respondError(w, http.StatusBadRequest, "skill ID is required")
+		return nil, false
+	}
+
+	skill, err := h.skillStore.GetSkill(skillID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "skill not found")
+		return nil, false
+	}
+
+	return skill, true
+}
+
 type GetOrCreateSessionRequest struct {
 	SkillID    string `json:"skillId"`
 	SkillTitle string `json:"skillTitle"`
@@ -43,16 +61,8 @@ type GetOrCreateSessionResponse struct {
 // GetOrCreateSession gets or creates an OpenCode session for a skill
 // POST /api/skills/{id}/session
 func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
-	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
-		return
-	}
-
-	// Get skill from database
-	skill, err := h.skillStore.GetSkill(skillID)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "skill not found")
+	skill, ok := h.getSkillFromRequest(w, r)
+	if !ok {
 		return
 	}
 
@@ -91,12 +101,6 @@ type ChatMessageResponse struct {
 // SendChatMessage sends a message to the skill's chat session
 // POST /api/skills/{id}/chat
 func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
-	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
-		return
-	}
-
 	var req ChatMessageRequest
 	if err := decodeJSON(r, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body")
@@ -108,10 +112,8 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get skill from database
-	skill, err := h.skillStore.GetSkill(skillID)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "skill not found")
+	skill, ok := h.getSkillFromRequest(w, r)
+	if !ok {
 		return
 	}
 
@@ -151,16 +153,8 @@ type GetMessagesResponse struct {
 // GetChatMessages gets the chat history for a skill
 // GET /api/skills/{id}/messages
 func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
-	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
-		return
-	}
-
-	// Get skill from database
-	skill, err := h.skillStore.GetSkill(skillID)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "skill not found")
+	skill, ok := h.getSkillFromRequest(w, r)
+	if !ok {
 		return
 	}
 
