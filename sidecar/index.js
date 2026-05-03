@@ -119,6 +119,111 @@ app.get("/health", (_req, res) => {
   res.json({ healthy: true });
 });
 
+// Create or get session for a skill
+app.post("/session/getOrCreate", async (req, res) => {
+  const { skillId, skillTitle, sessionId } = req.body;
+
+  if (!skillId || !skillTitle) {
+    return res.status(400).json({ error: "skillId and skillTitle are required" });
+  }
+
+  try {
+    // If sessionId provided, verify it exists
+    if (sessionId) {
+      try {
+        await client.session.get({ path: { id: sessionId } });
+        console.log(`Resuming existing session: ${sessionId}`);
+        return res.json({ sessionId });
+      } catch (err) {
+        console.log(`Session ${sessionId} not found, creating new one`);
+      }
+    }
+
+    // Create new session
+    const session = await client.session.create({
+      body: { title: `skill-${skillId}` },
+    });
+    console.log(`Created new session: ${session.data.id}`);
+    return res.json({ sessionId: session.data.id });
+  } catch (err) {
+    console.error("Failed to get/create session:", err.message);
+    return res.status(500).json({ error: "Failed to manage session" });
+  }
+});
+
+// Send a chat message to a session
+app.post("/session/chat", async (req, res) => {
+  const { sessionId, message, skillContent } = req.body;
+
+  if (!sessionId || !message) {
+    return res.status(400).json({ error: "sessionId and message are required" });
+  }
+
+  try {
+    console.log(`Sending message to session ${sessionId}`);
+
+    // Build prompt with skill context if provided
+    let prompt = message;
+    if (skillContent) {
+      prompt = `Context: You are helping improve this skill document:
+
+${skillContent}
+
+User: ${message}`;
+    }
+
+    const result = await client.session.prompt({
+      path: { id: sessionId },
+      body: {
+        parts: [{ type: "text", text: prompt }],
+      },
+    });
+
+    const response = result.data.parts
+      .filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("");
+
+    console.log(`Response received from session ${sessionId}`);
+    return res.json({ response });
+  } catch (err) {
+    console.error("Failed to send chat message:", err.message);
+    return res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+// Get chat history for a session
+app.post("/session/messages", async (req, res) => {
+  const { sessionId } = req.body;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: "sessionId is required" });
+  }
+
+  try {
+    // Get session details which includes messages
+    const session = await client.session.get({ path: { id: sessionId } });
+
+    // Extract messages from session data
+    const messages = session.data.messages || [];
+
+    // Transform to our format
+    const formattedMessages = messages.map(msg => ({
+      id: msg.id || `msg-${Date.now()}`,
+      role: msg.role,
+      content: msg.parts?.filter(p => p.type === 'text').map(p => p.text).join('') || '',
+      created: msg.createdAt || new Date().toISOString(),
+    }));
+
+    console.log(`Retrieved ${formattedMessages.length} messages from session ${sessionId}`);
+    return res.json({ messages: formattedMessages });
+  } catch (err) {
+    console.error("Failed to get messages:", err.message);
+    // Return empty array instead of error to handle gracefully
+    return res.json({ messages: [] });
+  }
+});
+
 await initOpencode();
 
 app.listen(PORT, "127.0.0.1", () => {
