@@ -22,11 +22,11 @@ func NewSQLSkillStore(db *sql.DB, githubStore SkillStore) (*SQLSkillStore, error
 		db:          db,
 		githubStore: githubStore,
 	}
-	
+
 	if err := s.createTable(); err != nil {
 		return nil, fmt.Errorf("failed to create skills table: %w", err)
 	}
-	
+
 	return s, nil
 }
 
@@ -42,36 +42,44 @@ func (s *SQLSkillStore) createTable() error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		synced_at DATETIME,
 		pending_sync BOOLEAN DEFAULT FALSE,
-		github_sha TEXT
+		github_sha TEXT,
+		opencode_session_id TEXT
 	);
-	
+
 	CREATE INDEX IF NOT EXISTS idx_skills_pending ON skills(pending_sync);
 	CREATE INDEX IF NOT EXISTS idx_skills_synced ON skills(synced_at);
 	`
-	
+
 	_, err := s.db.Exec(query)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Add column if table already exists (migration)
+	_, _ = s.db.Exec(`ALTER TABLE skills ADD COLUMN opencode_session_id TEXT`)
+
+	return nil
 }
 
 // ListSkills returns all skills from SQLite
 func (s *SQLSkillStore) ListSkills() ([]model.Skill, error) {
 	query := `
-		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha
+		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha, opencode_session_id
 		FROM skills
 		ORDER BY title
 	`
-	
+
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	skills, err := s.scanSkills(rows)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	log.Printf("[SQLite] Loaded %d skills from database", len(skills))
 	return skills, nil
 }
@@ -79,17 +87,17 @@ func (s *SQLSkillStore) ListSkills() ([]model.Skill, error) {
 // GetSkill returns a single skill from SQLite
 func (s *SQLSkillStore) GetSkill(id string) (*model.Skill, error) {
 	query := `
-		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha
+		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha, opencode_session_id
 		FROM skills
 		WHERE id = ?
 	`
-	
+
 	row := s.db.QueryRow(query, id)
 	skill, err := s.scanSkill(row)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	log.Printf("[SQLite] Loaded skill '%s' from database", id)
 	return skill, nil
 }
@@ -107,7 +115,7 @@ func (s *SQLSkillStore) SaveSkill(skill *model.Skill) error {
 			updated_at = CURRENT_TIMESTAMP,
 			pending_sync = TRUE
 	`
-	
+
 	_, err := s.db.Exec(query,
 		skill.ID,
 		skill.Title,
@@ -119,7 +127,7 @@ func (s *SQLSkillStore) SaveSkill(skill *model.Skill) error {
 		skill.PendingSync,
 		skill.GitHubSHA,
 	)
-	
+
 	return err
 }
 
@@ -128,24 +136,24 @@ func (s *SQLSkillStore) Sync() error {
 	if s.githubStore == nil {
 		return fmt.Errorf("no GitHub store configured")
 	}
-	
+
 	// Fetch all skills from GitHub
 	githubSkills, err := s.githubStore.ListSkills()
 	if err != nil {
 		return fmt.Errorf("failed to fetch from GitHub: %w", err)
 	}
-	
+
 	// Upsert each skill
 	for _, skill := range githubSkills {
 		skill.SyncedAt = time.Now()
 		skill.PendingSync = false
-		
+
 		if err := s.upsertSkillFromGitHub(&skill); err != nil {
 			// Log but continue - don't fail entire sync for one skill
 			fmt.Printf("Warning: failed to sync skill %s: %v\n", skill.ID, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -158,7 +166,7 @@ func (s *SQLSkillStore) upsertSkillFromGitHub(skill *model.Skill) error {
 		// TODO: Implement conflict resolution
 		return nil
 	}
-	
+
 	query := `
 		INSERT INTO skills (id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -172,7 +180,7 @@ func (s *SQLSkillStore) upsertSkillFromGitHub(skill *model.Skill) error {
 			pending_sync = FALSE,
 			github_sha = excluded.github_sha
 	`
-	
+
 	_, err = s.db.Exec(query,
 		skill.ID,
 		skill.Title,
@@ -184,24 +192,24 @@ func (s *SQLSkillStore) upsertSkillFromGitHub(skill *model.Skill) error {
 		false,
 		skill.GitHubSHA,
 	)
-	
+
 	return err
 }
 
 // GetPendingSkills returns skills with local changes needing push
 func (s *SQLSkillStore) GetPendingSkills() ([]model.Skill, error) {
 	query := `
-		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha
+		SELECT id, title, format, author, content, updated_at, synced_at, pending_sync, github_sha, opencode_session_id
 		FROM skills
 		WHERE pending_sync = TRUE
 	`
-	
+
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	return s.scanSkills(rows)
 }
 
@@ -210,17 +218,17 @@ func (s *SQLSkillStore) PushToGitHub() error {
 	if s.githubStore == nil {
 		return fmt.Errorf("no GitHub store configured")
 	}
-	
+
 	pending, err := s.GetPendingSkills()
 	if err != nil {
 		return err
 	}
-	
+
 	for _, skill := range pending {
 		if err := s.githubStore.SaveSkill(&skill); err != nil {
 			return fmt.Errorf("failed to push skill %s: %w", skill.ID, err)
 		}
-		
+
 		// Mark as synced
 		skill.PendingSync = false
 		skill.SyncedAt = time.Now()
@@ -228,7 +236,7 @@ func (s *SQLSkillStore) PushToGitHub() error {
 			return fmt.Errorf("failed to update sync status for %s: %w", skill.ID, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -237,30 +245,30 @@ func (s *SQLSkillStore) PushSingleSkill(skillID string) error {
 	if s.githubStore == nil {
 		return fmt.Errorf("no GitHub store configured")
 	}
-	
+
 	// Get the skill
 	skill, err := s.GetSkill(skillID)
 	if err != nil {
 		return fmt.Errorf("failed to get skill %s: %w", skillID, err)
 	}
-	
+
 	// Only push if it has pending changes
 	if !skill.PendingSync {
 		return fmt.Errorf("skill %s has no pending changes", skillID)
 	}
-	
+
 	// Push to GitHub
 	if err := s.githubStore.SaveSkill(skill); err != nil {
 		return fmt.Errorf("failed to push skill %s: %w", skillID, err)
 	}
-	
+
 	// Mark as synced
 	skill.PendingSync = false
 	skill.SyncedAt = time.Now()
 	if err := s.updateSyncStatus(skill); err != nil {
 		return fmt.Errorf("failed to update sync status for %s: %w", skillID, err)
 	}
-	
+
 	return nil
 }
 
@@ -271,10 +279,17 @@ func (s *SQLSkillStore) updateSyncStatus(skill *model.Skill) error {
 	return err
 }
 
+// SetSessionID updates the OpenCode session ID for a skill
+func (s *SQLSkillStore) SetSessionID(skillID, sessionID string) error {
+	query := `UPDATE skills SET opencode_session_id = ? WHERE id = ?`
+	_, err := s.db.Exec(query, sessionID, skillID)
+	return err
+}
+
 // scanSkills scans multiple rows
 func (s *SQLSkillStore) scanSkills(rows *sql.Rows) ([]model.Skill, error) {
 	var skills []model.Skill
-	
+
 	for rows.Next() {
 		skill, err := s.scanSkillFromRows(rows)
 		if err != nil {
@@ -282,7 +297,7 @@ func (s *SQLSkillStore) scanSkills(rows *sql.Rows) ([]model.Skill, error) {
 		}
 		skills = append(skills, skill)
 	}
-	
+
 	return skills, rows.Err()
 }
 
@@ -290,8 +305,8 @@ func (s *SQLSkillStore) scanSkills(rows *sql.Rows) ([]model.Skill, error) {
 func (s *SQLSkillStore) scanSkill(row *sql.Row) (*model.Skill, error) {
 	var skill model.Skill
 	var updatedAt, syncedAt sql.NullTime
-	var githubSHA sql.NullString
-	
+	var githubSHA, sessionID sql.NullString
+
 	err := row.Scan(
 		&skill.ID,
 		&skill.Title,
@@ -302,15 +317,16 @@ func (s *SQLSkillStore) scanSkill(row *sql.Row) (*model.Skill, error) {
 		&syncedAt,
 		&skill.PendingSync,
 		&githubSHA,
+		&sessionID,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("skill not found")
 	}
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if updatedAt.Valid {
 		skill.UpdatedAt = updatedAt.Time
 	}
@@ -320,7 +336,10 @@ func (s *SQLSkillStore) scanSkill(row *sql.Row) (*model.Skill, error) {
 	if githubSHA.Valid {
 		skill.GitHubSHA = githubSHA.String
 	}
-	
+	if sessionID.Valid {
+		skill.OpenCodeSessionID = sessionID.String
+	}
+
 	return &skill, nil
 }
 
@@ -328,8 +347,8 @@ func (s *SQLSkillStore) scanSkill(row *sql.Row) (*model.Skill, error) {
 func (s *SQLSkillStore) scanSkillFromRows(rows *sql.Rows) (model.Skill, error) {
 	var skill model.Skill
 	var updatedAt, syncedAt sql.NullTime
-	var githubSHA sql.NullString
-	
+	var githubSHA, sessionID sql.NullString
+
 	err := rows.Scan(
 		&skill.ID,
 		&skill.Title,
@@ -340,12 +359,13 @@ func (s *SQLSkillStore) scanSkillFromRows(rows *sql.Rows) (model.Skill, error) {
 		&syncedAt,
 		&skill.PendingSync,
 		&githubSHA,
+		&sessionID,
 	)
-	
+
 	if err != nil {
 		return skill, err
 	}
-	
+
 	if updatedAt.Valid {
 		skill.UpdatedAt = updatedAt.Time
 	}
@@ -355,7 +375,10 @@ func (s *SQLSkillStore) scanSkillFromRows(rows *sql.Rows) (model.Skill, error) {
 	if githubSHA.Valid {
 		skill.GitHubSHA = githubSHA.String
 	}
-	
+	if sessionID.Valid {
+		skill.OpenCodeSessionID = sessionID.String
+	}
+
 	return skill, nil
 }
 
@@ -364,7 +387,7 @@ func ParseFrontmatter(content string) (title, format, author string) {
 	if !strings.HasPrefix(content, "---") {
 		return
 	}
-	
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines[1:] {
 		if strings.HasPrefix(line, "title:") {
@@ -386,6 +409,6 @@ func ParseFrontmatter(content string) (title, format, author string) {
 			break
 		}
 	}
-	
+
 	return
 }
