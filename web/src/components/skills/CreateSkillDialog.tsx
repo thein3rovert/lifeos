@@ -23,8 +23,8 @@ export function CreateSkillDialog({
   const [title, setTitle] = useState('')
   const [format, setFormat] = useState('opencode')
   const [content, setContent] = useState(`---
-name: 
-description: 
+name:
+description:
 format: opencode
 ---
 
@@ -39,8 +39,8 @@ format: opencode
     setTitle('')
     setFormat('opencode')
     setContent(`---
-name: 
-description: 
+name:
+description:
 format: opencode
 ---
 
@@ -69,20 +69,20 @@ format: opencode
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-[700px] h-[80vh] bg-[var(--bg-overlay)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-2xl flex flex-col">
+      <div className="w-full max-w-dialog-lg h-dialog bg-raised border border-default rounded-lg shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="h-10 flex items-center justify-between px-4 border-b border-[var(--border-default)] flex-shrink-0">
+        <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4 text-[var(--accent-highlight)]" strokeWidth={1.5} />
-            <span className="text-[var(--text-md)] font-medium text-[var(--text-primary)]">
+            <Plus className="w-4 h-4 text-blue-600" strokeWidth={1.5} />
+            <span className="text-atlas-base font-medium text-white">
               Create New Skill
             </span>
           </div>
-          <button 
+          <button
             onClick={handleClose}
-            className="p-1.5 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+            className="p-1.5 hover:bg-hover rounded-md transition-colors"
           >
-            <X className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+            <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
           </button>
         </div>
 
@@ -90,7 +90,7 @@ format: opencode
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* Title Input */}
           <div>
-            <label className="block text-[var(--text-xs)] text-[var(--text-secondary)] mb-2">
+            <label className="block text-atlas-xs text-secondary mb-2">
               Skill Title
             </label>
             <input
@@ -98,14 +98,14 @@ format: opencode
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter skill title..."
-              className="w-full h-8 px-3 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-[var(--radius-md)] text-[var(--text-base)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)]"
+              className="w-full h-8 px-3 bg-raised border border-default rounded-md text-atlas-base text-white placeholder:text-muted focus:outline-none focus:border-highlight"
               autoFocus
             />
           </div>
 
           {/* Format Select */}
           <div>
-            <label className="block text-[var(--text-xs)] text-[var(--text-secondary)] mb-2">
+            <label className="block text-atlas-xs text-secondary mb-2">
               Format
             </label>
             <div className="flex gap-2">
@@ -113,10 +113,10 @@ format: opencode
                 <button
                   key={f.value}
                   onClick={() => setFormat(f.value)}
-                  className={`h-7 px-3 text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150 ${
+                  className={`h-7 px-3 text-atlas-xs font-medium rounded-md transition-colors duration-150 ${
                     format === f.value
-                      ? 'bg-[var(--accent-highlight)] text-white'
-                      : 'bg-[var(--bg-raised)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-raised text-secondary hover:bg-hover'
                   }`}
                 >
                   {f.label}
@@ -127,7 +127,7 @@ format: opencode
 
           {/* Content Editor */}
           <div className="flex-1 min-h-0">
-            <label className="block text-[var(--text-xs)] text-[var(--text-secondary)] mb-2">
+            <label className="block text-atlas-xs text-secondary mb-2">
               Content (Markdown)
             </label>
             <textarea
@@ -135,23 +135,23 @@ format: opencode
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter skill content in markdown..."
-              className="w-full h-[calc(100%-28px)] min-h-[300px] p-3 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] resize-none font-mono"
+              className="w-full h-[calc(100%-28px)] min-h-dialog-content-sm p-3 bg-raised border border-default rounded-md text-atlas-base text-secondary placeholder:text-muted focus:outline-none focus:border-highlight resize-none font-mono"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-[var(--border-default)] bg-[var(--bg-raised)] flex-shrink-0">
+        <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-default bg-raised shrink-0">
           <button
             onClick={handleClose}
-            className="h-8 px-4 bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
+            className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || !content.trim() || isLoading}
-            className="h-8 px-4 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] flex items-center gap-2 transition-colors duration-150"
+            className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
           >
             {isLoading ? (
               <>Creating...</>

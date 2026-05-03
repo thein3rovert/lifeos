@@ -69,7 +69,7 @@ function DashboardPage() {
         </div>
 
         {/* Empty placeholder - 1/3 width */}
-        <div className="w-1/3 border border-[#1e1e1e] rounded bg-[#0a0a0a] flex items-center justify-center text-[#585858] text-xs">
+        <div className="w-1/3 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
           Empty for now
         </div>
       </div>
@@ -77,27 +77,27 @@ function DashboardPage() {
       {/* Middle row - Notes table + Empty placeholder */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Today's Notes - 2/3 width */}
-        <div className="flex-1 border border-[#1e1e1e] rounded bg-[#0a0a0a] flex flex-col">
+        <div className="flex-1 border border-default rounded bg-input flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e1e1e]">
-            <span className="text-xs font-medium text-[#aaa]">Today's Notes</span>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-default">
+            <span className="text-xs font-medium text-secondary">Today's Notes</span>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#585858]" strokeWidth={1.5} />
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
                 <input
                   type="text"
                   placeholder="Search notes..."
-                  className="h-6 pl-7 pr-2 text-xs bg-black border border-[#1e1e1e] rounded text-[#aaa] placeholder:text-[#585858] focus:outline-none focus:border-[#3d3d3d] w-40"
+                  className="h-6 pl-7 pr-2 text-xs bg-black border border-default rounded text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-40"
                 />
               </div>
-              <button className="h-6 px-2 flex items-center justify-center bg-[#ededed] hover:bg-white text-black rounded transition-colors duration-150">
+              <button className="h-6 px-2 flex items-center justify-center bg-gray-100 hover:bg-white text-black rounded transition-colors duration-150">
                 <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
           {/* Table header */}
-          <div className="grid grid-cols-4 px-3 py-1.5 border-b border-[#1e1e1e] text-[10px] uppercase tracking-wider text-[#777]">
+          <div className="grid grid-cols-4 px-3 py-1.5 border-b border-default text-xxs uppercase tracking-wider text-tertiary">
             <span>Note description</span>
             <span>Skills</span>
             <span>Tags</span>
@@ -109,25 +109,25 @@ function DashboardPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="grid grid-cols-4 px-3 py-2 border-b border-[#141414] hover:bg-[rgba(255,255,255,0.04)] transition-colors duration-150"
+                className="grid grid-cols-4 px-3 py-2 border-b border-subtle hover:bg-hover transition-colors duration-150"
               >
-                <span className="text-xs text-[#aaa]">Note {i} description here</span>
-                <span className="text-xs text-[#777]">Skill name</span>
-                <span className="text-xs text-[#777]">tag</span>
-                <span className="text-xs text-[#777]">Jan {i}, 2025</span>
+                <span className="text-xs text-secondary">Note {i} description here</span>
+                <span className="text-xs text-tertiary">Skill name</span>
+                <span className="text-xs text-tertiary">tag</span>
+                <span className="text-xs text-tertiary">Jan {i}, 2025</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Empty placeholder - 1/3 width */}
-        <div className="w-1/3 border border-[#1e1e1e] rounded bg-[#0a0a0a] flex items-center justify-center text-[#585858] text-xs">
+        <div className="w-1/3 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
           Empty for now
         </div>
       </div>
 
       {/* Bottom row - Empty placeholder */}
-      <div className="h-24 border border-[#1e1e1e] rounded bg-[#0a0a0a] flex items-center justify-center text-[#585858] text-xs">
+      <div className="h-24 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
         Empty for now
       </div>
     </div>
@@ -148,18 +148,18 @@ function StatCard({
   loading: boolean
 }) {
   return (
-    <div className="border border-[#1e1e1e] rounded bg-[#0a0a0a] p-4 flex items-start justify-between">
+    <div className="border border-default rounded bg-input p-4 flex items-start justify-between">
       <div className="space-y-1">
-        <span className="text-[11px] text-[#777] uppercase tracking-wide">{label}</span>
+        <span className="text-[11px] text-tertiary uppercase tracking-wide">{label}</span>
         <div className="text-3xl font-semibold text-white">
           {loading ? '-' : value}
         </div>
         <div className="flex items-center gap-1 text-xs">
-          <TrendingUp className="w-3 h-3 text-[#4d4d4d]" strokeWidth={1.5} />
-          <span className="text-[#4d4d4d]">{trend} vs last month</span>
+          <TrendingUp className="w-3 h-3 text-success" strokeWidth={1.5} />
+          <span className="text-success">{trend} vs last month</span>
         </div>
       </div>
-      <div className="p-2 bg-[#0f0f0f] rounded border border-[#1e1e1e] text-[#777]">
+      <div className="p-2 bg-raised rounded border border-default text-tertiary">
         {icon}
       </div>
     </div>

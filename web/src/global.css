@@ -3,7 +3,7 @@
 
 @theme {
   /* Atlas Design System Tokens */
-  
+
   /* Backgrounds */
   --color-bg-base: #000000;
   --color-bg-sidebar: #000000;
@@ -16,7 +16,7 @@
   --color-bg-selected: rgba(255, 255, 255, 0.06);
   --color-bg-active: rgba(255, 255, 255, 0.08);
   --color-bg-elevated: #0f0f0f;
-  
+
   /* Text */
   --color-text-primary: #ffffff;
   --color-text-secondary: #aaaaaa;
@@ -24,30 +24,30 @@
   --color-text-ghost: #333333;
   --color-text-muted: #585858;
   --color-text-accent: #ffff00;
-  
+
   /* Borders */
   --color-border-default: #1e1e1e;
   --color-border-subtle: #141414;
   --color-border-strong: #3d3d3d;
   --color-border-focus: #0070f3;
-  
+
   /* Accents */
   --color-accent-primary: #ededed;
   --color-accent-primary-hover: #ffffff;
   --color-accent-highlight: #0070f3;
   --color-accent-highlight-hover: #3291ff;
   --color-accent-highlight-muted: rgba(0, 112, 243, 0.12);
-  
+
   /* Status */
   --color-status-success: #4d4d4d;
   --color-status-warning: #cd9731;
   --color-status-error: #f44747;
   --color-status-info: #6796e6;
-  
+
   /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   /* Text sizes */
   --text-xxs: 10px;
   --text-xs: 11px;
@@ -58,7 +58,7 @@
   --text-xl: 20px;
   --text-2xl: 28px;
   --text-3xl: 44px;
-  
+
   /* Spacing */
   --spacing-px: 1px;
   --spacing-0: 0px;
@@ -72,12 +72,28 @@
   --spacing-6: 24px;
   --spacing-8: 32px;
   --spacing-10: 40px;
-  
+
   /* Radii */
   --radius-sm: 3px;
   --radius-md: 4px;
   --radius-lg: 6px;
   --radius-full: 9999px;
+
+  /* Additional widths for Tailwind utilities */
+  --width-sidebar: 220px;
+  --width-notes: 280px;
+  --width-dialog-sm: 480px;
+  --width-dialog-md: 600px;
+  --width-dialog-lg: 700px;
+  --width-dialog-xl: 800px;
+  --width-dialog-2xl: 900px;
+  --width-dialog-3xl: 980px;
+
+  /* Additional heights */
+  --height-dialog: 80vh;
+  --height-dialog-min: 200px;
+  --height-dialog-content-min: 300px;
+  --height-dialog-content: 400px;
 }
 
 /* CSS Variables for components using var(--token) syntax */
@@ -93,7 +109,7 @@
   --bg-selected: rgba(255, 255, 255, 0.06);
   --bg-active: rgba(255, 255, 255, 0.08);
   --bg-elevated: #0f0f0f;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #aaaaaa;
   --text-tertiary: #777777;
@@ -110,12 +126,12 @@
   --text-xl: 20px;
   --text-2xl: 28px;
   --text-3xl: 44px;
-  
+
   --border-default: #1e1e1e;
   --border-subtle: #141414;
   --border-strong: #3d3d3d;
   --border-focus: #0070f3;
-  
+
   --accent-primary: #ededed;
   --accent-primary-hover: #ffffff;
   --accent-primary-muted: rgba(237, 237, 237, 0.06);
@@ -123,7 +139,7 @@
   --accent-highlight: #0070f3;
   --accent-highlight-hover: #3291ff;
   --accent-highlight-muted: rgba(0, 112, 243, 0.12);
-  
+
   --status-success: #4d4d4d;
   --status-success-muted: rgba(77, 77, 77, 0.12);
   --status-warning: #cd9731;
@@ -132,7 +148,7 @@
   --status-error-muted: rgba(244, 71, 71, 0.12);
   --status-info: #6796e6;
   --status-info-muted: rgba(103, 150, 230, 0.12);
-  
+
   --radius-sm: 3px;
   --radius-md: 4px;
   --radius-lg: 6px;
@@ -174,3 +190,65 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
 }
+
+/* Utility classes for Atlas colors */
+.bg-raised { background-color: var(--color-bg-raised); }
+.bg-input { background-color: var(--color-bg-input); }
+.bg-hover { background-color: var(--color-bg-hover); }
+.bg-selected { background-color: var(--color-bg-selected); }
+.bg-tab-active { background-color: var(--color-bg-tab-active); }
+.bg-dialog { background-color: var(--color-bg-raised); }
+.bg-warning-muted { background-color: var(--status-warning-muted); }
+.bg-highlight-muted { background-color: var(--color-accent-highlight-muted); }
+.bg-button { background-color: #1e1e1e; }
+.bg-button-hover { background-color: #2a2a2a; }
+.bg-primary-accent { background-color: var(--color-accent-primary); }
+
+.hover\:bg-hover:hover { background-color: var(--color-bg-hover); }
+.hover\:bg-selected:hover { background-color: var(--color-bg-selected); }
+.hover\:bg-highlight-hover:hover { background-color: var(--color-accent-highlight-hover); }
+.hover\:bg-button-hover:hover { background-color: #2a2a2a; }
+
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+.text-muted { color: var(--color-text-muted); }
+.text-highlight { color: var(--color-accent-highlight); }
+.text-warning { color: var(--color-status-warning); }
+.text-primary-accent { color: var(--color-accent-primary); }
+.text-success { color: var(--color-status-success); }
+
+.hover\:text-highlight-hover:hover { color: var(--color-accent-highlight-hover); }
+
+.border-default { border-color: var(--color-border-default); }
+.border-subtle { border-color: var(--color-border-subtle); }
+.border-highlight { border-color: var(--color-accent-highlight); }
+.border-warning { border-color: var(--color-status-warning); }
+.border-strong { border-color: var(--color-border-strong); }
+.divide-default { border-color: var(--color-border-default); }
+
+/* Width utilities */
+.w-sidebar { width: var(--width-sidebar); }
+.w-notes { width: var(--width-notes); }
+.max-w-dialog-sm { max-width: var(--width-dialog-sm); }
+.max-w-dialog-md { max-width: var(--width-dialog-md); }
+.max-w-dialog-lg { max-width: var(--width-dialog-lg); }
+.max-w-dialog-xl { max-width: var(--width-dialog-xl); }
+.max-w-dialog-2xl { max-width: var(--width-dialog-2xl); }
+.max-w-dialog-3xl { max-width: var(--width-dialog-3xl); }
+.min-w-dialog-sm { min-width: var(--width-dialog-sm); }
+.min-w-dialog-md { min-width: var(--width-dialog-md); }
+
+/* Height utilities */
+.h-dialog { height: var(--height-dialog); }
+.max-h-dialog { max-height: var(--height-dialog); }
+.min-h-dialog { min-height: var(--height-dialog-min); }
+.min-h-dialog-content { min-height: var(--height-dialog-content); }
+.min-h-dialog-content-sm { min-height: var(--height-dialog-content-min); }
+
+/* Text size utilities */
+.text-xxs { font-size: var(--text-xxs); }
+.text-atlas-xs { font-size: var(--text-xs); }
+.text-atlas-sm { font-size: var(--text-sm); }
+.text-atlas-base { font-size: var(--text-base); }
+.text-atlas-md { font-size: var(--text-md); }
+.text-atlas-lg { font-size: var(--text-lg); }

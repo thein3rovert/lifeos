@@ -54,33 +54,33 @@ export function PushSelectionDialog({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-[480px] bg-[var(--bg-overlay)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-2xl flex flex-col max-h-[80vh]">
+      <div className="w-full max-w-dialog-sm bg-raised border border-default rounded-lg shadow-2xl flex flex-col max-h-dialog">
         {/* Header */}
-        <div className="h-10 flex items-center justify-between px-4 border-b border-[var(--border-default)] flex-shrink-0">
+        <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
-            <Upload className="w-4 h-4 text-[var(--accent-highlight)]" strokeWidth={1.5} />
-            <span className="text-[var(--text-md)] font-medium text-[var(--text-primary)]">
+            <Upload className="w-4 h-4 text-blue-600" strokeWidth={1.5} />
+            <span className="text-atlas-base font-medium text-white">
               Push Changes to GitHub
             </span>
           </div>
-          <button 
+          <button
             onClick={handleClose}
-            className="p-1.5 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+            className="p-1.5 hover:bg-hover rounded-md transition-colors"
           >
-            <X className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+            <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Select All */}
-        <div className="px-4 py-2 border-b border-[var(--border-default)] bg-[var(--bg-raised)]">
+        <div className="px-4 py-2 border-b border-default bg-raised">
           <button
             onClick={handleSelectAll}
-            className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 text-atlas-xs text-secondary hover:text-white transition-colors"
           >
-            <div className={`w-4 h-4 rounded-[var(--radius-sm)] border flex items-center justify-center transition-colors ${
+            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
               selectedIds.size === pendingSkills.length && pendingSkills.length > 0
-                ? 'bg-[var(--accent-highlight)] border-[var(--accent-highlight)]'
-                : 'border-[var(--border-strong)]'
+                ? 'bg-blue-600 border-highlight'
+                : 'border-default'
             }`}>
               {selectedIds.size === pendingSkills.length && pendingSkills.length > 0 && (
                 <Check className="w-3 h-3 text-white" strokeWidth={2} />
@@ -93,7 +93,7 @@ export function PushSelectionDialog({
         {/* Skills List */}
         <div className="flex-1 overflow-auto py-1">
           {pendingSkills.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[var(--text-tertiary)] text-[var(--text-xs)]">
+            <div className="px-4 py-8 text-center text-tertiary text-atlas-xs">
               No pending changes to push
             </div>
           ) : (
@@ -105,15 +105,15 @@ export function PushSelectionDialog({
                   onClick={() => handleToggle(skill.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                     isSelected
-                      ? 'bg-[var(--bg-selected)]'
-                      : 'hover:bg-[var(--bg-hover)]'
+                      ? 'bg-selected'
+                      : 'hover:bg-hover'
                   }`}
                 >
                   {/* Checkbox */}
-                  <div className={`w-4 h-4 rounded-[var(--radius-sm)] border flex items-center justify-center flex-shrink-0 transition-colors ${
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                     isSelected
-                      ? 'bg-[var(--accent-highlight)] border-[var(--accent-highlight)]'
-                      : 'border-[var(--border-strong)]'
+                      ? 'bg-blue-600 border-highlight'
+                      : 'border-default'
                   }`}>
                     {isSelected && (
                       <Check className="w-3 h-3 text-white" strokeWidth={2} />
@@ -122,16 +122,16 @@ export function PushSelectionDialog({
 
                   {/* Skill Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[var(--text-sm)] text-[var(--text-primary)] truncate">
+                    <p className="text-atlas-base text-white truncate">
                       {skill.title}
                     </p>
-                    <p className="text-[var(--text-xxs)] text-[var(--text-muted)]">
+                    <p className="text-xxs text-muted">
                       {skill.format}
                     </p>
                   </div>
 
                   {/* Status */}
-                  <span className="w-2 h-2 bg-[var(--accent-highlight)] rounded-full flex-shrink-0" />
+                  <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0" />
                 </button>
               )
             })
@@ -139,21 +139,21 @@ export function PushSelectionDialog({
         </div>
 
         {/* Footer */}
-        <div className="h-14 flex items-center justify-between px-4 border-t border-[var(--border-default)] bg-[var(--bg-raised)] flex-shrink-0">
-          <span className="text-[var(--text-xs)] text-[var(--text-secondary)]">
+        <div className="h-14 flex items-center justify-between px-4 border-t border-default bg-raised shrink-0">
+          <span className="text-atlas-xs text-secondary">
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleClose}
-              className="h-8 px-4 bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
+              className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
             >
               Cancel
             </button>
             <button
               onClick={handlePush}
               disabled={selectedIds.size === 0 || isLoading}
-              className="h-8 px-4 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] flex items-center gap-2 transition-colors duration-150"
+              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
             >
               {isLoading ? (
                 <>Pushing...</>

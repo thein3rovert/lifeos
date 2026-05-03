@@ -9,18 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SkillsIndexRouteImport } from './routes/skills/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as NotesIndexRouteImport } from './routes/notes/index'
 import { Route as GalleryIndexRouteImport } from './routes/gallery/index'
 
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,7 +43,6 @@ const GalleryIndexRoute = GalleryIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/gallery/': typeof GalleryIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -57,7 +50,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/gallery': typeof GalleryIndexRoute
   '/notes': typeof NotesIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -66,7 +58,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/gallery/': typeof GalleryIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -74,28 +65,14 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/about'
-    | '/gallery/'
-    | '/notes/'
-    | '/settings/'
-    | '/skills/'
+  fullPaths: '/' | '/gallery/' | '/notes/' | '/settings/' | '/skills/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/gallery' | '/notes' | '/settings' | '/skills'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/gallery/'
-    | '/notes/'
-    | '/settings/'
-    | '/skills/'
+  to: '/' | '/gallery' | '/notes' | '/settings' | '/skills'
+  id: '__root__' | '/' | '/gallery/' | '/notes/' | '/settings/' | '/skills/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
   GalleryIndexRoute: typeof GalleryIndexRoute
   NotesIndexRoute: typeof NotesIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -104,13 +81,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -151,7 +121,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
   GalleryIndexRoute: GalleryIndexRoute,
   NotesIndexRoute: NotesIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,

@@ -66,11 +66,11 @@ export function SkillsSidebar({
     return (
       <button
         onClick={() => onToggleCollapse(false)}
-        className="flex-shrink-0 w-8 h-8 self-start bg-[var(--bg-raised)] border border-[var(--border-default)] rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center relative"
+        className="shrink-0 w-8 h-8 self-start bg-raised border border-default rounded-md hover:bg-hover transition-colors flex items-center justify-center relative"
       >
-        <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+        <ChevronRight className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
         {pendingCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--accent-highlight)] rounded-full text-[var(--text-xxs)] flex items-center justify-center text-white font-medium">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 rounded-full text-xxs flex items-center justify-center text-white font-medium">
             {pendingCount}
           </span>
         )}
@@ -79,20 +79,20 @@ export function SkillsSidebar({
   }
 
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-[var(--bg-base)] border border-[var(--border-default)] rounded-[var(--radius-md)] flex flex-col overflow-hidden">
+    <aside className="w-sidebar shrink-0 bg-black border border-default rounded-md flex flex-col overflow-hidden">
       {/* Panel Header */}
-      <div className="h-8 flex items-center justify-between px-3 border-b border-[var(--border-default)] flex-shrink-0">
+      <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)] uppercase tracking-[0.08em]">
+          <span className="text-atlas-xs font-medium text-secondary uppercase tracking-[0.08em]">
             Skills
           </span>
           {pendingCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-[var(--accent-highlight)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-white whitespace-nowrap">
+            <span className="px-1.5 py-0.5 bg-blue-600 rounded-md text-xxs text-white whitespace-nowrap">
               {pendingCount} pending
             </span>
           )}
           {skillsWithNotes > 0 && !pendingCount && (
-            <span className="px-1.5 py-0.5 bg-[var(--status-warning)] rounded-[var(--radius-md)] text-[var(--text-xxs)] text-black whitespace-nowrap">
+            <span className="px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black whitespace-nowrap">
               {skillsWithNotes} notes
             </span>
           )}
@@ -101,17 +101,17 @@ export function SkillsSidebar({
             {onCreateSkill && (
               <button
                 onClick={() => setShowCreateDialog(true)}
-                className="p-1 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+                className="p-1 hover:bg-hover rounded-md transition-colors"
                 title="Create new skill"
               >
-                <Plus className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+                <Plus className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
               </button>
             )}
             <button
               onClick={() => onToggleCollapse(true)}
-              className="p-1 hover:bg-[var(--bg-hover)] rounded-[var(--radius-md)] transition-colors"
+              className="p-1 hover:bg-hover rounded-md transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+              <ChevronLeft className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
             </button>
           </div>
         </div>
@@ -119,9 +119,9 @@ export function SkillsSidebar({
       {/* Skills list */}
       <div className="flex-1 overflow-auto py-1">
         {loading ? (
-          <div className="px-3 py-2 text-[var(--text-base)] text-[var(--text-tertiary)]">Loading...</div>
+          <div className="px-3 py-2 text-atlas-base text-tertiary">Loading...</div>
         ) : skills.length === 0 ? (
-          <div className="px-3 py-2 text-[var(--text-base)] text-[var(--text-tertiary)]">No skills yet</div>
+          <div className="px-3 py-2 text-atlas-base text-tertiary">No skills yet</div>
         ) : (
           skills.map((skill) => {
             const hasNotes = (skill.note_count || 0) > 0
@@ -132,23 +132,23 @@ export function SkillsSidebar({
                 key={skill.id}
                 onClick={() => onSelectSkill(skill.id)}
                 className={`
-                  w-full flex items-center gap-2 px-3 py-2 text-left text-[var(--text-base)]
+                  w-full flex items-center gap-2 px-3 py-2 text-left text-atlas-base
                   transition-colors duration-150
                   ${selectedSkillId === skill.id
-                    ? 'bg-[var(--bg-selected)] text-[var(--text-primary)] border-l-2 border-[var(--accent-highlight)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border-l-2 border-transparent'
+                    ? 'bg-selected text-white border-l-2 border-highlight'
+                    : 'text-secondary hover:bg-hover hover:text-white border-l-2 border-transparent'
                   }
                 `}
               >
-                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" strokeWidth={1.5} />
+                <ChevronRight className="w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
                 <span className="truncate flex-1">{skill.title}</span>
 
                 <div className="flex items-center gap-1">
                   {hasNotes && (
-                    <span className="w-2 h-2 bg-[var(--status-warning)] rounded-full flex-shrink-0" />
+                    <span className="w-2 h-2 bg-yellow-600 rounded-full shrink-0" />
                   )}
                   {hasPendingSync && (
-                    <span className="w-2 h-2 bg-[var(--accent-highlight)] rounded-full flex-shrink-0" />
+                    <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0" />
                   )}
                 </div>
               </button>
@@ -158,9 +158,9 @@ export function SkillsSidebar({
       </div>
 
       {/* Sync status & buttons */}
-      <div className="p-3 border-t border-[var(--border-default)] flex-shrink-0 space-y-2">
+      <div className="p-3 border-t border-default shrink-0 space-y-2">
         {lastSynced && (
-          <p className="text-[var(--text-xxs)] text-[var(--text-muted)] text-center">
+          <p className="text-xxs text-muted text-center">
             Last synced: {new Date(lastSynced).toLocaleDateString()}
           </p>
         )}
@@ -168,7 +168,7 @@ export function SkillsSidebar({
         <button
           onClick={handleSyncClick}
           disabled={syncing}
-          className="w-full h-7 flex items-center justify-center gap-2 bg-[var(--border-default)] hover:bg-[var(--bg-hover)] disabled:opacity-50 text-[var(--text-secondary)] text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
+          className="w-full h-7 flex items-center justify-center gap-2 bg-button hover:bg-hover disabled:opacity-50 text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           {syncing ? 'Syncing...' : 'Pull from GitHub'}
@@ -178,7 +178,7 @@ export function SkillsSidebar({
           <button
             onClick={() => onPushSelected ? setShowPushDialog(true) : onPush?.()}
             disabled={pushing}
-            className="w-full h-7 flex items-center justify-center gap-2 bg-[var(--accent-highlight)] hover:bg-[var(--accent-highlight-hover)] disabled:opacity-50 text-white text-[var(--text-xs)] font-medium rounded-[var(--radius-md)] transition-colors duration-150"
+            className="w-full h-7 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
           >
             <Upload className={`w-3.5 h-3.5 ${pushing ? 'animate-pulse' : ''}`} strokeWidth={1.5} />
             {pushing ? 'Pushing...' : `Push ${pendingCount} change${pendingCount > 1 ? 's' : ''}`}

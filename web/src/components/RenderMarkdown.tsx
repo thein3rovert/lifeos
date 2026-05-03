@@ -1,7 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { ReactNode } from 'react'
 
 interface RenderMarkdownProps {
   children: string
@@ -11,7 +10,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
   const components: Partial<Components> = {
     // Headings - Atlas style: dense, minimal
     h1: ({ children }) => (
-      <h1 className="text-white mt-6 mb-4 text-xl font-semibold tracking-tight border-b border-[#1e1e1e] pb-2">
+      <h1 className="text-white mt-6 mb-4 text-xl font-semibold tracking-tight border-b border-default pb-2">
         {children}
       </h1>
     ),
@@ -21,19 +20,19 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
       </h2>
     ),
     h3: ({ children }) => (
-      <h3 className="text-[#aaa] mt-4 mb-2 text-base font-semibold">
+      <h3 className="text-secondary mt-4 mb-2 text-base font-semibold">
         {children}
       </h3>
     ),
     h4: ({ children }) => (
-      <h4 className="text-[#aaa] mt-3 mb-2 text-sm font-semibold">
+      <h4 className="text-secondary mt-3 mb-2 text-sm font-semibold">
         {children}
       </h4>
     ),
 
     // Paragraphs
     p: ({ children }) => (
-      <p className="text-[#aaa] mb-3 text-[13px] leading-6">
+      <p className="text-secondary mb-3 text-atlas-base leading-6">
         {children}
       </p>
     ),
@@ -42,7 +41,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
     a: ({ href, children }) => (
       <a
         href={String(href ?? '#')}
-        className="text-[#0070f3] hover:text-[#3291ff] transition-colors duration-150"
+        className="text-highlight hover:text-highlight-hover transition-colors duration-150"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -52,12 +51,12 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Lists
     ul: ({ children }) => (
-      <ul className="text-[#aaa] marker:text-[#585858] mb-3 ml-4 list-disc space-y-1 text-[13px]">
+      <ul className="text-secondary marker:text-muted mb-3 ml-4 list-disc space-y-1 text-atlas-base">
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="text-[#aaa] marker:text-[#585858] mb-3 ml-4 list-decimal space-y-1 text-[13px] marker:font-semibold">
+      <ol className="text-secondary marker:text-muted mb-3 ml-4 list-decimal space-y-1 text-atlas-base marker:font-semibold">
         {children}
       </ol>
     ),
@@ -67,7 +66,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Blockquotes
     blockquote: ({ children }) => (
-      <blockquote className="border-l-2 border-[#1e1e1e] bg-[rgba(255,255,255,0.02)] my-3 py-2 pr-3 pl-3 text-[13px] italic">
+      <blockquote className="border-l-2 border-default my-3 py-2 pr-3 pl-3 text-atlas-base italic bg-hover/50">
         {children}
       </blockquote>
     ),
@@ -76,11 +75,11 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
     code: ({ children, className }) => {
       const isInline = !className || !String(className).includes('language-')
       return isInline ? (
-        <code className="bg-[#0f0f0f] text-[#ededed] rounded px-1.5 py-0.5 font-mono text-xs border border-[#1e1e1e]">
+        <code className="bg-raised text-primary-accent rounded px-1.5 py-0.5 font-mono text-xs border border-default">
           {children}
         </code>
       ) : (
-        <code className="bg-[#0f0f0f] text-[#aaa] block overflow-x-auto rounded border border-[#1e1e1e] p-3 font-mono text-xs leading-relaxed">
+        <code className="bg-raised text-secondary block overflow-x-auto rounded border border-default p-3 font-mono text-xs leading-relaxed">
           {children}
         </code>
       )
@@ -90,7 +89,9 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
     ),
 
     // Horizontal Rule
-    hr: () => <hr className="border-[#1e1e1e] my-4 border-t" />,
+    hr: () => (
+      <hr className="border-default my-4 border-t" />
+    ),
 
     // Strong/Bold
     strong: ({ children }) => (
@@ -99,20 +100,20 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Emphasis/Italic
     em: ({ children }) => (
-      <em className="text-[#aaa] italic">{children}</em>
+      <em className="text-secondary italic">{children}</em>
     ),
 
     // Tables
     table: ({ children }) => (
       <div className="my-3 overflow-x-auto">
-        <table className="min-w-full border border-[#1e1e1e] divide-y divide-[#1e1e1e]">
+        <table className="min-w-full border border-default divide-y divide-default">
           {children}
         </table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-[#0f0f0f]">{children}</thead>,
+    thead: ({ children }) => <thead className="bg-raised">{children}</thead>,
     tbody: ({ children }) => (
-      <tbody className="divide-y divide-[#1e1e1e] bg-black">{children}</tbody>
+      <tbody className="divide-y divide-default bg-black">{children}</tbody>
     ),
     tr: ({ children }) => <tr>{children}</tr>,
     th: ({ children }) => (
@@ -121,7 +122,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
       </th>
     ),
     td: ({ children }) => (
-      <td className="text-[#aaa] px-3 py-2 text-xs">
+      <td className="text-secondary px-3 py-2 text-xs">
         {children}
       </td>
     ),
