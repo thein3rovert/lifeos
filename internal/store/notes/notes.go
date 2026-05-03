@@ -92,3 +92,25 @@ func (s *NoteStore) GetSkillNoteCounts() (map[string]int, error) {
 	}
 	return counts, rows.Err()
 }
+
+// GetAllNotes returns all notes across all skills, ordered by creation time (newest first)
+func (s *NoteStore) GetAllNotes() ([]model.Note, error) {
+	rows, err := s.db.Query(
+		"SELECT id, skill_id, content, created_at FROM skill_notes ORDER BY created_at DESC",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var notes []model.Note
+
+	for rows.Next() {
+		var n model.Note
+		if err := rows.Scan(&n.ID, &n.SkillID, &n.Content, &n.CreatedAt); err != nil {
+			return nil, err
+		}
+		notes = append(notes, n)
+	}
+	return notes, rows.Err()
+}

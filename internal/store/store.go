@@ -30,6 +30,7 @@ type SkillStore interface {
 type NoteStore interface {
 	AddNote(skillID, content string) error
 	GetNotesBySkill(skillID string) ([]model.Note, error)
+	GetAllNotes() ([]model.Note, error)
 	ClearNotes(skillID string) error
 	DeleteNote(noteID int) error
 	CountNotesBySkill(skillID string) (int, error)
