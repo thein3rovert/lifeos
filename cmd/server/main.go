@@ -69,6 +69,7 @@ func main() {
 	noteAPI := api.NewNoteHandler(noteStore)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
+	chatAPI := api.NewChatHandler(skillStore)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos
@@ -100,6 +101,11 @@ func main() {
 
 	// Tags
 	mux.HandleFunc("GET /api/tags", tagAPI.ListTags)
+
+	// Chat (persistent sessions)
+	mux.HandleFunc("POST /api/skills/{id}/session", chatAPI.GetOrCreateSession)
+	mux.HandleFunc("POST /api/skills/{id}/chat", chatAPI.SendChatMessage)
+	mux.HandleFunc("GET /api/skills/{id}/messages", chatAPI.GetChatMessages)
 
 	// ── HTML routes (existing, will be removed in Phase 4) ─────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
