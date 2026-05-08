@@ -60,6 +60,7 @@ func main() {
 	}
 
 	noteStore := notes.New(db.DB())
+	chatMsgStore := store.NewChatMessageStore(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -69,7 +70,7 @@ func main() {
 	noteAPI := api.NewNoteHandler(noteStore)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
-	chatAPI := api.NewChatHandler(skillStore)
+	chatAPI := api.NewChatHandler(skillStore, chatMsgStore)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos

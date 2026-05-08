@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store"
@@ -16,10 +17,11 @@ import (
 type ChatHandler struct {
 	skillStore *store.SQLSkillStore
 	sidecarURL string
+	msgStore *store.ChatMessageStore
 }
 
 // NewChatHandler creates a new chat handler
-func NewChatHandler(skillStore *store.SQLSkillStore) *ChatHandler {
+func NewChatHandler(skillStore *store.SQLSkillStore, msgStore *store.ChatMessageStore) *ChatHandler {
 	sidecarURL := os.Getenv("SIDECAR_URL")
 	if sidecarURL == "" {
 		sidecarURL = "http://127.0.0.1:3002"
@@ -28,6 +30,7 @@ func NewChatHandler(skillStore *store.SQLSkillStore) *ChatHandler {
 	return &ChatHandler{
 		skillStore: skillStore,
 		sidecarURL: sidecarURL,
+		msgStore: msgStore,
 	}
 }
 
@@ -131,6 +134,17 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := h.callSidecar("/session/chat", sidecarReq)
+
+	// After getting the ai response, save message to the store/db
+	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "user", req.Message); err != nil {
+		fmt.Printf("Warning: failed to save user message: %v\n", err)
+	}
+
+
+	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "assistant", req.Message); err != nil {
+		fmt.Printf("Warning: failed to save agent assistant message: %v\n", err)
+	}
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to send message: %v", err))
 		return
@@ -158,28 +172,48 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if skill.OpenCodeSessionID == "" {
-		// No session yet, return empty messages
-		respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: []ChatMessage{}})
-		return
-	}
+	// if skill.OpenCodeSessionID == "" {
+	// 	// No session yet, return empty messages
+	// 	respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: []ChatMessage{}})
+	// 	return
+	// }
 
 	// Call sidecar to get messages
-	sidecarReq := map[string]string{
-		"sessionId": skill.OpenCodeSessionID,
-	}
+	// sidecarReq := map[string]string{
+	// 	"sessionId": skill.OpenCodeSessionID,
+	// }
 
-	var messagesResp struct {
-		Messages []ChatMessage `json:"messages"`
-	}
+	// var messagesResp struct {
+	// 	Messages []ChatMessage `json:"messages"`
+	// }
 
-	if err := h.callSidecarJSON("/session/messages", sidecarReq, &messagesResp); err != nil {
-		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get messages: %v", err))
+	// Get message from the database now on resume or new session inside of calling agent again
+	// if err := h.callSidecarJSON("/session/messages", sidecarReq, &messagesResp); err != nil {
+	// 	respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get messages: %v", err))
+	// 	return
+	// }
+
+	messages, err := h.msgStore.GetChatMessages(skill.ID, skill.OpenCodeSessionID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get messages")
 		return
 	}
 
-	respondJSON(w, http.StatusOK, messagesResp)
+	// Transform to response format
+	var resp []ChatMessage
+	for _, msg := range messages {
+		resp = append(resp, ChatMessage{
+			ID: fmt.Sprintf("%d", msg.ID),
+			Role: msg.Role,
+			Content: msg.Content,
+			Created: msg.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
 }
+
+
 
 // Helper to call sidecar and get string response
 func (h *ChatHandler) callSidecar(endpoint string, body interface{}) (string, error) {
