@@ -36,7 +36,7 @@ func (store *ChatMessageStore) saveChatMessage(skillID, sessionID, role, content
 }
 
 
-
+// Get messages retrived all messages for a skill's session
 func (store *ChatMessageStore) getMessages(skillID, sessionID string) ([]ChatMessage, error) {
 	query := `SELECT id, skill_id, session_id, role, content, created_at
 	          FROM chat_messages
@@ -59,4 +59,12 @@ func (store *ChatMessageStore) getMessages(skillID, sessionID string) ([]ChatMes
 	messages = append(messages, msg)
 	}
 	return messages, rows.Err()
+}
+
+
+// deleteMessages helps to delete all message for a specific skills session
+func (store *ChatMessageStore) deleteMessages(skillID, sessionID string) error {
+	query := `DELETE FROM chat_messages WHERE skill_id = ? AND session_id = ?`
+	_, err := store.db.Exec(query, skillID, sessionID)
+	return err
 }
