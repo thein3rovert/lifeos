@@ -189,7 +189,6 @@ func EditSkill(skillStore store.SkillStore) http.HandlerFunc {
 	}
 }
 
-
 // SyncSkills forces a refresh of skills from GitHub
 func SyncSkills(s store.SkillStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

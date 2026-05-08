@@ -59,8 +59,6 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
-
-
 // JSON body for adding a note, since all
 // it takes is  the note content
 type AddNoteRequest struct {

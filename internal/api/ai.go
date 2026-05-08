@@ -80,11 +80,11 @@ func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"skill_id":          skill.ID,
-		"title":             skill.Title,
-		"original_content":  skill.Content,
-		"updated_content":   updatedContent,
-		"rendered_html":     buf.String(),
+		"skill_id":         skill.ID,
+		"title":            skill.Title,
+		"original_content": skill.Content,
+		"updated_content":  updatedContent,
+		"rendered_html":    buf.String(),
 	})
 }
 

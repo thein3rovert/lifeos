@@ -45,11 +45,10 @@ type SkillDetailResponse struct {
 	Notes []NoteResponse `json:"notes"`
 }
 
-
 type CreateNewSkillRequest struct {
-	Title	string `json:"title"`
-	Format	string `json:"format"`
-	Content	string `json:"content"`
+	Title   string `json:"title"`
+	Format  string `json:"format"`
+	Content string `json:"content"`
 }
 
 // Create new skills
@@ -82,11 +81,11 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 
 	// Create the skill
 	newSkill := &model.Skill{
-		ID: skillID,
-		Title: createSkillRequest.Title,
-		Content: createSkillRequest.Content,
-		Format: createSkillRequest.Format,
-		UpdatedAt: time.Now(),
+		ID:          skillID,
+		Title:       createSkillRequest.Title,
+		Content:     createSkillRequest.Content,
+		Format:      createSkillRequest.Format,
+		UpdatedAt:   time.Now(),
 		PendingSync: true,
 	}
 
@@ -99,8 +98,8 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 	// Return the created skill after creation
 	respondJSON(w, http.StatusCreated, skillToResponse(newSkill))
 
-
 }
+
 // skillToResponse converts a model.Skill to a SkillResponse
 func skillToResponse(s *model.Skill) SkillResponse {
 	return skillToResponseWithNotes(s, 0)
@@ -124,7 +123,6 @@ func skillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
 
 	return resp
 }
-
 
 // ListSkills returns all skills as JSON with note counts
 // GET /api/skills

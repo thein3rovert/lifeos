@@ -14,8 +14,8 @@ import (
 
 // ChatHandler handles persistent chat with OpenCode
 type ChatHandler struct {
-	skillStore  *store.SQLSkillStore
-	sidecarURL  string
+	skillStore *store.SQLSkillStore
+	sidecarURL string
 }
 
 // NewChatHandler creates a new chat handler
