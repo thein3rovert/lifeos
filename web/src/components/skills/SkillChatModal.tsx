@@ -37,6 +37,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       await api.chat.getOrCreateSession(skillId)
       // Load existing messages
       const { messages: existingMessages } = await api.chat.getMessages(skillId)
+      console.log('Fetched messages:', existingMessages)
       setMessages(existingMessages)
     } catch (err) {
       console.error('Failed to initialize chat:', err)
