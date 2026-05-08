@@ -141,7 +141,7 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "assistant", req.Message); err != nil {
+	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "assistant", response); err != nil {
 		fmt.Printf("Warning: failed to save agent assistant message: %v\n", err)
 	}
 
@@ -194,7 +194,9 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	messages, err := h.msgStore.GetChatMessages(skill.ID, skill.OpenCodeSessionID)
+	fmt.Printf("[GetChatMessages] SkillID: %s, SessionID: %s, Found: %d messages\n", skill.ID, skill.OpenCodeSessionID, len(messages))
 	if err != nil {
+		fmt.Printf("[GetChatMessages] Error: %v\n", err)
 		respondError(w, http.StatusInternalServerError, "failed to get messages")
 		return
 	}

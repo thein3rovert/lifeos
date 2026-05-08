@@ -28,8 +28,8 @@ func NewChatMessageStore(db *sql.DB) *ChatMessageStore {
 // Save Messages saves chat message to the database
 func (store *ChatMessageStore)SaveChatMessage(skillID, sessionID, role, content string) error {
 	// Query database forchat message
-	query := `INSERT INTO chat_message(skill_id, session_id, role, content, created_at)
-	VALUE (?, ?, ?, ?, ?)`
+	query := `INSERT INTO chat_messages(skill_id, session_id, role, content, created_at)
+	VALUES (?, ?, ?, ?, ?)`
 
 	_, err := store.db.Exec(query, skillID, sessionID, role, content, time.Now())
 	return err
