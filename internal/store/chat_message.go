@@ -26,7 +26,7 @@ func NewChatMessageStore(db *sql.DB) *ChatMessageStore {
 }
 
 // Save Messages saves chat message to the database
-func (store *ChatMessageStore) saveChatMessage(skillID, sessionID, role, content string) error {
+func (store *ChatMessageStore)SaveChatMessage(skillID, sessionID, role, content string) error {
 	// Query database forchat message
 	query := `INSERT INTO chat_message(skill_id, session_id, role, content, created_at)
 	VALUE (?, ?, ?, ?, ?)`
@@ -37,7 +37,7 @@ func (store *ChatMessageStore) saveChatMessage(skillID, sessionID, role, content
 
 
 // Get messages retrived all messages for a skill's session
-func (store *ChatMessageStore) getMessages(skillID, sessionID string) ([]ChatMessage, error) {
+func (store *ChatMessageStore)GetChatMessages(skillID, sessionID string) ([]ChatMessage, error) {
 	query := `SELECT id, skill_id, session_id, role, content, created_at
 	          FROM chat_messages
 	          WHERE skill_id = ? AND session_id = ?
@@ -63,7 +63,7 @@ func (store *ChatMessageStore) getMessages(skillID, sessionID string) ([]ChatMes
 
 
 // deleteMessages helps to delete all message for a specific skills session
-func (store *ChatMessageStore) deleteMessages(skillID, sessionID string) error {
+func (store *ChatMessageStore)DeleteChatMessages(skillID, sessionID string) error {
 	query := `DELETE FROM chat_messages WHERE skill_id = ? AND session_id = ?`
 	_, err := store.db.Exec(query, skillID, sessionID)
 	return err
