@@ -58,7 +58,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       content: userMessage,
       created: new Date().toISOString(),
     }
-    setMessages(prev => [...prev, tempUserMsg])
+    setMessages(prev => [...(prev || []), tempUserMsg])
 
     setLoading(true)
     try {
@@ -71,11 +71,11 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
         content: response,
         created: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, assistantMsg])
+      setMessages(prev => [...(prev || []), assistantMsg])
     } catch (err) {
       console.error('Failed to send message:', err)
       // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id))
+      setMessages(prev => (prev || []).filter(m => m.id !== tempUserMsg.id))
     } finally {
       setLoading(false)
     }
@@ -154,7 +154,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 text-muted animate-spin" strokeWidth={1.5} />
                 </div>
-              ) : messages.length === 0 ? (
+              ) : !messages || messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <MessageSquare className="w-12 h-12 text-muted mb-3" strokeWidth={1.5} />
                   <p className="text-atlas-base text-secondary font-medium">Start a conversation</p>
