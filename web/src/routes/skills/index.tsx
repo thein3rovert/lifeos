@@ -8,7 +8,7 @@ import { SkillNotes } from '@/components/skills/SkillNotes'
 import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog'
 import { PullSelectionDialog } from '@/components/skills/PullSelectionDialog'
 import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog'
-import { SkillChat } from '@/components/skills/SkillChat'
+import { SkillChatModal } from '@/components/skills/SkillChatModal'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -324,7 +324,7 @@ function SkillsPage() {
 
       {/* Floating Chat */}
       {selectedSkillId && skillDetail && (
-        <SkillChat
+        <SkillChatModal
           skillId={selectedSkillId}
           skillTitle={skillDetail.skill.title}
           isOpen={showChat}
