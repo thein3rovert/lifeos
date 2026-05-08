@@ -42,6 +42,17 @@ export interface SkillDetail {
   notes: Note[]
 }
 
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  created: string
+}
+
+export interface ChatSession {
+  sessionId: string
+}
+
 // We need the title and id of skill to allow preview
 export interface AIPreviewResponse {
   skill_id: string
@@ -99,5 +110,17 @@ export const api = {
       }),
     delete: (skillId: string, noteId: number) =>
       fetcher(`/api/skills/${skillId}/notes/${noteId}`, { method: 'DELETE' }),
+  },
+
+  chat: {
+    getOrCreateSession: (skillId: string) =>
+      fetcher<ChatSession>(`/api/skills/${skillId}/session`, { method: 'POST' }),
+    sendMessage: (skillId: string, message: string) =>
+      fetcher<{ response: string }>(`/api/skills/${skillId}/chat`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }),
+    getMessages: (skillId: string) =>
+      fetcher<{ messages: ChatMessage[] }>(`/api/skills/${skillId}/messages`),
   },
 }

@@ -8,6 +8,7 @@ import { SkillNotes } from '@/components/skills/SkillNotes'
 import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog'
 import { PullSelectionDialog } from '@/components/skills/PullSelectionDialog'
 import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog'
+import { SkillChat } from '@/components/skills/SkillChat'
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -31,6 +32,7 @@ function SkillsPage() {
   const [showPullDialog, setShowPullDialog] = useState(false)
   const [showSyncConfirmation, setShowSyncConfirmation] = useState(false)
   const [selectedPullIds, setSelectedPullIds] = useState<string[]>([])
+  const [showChat, setShowChat] = useState(false)
 
   // Load skills list on mount
   useEffect(() => {
@@ -276,7 +278,12 @@ function SkillsPage() {
         creatingSkill={creatingSkill}
       />
 
-      <SkillContent skillDetail={skillDetail} onSave={handleSaveSkill} saving={saving} />
+      <SkillContent
+        skillDetail={skillDetail}
+        onSave={handleSaveSkill}
+        saving={saving}
+        onOpenChat={() => setShowChat(true)}
+      />
 
       <SkillNotes
         skillDetail={skillDetail}
@@ -314,6 +321,16 @@ function SkillsPage() {
         onPushFirst={handlePushFirst}
         onPullAnyway={handlePullAnyway}
       />
+
+      {/* Floating Chat */}
+      {selectedSkillId && skillDetail && (
+        <SkillChat
+          skillId={selectedSkillId}
+          skillTitle={skillDetail.skill.title}
+          isOpen={showChat}
+          onClose={() => setShowChat(false)}
+        />
+      )}
     </div>
   )
 }

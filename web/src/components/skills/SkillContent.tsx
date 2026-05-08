@@ -1,4 +1,4 @@
-import { FileEdit, X, Save } from 'lucide-react'
+import { FileEdit, X, Save, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import type { SkillDetail } from '@/lib/skills/types'
 import { stripFrontmatter } from '@/lib/skills/utils'
@@ -8,9 +8,10 @@ type SkillContentProps = {
   skillDetail: SkillDetail | null
   onSave?: (content: string) => void
   saving?: boolean
+  onOpenChat?: () => void
 }
 
-export function SkillContent({ skillDetail, onSave, saving }: SkillContentProps) {
+export function SkillContent({ skillDetail, onSave, saving, onOpenChat }: SkillContentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
 
@@ -71,13 +72,25 @@ export function SkillContent({ skillDetail, onSave, saving }: SkillContentProps)
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
-              >
-                <FileEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Edit
-              </button>
+              <div className="flex items-center gap-2">
+                {onOpenChat && (
+                  <button
+                    onClick={onOpenChat}
+                    className="flex items-center gap-1.5 h-6 px-2.5 bg-raised hover:bg-hover border border-default text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
+                    title="Chat with AI about this skill"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    Chat
+                  </button>
+                )}
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
+                >
+                  <FileEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Edit
+                </button>
+              </div>
             )}
           </div>
 
