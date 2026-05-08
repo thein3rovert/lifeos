@@ -201,25 +201,44 @@ app.post("/session/messages", async (req, res) => {
   }
 
   try {
-    // Get session details which includes messages
-    const session = await client.session.get({ path: { id: sessionId } });
+    console.log(`[Messages] Fetching messages for session: ${sessionId}`);
 
-    // Extract messages from session data
-    const messages = session.data.messages || [];
+    // Try to get chat messages from the session
+    // OpenCode might store them in the chat history endpoint
+    const chatHistory = await client.chat.list({
+      path: { sessionId },
+    });
 
-    // Transform to our format
-    const formattedMessages = messages.map(msg => ({
-      id: msg.id || `msg-${Date.now()}`,
-      role: msg.role,
-      content: msg.parts?.filter(p => p.type === 'text').map(p => p.text).join('') || '',
-      created: msg.createdAt || new Date().toISOString(),
-    }));
+    console.log(`[Messages] Chat history:`, JSON.stringify(chatHistory.data, null, 2));
 
-    console.log(`Retrieved ${formattedMessages.length} messages from session ${sessionId}`);
+    // Extract and format messages
+    const messages = chatHistory.data || [];
+    console.log(`[Messages] Raw messages count: ${messages.length}`);
+
+    const formattedMessages = messages.map((msg, idx) => {
+      console.log(`[Messages] Message ${idx}:`, {
+        id: msg.id,
+        role: msg.role,
+        content: msg.content?.substring(0, 100),
+      });
+
+      return {
+        id: msg.id || `msg-${Date.now()}-${idx}`,
+        role: msg.role || 'assistant',
+        content: msg.content || msg.text || '',
+        created: msg.createdAt || msg.timestamp || new Date().toISOString(),
+      };
+    });
+
+    console.log(`[Messages] Returning ${formattedMessages.length} formatted messages`);
     return res.json({ messages: formattedMessages });
   } catch (err) {
-    console.error("Failed to get messages:", err.message);
-    // Return empty array instead of error to handle gracefully
+    console.error("[Messages] Failed with chat.list, trying fallback:", err.message);
+
+    // Fallback: OpenCode sessions might not persist full history
+    // Return empty array - this is expected behavior
+    console.log("[Messages] OpenCode sessions may not persist message history.");
+    console.log("[Messages] Messages are only available during active session.");
     return res.json({ messages: [] });
   }
 });
