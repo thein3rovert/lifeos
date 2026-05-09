@@ -9,6 +9,7 @@ import (
 	"github.com/thein3rovert/lifeos/internal/api"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	"github.com/thein3rovert/lifeos/internal/middleware"
+	service "github.com/thein3rovert/lifeos/internal/services"
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/github"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
@@ -59,6 +60,8 @@ func main() {
 		log.Printf("Loaded %d skills from SQLite (manual sync available)", len(skills))
 	}
 
+
+
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
 
@@ -70,7 +73,14 @@ func main() {
 	noteAPI := api.NewNoteHandler(noteStore)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
-	chatAPI := api.NewChatHandler(skillStore, chatMsgStore)
+
+	// Now using service instead of just handlers
+	sidecarURL := os.Getenv("SIDECAR_URL")
+	if sidecarURL == "" {
+	sidecarURL = "http://127.0.0.1:3002"
+}
+chatService := service.NewChatService(skillStore, chatMsgStore, sidecarURL)
+chatAPI := api.NewChatHandler(chatService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos
