@@ -30,8 +30,6 @@ func getSkillID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	return skillID, true
 }
 
-
-
 type GetOrCreateSessionRequest struct {
 	SkillID    string `json:"skillId"`
 	SkillTitle string `json:"skillTitle"`
@@ -59,8 +57,6 @@ func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request)
 	respondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
 }
 
-
-
 type ChatMessageRequest struct {
 	Message string `json:"message"`
 }
@@ -87,7 +83,6 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-
 
 	// Call the chat service to handle the businesss logic
 	response, err := h.chatService.SendMessage(skillID, req.Message)
@@ -129,8 +124,8 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	var resp []ChatMessage
 	for _, msg := range messages {
 		resp = append(resp, ChatMessage{
-			ID: fmt.Sprintf("%d", msg.ID),
-			Role: msg.Role,
+			ID:      fmt.Sprintf("%d", msg.ID),
+			Role:    msg.Role,
 			Content: msg.Content,
 			Created: msg.CreatedAt.Format(time.RFC3339),
 		})

@@ -45,7 +45,7 @@ func (s *ChatService) SendMessage(skillID, message string) (string, error) {
 	}
 
 	// Call sidecar to send message
-	response, err := s.callSidecar("/session/chat",  reqBody)
+	response, err := s.callSidecar("/session/chat", reqBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to call sidecar: %w", err)
 	}
@@ -108,7 +108,6 @@ func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
 
 	return sessionID, nil
 }
-
 
 // ============== HELPERS ==================
 

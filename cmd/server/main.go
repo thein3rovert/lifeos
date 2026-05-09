@@ -60,8 +60,6 @@ func main() {
 		log.Printf("Loaded %d skills from SQLite (manual sync available)", len(skills))
 	}
 
-
-
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
 
@@ -77,10 +75,10 @@ func main() {
 	// Now using service instead of just handlers
 	sidecarURL := os.Getenv("SIDECAR_URL")
 	if sidecarURL == "" {
-	sidecarURL = "http://127.0.0.1:3002"
-}
-chatService := service.NewChatService(skillStore, chatMsgStore, sidecarURL)
-chatAPI := api.NewChatHandler(chatService)
+		sidecarURL = "http://127.0.0.1:3002"
+	}
+	chatService := service.NewChatService(skillStore, chatMsgStore, sidecarURL)
+	chatAPI := api.NewChatHandler(chatService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos

@@ -81,9 +81,13 @@ internal/store/github/
   - [x] "Preview AI Update" — AI rewrites skill with notes
   - [x] Review preview page (HTML render + raw markdown)
   - [x] Edit preview manually before creating PR (with live preview update)
-- [ ] 3. Download skills in different formats (opencode, claude, copilot)
-- [ ] 4. Skills assets section (images, files)
-- [ ] 5. Download skills with assets
+- [x] 3. Chat with skills — persistent conversation history (SQLite)
+  - [x] OpenCode session management
+  - [x] Save/load chat messages per skill session
+  - [x] Chat modal UI with history
+- [ ] 4. Download skills in different formats (opencode, claude, copilot)
+- [ ] 5. Skills assets section (images, files)
+- [ ] 6. Download skills with assets
 
 **Skills — Note Buffer Flow** ✅ COMPLETE
 ```
@@ -130,4 +134,4 @@ Start services in order:
 - [ ] Glossary for nix and other tools [Static Webpage] (Useful for other people, we host it publicly later)
 - [ ] Cheatsheet Webpage [Static Webpage], contains all tools i've used, their command and description.
 
-> Last Updated: 04-19-2026
+> Last Updated: 05-08-2026
