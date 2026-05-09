@@ -1,55 +1,36 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/thein3rovert/lifeos/internal/model"
-	"github.com/thein3rovert/lifeos/internal/store"
+	service "github.com/thein3rovert/lifeos/internal/services"
 )
 
 // ChatHandler handles persistent chat with OpenCode
 type ChatHandler struct {
-	skillStore *store.SQLSkillStore
-	sidecarURL string
-	msgStore *store.ChatMessageStore
+	chatService *service.ChatService
 }
 
 // NewChatHandler creates a new chat handler
-func NewChatHandler(skillStore *store.SQLSkillStore, msgStore *store.ChatMessageStore) *ChatHandler {
-	sidecarURL := os.Getenv("SIDECAR_URL")
-	if sidecarURL == "" {
-		sidecarURL = "http://127.0.0.1:3002"
-	}
-
+func NewChatHandler(chatService *service.ChatService) *ChatHandler {
 	return &ChatHandler{
-		skillStore: skillStore,
-		sidecarURL: sidecarURL,
-		msgStore: msgStore,
+		chatService: chatService,
 	}
 }
 
 // Helper to get skill from request path and handle errors
-func (h *ChatHandler) getSkillFromRequest(w http.ResponseWriter, r *http.Request) (*model.Skill, bool) {
+func getSkillID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
 		respondError(w, http.StatusBadRequest, "skill ID is required")
-		return nil, false
+		return "", false
 	}
-
-	skill, err := h.skillStore.GetSkill(skillID)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "skill not found")
-		return nil, false
-	}
-
-	return skill, true
+	return skillID, true
 }
+
+
 
 type GetOrCreateSessionRequest struct {
 	SkillID    string `json:"skillId"`
@@ -64,34 +45,21 @@ type GetOrCreateSessionResponse struct {
 // GetOrCreateSession gets or creates an OpenCode session for a skill
 // POST /api/skills/{id}/session
 func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
-	skill, ok := h.getSkillFromRequest(w, r)
+	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
 	}
 
-	// Call sidecar to get/create session
-	reqBody := GetOrCreateSessionRequest{
-		SkillID:    skill.ID,
-		SkillTitle: skill.Title,
-		SessionID:  skill.OpenCodeSessionID,
-	}
-
-	sessionID, err := h.callSidecar("/session/getOrCreate", reqBody)
+	sessionID, err := h.chatService.CreateOrResumeSession(skillID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
 		return
 	}
 
-	// Save session ID if it's new
-	if skill.OpenCodeSessionID != sessionID {
-		if err := h.skillStore.SetSessionID(skill.ID, sessionID); err != nil {
-			respondError(w, http.StatusInternalServerError, "failed to save session ID")
-			return
-		}
-	}
-
 	respondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
 }
+
+
 
 type ChatMessageRequest struct {
 	Message string `json:"message"`
@@ -115,41 +83,18 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	skill, ok := h.getSkillFromRequest(w, r)
+	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
 	}
 
-	// Ensure session exists
-	if skill.OpenCodeSessionID == "" {
-		respondError(w, http.StatusBadRequest, "no active session for this skill")
-		return
-	}
 
-	// Call sidecar to send message
-	sidecarReq := map[string]interface{}{
-		"sessionId":    skill.OpenCodeSessionID,
-		"message":      req.Message,
-		"skillContent": skill.Content,
-	}
-
-	response, err := h.callSidecar("/session/chat", sidecarReq)
-
-	// After getting the ai response, save message to the store/db
-	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "user", req.Message); err != nil {
-		fmt.Printf("Warning: failed to save user message: %v\n", err)
-	}
-
-
-	if err := h.msgStore.SaveChatMessage(skill.ID, skill.OpenCodeSessionID, "assistant", response); err != nil {
-		fmt.Printf("Warning: failed to save agent assistant message: %v\n", err)
-	}
-
+	// Call the chat service to handle the businesss logic
+	response, err := h.chatService.SendMessage(skillID, req.Message)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to send message: %v", err))
+		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	respondJSON(w, http.StatusOK, ChatMessageResponse{Response: response})
 }
 
@@ -167,34 +112,13 @@ type GetMessagesResponse struct {
 // GetChatMessages gets the chat history for a skill
 // GET /api/skills/{id}/messages
 func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
-	skill, ok := h.getSkillFromRequest(w, r)
+
+	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
 	}
+	messages, err := h.chatService.GetMessages(skillID)
 
-	// if skill.OpenCodeSessionID == "" {
-	// 	// No session yet, return empty messages
-	// 	respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: []ChatMessage{}})
-	// 	return
-	// }
-
-	// Call sidecar to get messages
-	// sidecarReq := map[string]string{
-	// 	"sessionId": skill.OpenCodeSessionID,
-	// }
-
-	// var messagesResp struct {
-	// 	Messages []ChatMessage `json:"messages"`
-	// }
-
-	// Get message from the database now on resume or new session inside of calling agent again
-	// if err := h.callSidecarJSON("/session/messages", sidecarReq, &messagesResp); err != nil {
-	// 	respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get messages: %v", err))
-	// 	return
-	// }
-
-	messages, err := h.msgStore.GetChatMessages(skill.ID, skill.OpenCodeSessionID)
-	fmt.Printf("[GetChatMessages] SkillID: %s, SessionID: %s, Found: %d messages\n", skill.ID, skill.OpenCodeSessionID, len(messages))
 	if err != nil {
 		fmt.Printf("[GetChatMessages] Error: %v\n", err)
 		respondError(w, http.StatusInternalServerError, "failed to get messages")
@@ -213,48 +137,4 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
-}
-
-
-
-// Helper to call sidecar and get string response
-func (h *ChatHandler) callSidecar(endpoint string, body interface{}) (string, error) {
-	var result map[string]interface{}
-	if err := h.callSidecarJSON(endpoint, body, &result); err != nil {
-		return "", err
-	}
-
-	// Extract first string value from response
-	for _, v := range result {
-		if str, ok := v.(string); ok {
-			return str, nil
-		}
-	}
-
-	return "", fmt.Errorf("no string response from sidecar")
-}
-
-// Helper to call sidecar and decode JSON response
-func (h *ChatHandler) callSidecarJSON(endpoint string, body interface{}, response interface{}) error {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := http.Post(
-		h.sidecarURL+endpoint,
-		"application/json",
-		bytes.NewBuffer(jsonBody),
-	)
-	if err != nil {
-		return fmt.Errorf("sidecar request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("sidecar returned %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	return json.NewDecoder(resp.Body).Decode(response)
 }
