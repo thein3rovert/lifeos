@@ -79,7 +79,15 @@ export function SkillsSidebar({
   }
 
   return (
-    <aside className="w-sidebar shrink-0 bg-black border border-default rounded-md flex flex-col overflow-hidden">
+    <aside
+      className="w-sidebar shrink-0 flex flex-col overflow-hidden"
+      style={{
+        background: 'var(--bg-black)',
+        boxShadow: 'var(--shadow-neuro-soft)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)',
+      }}
+    >
       {/* Panel Header */}
       <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
         <div className="flex items-center gap-2">
@@ -87,7 +95,13 @@ export function SkillsSidebar({
             Skills
           </span>
           {pendingCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-blue-600 rounded-md text-xxs text-white whitespace-nowrap">
+            <span
+              className="px-1.5 py-0.5 rounded-md text-xxs text-white whitespace-nowrap"
+              style={{
+                background: 'var(--accent-highlight)',
+                boxShadow: 'var(--shadow-neuro-raised)',
+              }}
+            >
               {pendingCount} pending
             </span>
           )}
@@ -133,12 +147,16 @@ export function SkillsSidebar({
                 onClick={() => onSelectSkill(skill.id)}
                 className={`
                   w-full flex items-center gap-2 px-3 py-2 text-left text-atlas-base
-                  transition-colors duration-150
+                  transition-all duration-150 rounded-md mx-1 my-0.5
                   ${selectedSkillId === skill.id
-                    ? 'bg-selected text-white border-l-2 border-highlight'
-                    : 'text-secondary hover:bg-hover hover:text-white border-l-2 border-transparent'
+                    ? 'text-white border-l-2 border-highlight'
+                    : 'text-secondary hover:text-white border-l-2 border-transparent'
                   }
                 `}
+                style={{
+                  background: selectedSkillId === skill.id ? 'var(--bg-elevated)' : 'transparent',
+                  boxShadow: selectedSkillId === skill.id ? 'var(--shadow-neuro-raised)' : 'none',
+                }}
               >
                 <ChevronRight className="w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
                 <span className="truncate flex-1">{skill.title}</span>
@@ -168,7 +186,11 @@ export function SkillsSidebar({
         <button
           onClick={handleSyncClick}
           disabled={syncing}
-          className="w-full h-7 flex items-center justify-center gap-2 bg-button hover:bg-hover disabled:opacity-50 text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
+          className="w-full h-7 flex items-center justify-center gap-2 disabled:opacity-50 text-secondary text-atlas-xs font-medium rounded-md transition-all active:scale-98"
+          style={{
+            background: 'var(--bg-button)',
+            boxShadow: syncing ? 'none' : 'var(--shadow-neuro-raised)',
+          }}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           {syncing ? 'Syncing...' : 'Pull from GitHub'}
@@ -178,7 +200,11 @@ export function SkillsSidebar({
           <button
             onClick={() => onPushSelected ? setShowPushDialog(true) : onPush?.()}
             disabled={pushing}
-            className="w-full h-7 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
+            className="w-full h-7 flex items-center justify-center gap-2 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-all active:scale-98"
+            style={{
+              background: 'var(--accent-highlight)',
+              boxShadow: pushing ? 'none' : 'var(--shadow-neuro-raised)',
+            }}
           >
             <Upload className={`w-3.5 h-3.5 ${pushing ? 'animate-pulse' : ''}`} strokeWidth={1.5} />
             {pushing ? 'Pushing...' : `Push ${pendingCount} change${pendingCount > 1 ? 's' : ''}`}

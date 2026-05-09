@@ -23,6 +23,41 @@ func NewChatService(skillStore *store.SQLSkillStore, msgStore *store.ChatMessage
 		sidecarURL: sidecarURL,
 	}
 }
+// CreateOrResumeSession creates a new OpenCode session or returns existing one
+func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
+	skill, err := s.skillStore.GetSkill(skillID)
+	if err != nil {
+		return "", fmt.Errorf("skill not found: %w", err)
+	}
+
+	// If session already exists, return it
+	if skill.OpenCodeSessionID != "" {
+		return skill.OpenCodeSessionID, nil
+	}
+
+	// Create new session via sidecar
+	reqBody := map[string]string{"skillId": skillID}
+	jsonData, _ := json.Marshal(reqBody)
+
+	resp, err := http.Post(s.sidecarURL+"/session/create", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+
+	sessionID := result["sessionId"].(string)
+
+	// Save session ID to skill
+	if err := s.skillStore.SetSessionID(skillID, sessionID); err != nil {
+		return "", err
+	}
+
+	return sessionID, nil
+}
 
 // SendMessage handles sending a chat message and saving it
 func (s *ChatService) SendMessage(skillID, message string) (string, error) {
@@ -71,42 +106,6 @@ func (s *ChatService) GetMessages(skillID string) ([]store.ChatMessage, error) {
 	}
 
 	return s.msgStore.GetChatMessages(skillID, skill.OpenCodeSessionID)
-}
-
-// CreateOrResumeSession creates a new OpenCode session or returns existing one
-func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
-	skill, err := s.skillStore.GetSkill(skillID)
-	if err != nil {
-		return "", fmt.Errorf("skill not found: %w", err)
-	}
-
-	// If session already exists, return it
-	if skill.OpenCodeSessionID != "" {
-		return skill.OpenCodeSessionID, nil
-	}
-
-	// Create new session via sidecar
-	reqBody := map[string]string{"skillId": skillID}
-	jsonData, _ := json.Marshal(reqBody)
-
-	resp, err := http.Post(s.sidecarURL+"/session/create", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	var result map[string]interface{}
-	json.Unmarshal(body, &result)
-
-	sessionID := result["sessionId"].(string)
-
-	// Save session ID to skill
-	if err := s.skillStore.SetSessionID(skillID, sessionID); err != nil {
-		return "", err
-	}
-
-	return sessionID, nil
 }
 
 // ============== HELPERS ==================

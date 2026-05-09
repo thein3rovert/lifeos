@@ -108,8 +108,14 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       minimized ? 'bg-transparent pointer-events-none' : 'bg-black/70 backdrop-blur-sm'
     }`}>
       <div
-        className={`bg-raised border border-default rounded-lg shadow-2xl flex flex-col transition-all duration-200 pointer-events-auto ${sizeClass}`}
-        style={{ maxHeight: fullscreen ? '100%' : 'calc(100vh - 2rem)' }}
+        className={`flex flex-col transition-all duration-200 pointer-events-auto ${sizeClass}`}
+        style={{
+          maxHeight: fullscreen ? '100%' : 'calc(100vh - 2rem)',
+          background: 'var(--bg-raised)',
+          boxShadow: 'var(--shadow-neuro-soft)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)',
+        }}
       >
         {/* Header */}
         <div className="h-12 flex items-center justify-between px-4 border-b border-default shrink-0 bg-raised">
@@ -167,7 +173,11 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className="flex gap-3"
+                    className="flex gap-3 p-3 rounded-lg transition-all"
+                    style={{
+                      background: msg.role === 'user' ? 'var(--bg-elevated)' : 'var(--bg-raised)',
+                      boxShadow: 'var(--shadow-neuro-raised)',
+                    }}
                   >
                     {/* Left accent bar */}
                     <div
@@ -213,14 +223,22 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="ENTER TEXT..."
-                  className="flex-1 min-h-[48px] max-h-32 px-3 py-3 bg-black border border-default rounded text-atlas-sm text-white placeholder:text-muted placeholder:uppercase placeholder:tracking-wide resize-none focus:outline-none focus:border-highlight"
+                  className="flex-1 min-h-[48px] max-h-32 px-3 py-3 rounded text-atlas-sm text-white placeholder:text-muted placeholder:uppercase placeholder:tracking-wide resize-none focus:outline-none transition-all"
+                  style={{
+                    background: 'var(--bg-input)',
+                    boxShadow: 'var(--shadow-neuro-inset)',
+                    border: 'none',
+                  }}
                   rows={1}
                   disabled={loading}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!input.trim() || loading}
-                  className="h-12 w-12 flex items-center justify-center bg-highlight hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded shrink-0 transition-colors"
+                  className="h-12 w-12 flex items-center justify-center bg-highlight disabled:opacity-50 disabled:cursor-not-allowed text-white rounded shrink-0 transition-all active:scale-95"
+                  style={{
+                    boxShadow: input.trim() && !loading ? 'var(--shadow-neuro-raised)' : 'none',
+                  }}
                   title="Send message"
                 >
                   {loading ? (
