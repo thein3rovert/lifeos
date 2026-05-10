@@ -5,33 +5,45 @@ import (
 	"strconv"
 
 	"github.com/thein3rovert/lifeos/internal/model"
-	"github.com/thein3rovert/lifeos/internal/store"
+	service "github.com/thein3rovert/lifeos/internal/services"
 )
 
 // Holds dependencies for note API endpoints
 type NoteHandler struct {
-	noteStore store.NoteStore
+	noteService *service.NoteService
 }
 
 // NewNoteHandler creates a new note API handler
-func NewNoteHandler(noteStore store.NoteStore) *NoteHandler {
-	return &NoteHandler{noteStore: noteStore}
+func NewNoteHandler(noteService *service.NoteService) *NoteHandler {
+	return &NoteHandler{noteService: noteService}
 }
 
 type NoteResponse struct {
-	ID        int    `json:"id"`
-	SkillID   string `json:"skill_id"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
+	ID        int     `json:"id"`
+	SkillID   string  `json:"skill_id"`
+	Title     string  `json:"title"`
+	Content   string  `json:"content"`
+	Type      string  `json:"type"`
+	CreatedAt string  `json:"created_at"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
 }
 
 // Map note response to note model
 func noteToResponse(n *model.Note) NoteResponse {
+	var updatedAt *string
+	if n.UpdatedAt != nil {
+		updatedAtStr := n.UpdatedAt.String()
+		updatedAt = &updatedAtStr
+	}
+
 	return NoteResponse{
 		ID:        n.ID,
 		SkillID:   n.SkillID,
+		Title:     n.Title,
 		Content:   n.Content,
+		Type:      n.Type,
 		CreatedAt: n.CreatedAt.String(),
+		UpdatedAt: updatedAt,
 	}
 }
 
@@ -44,14 +56,13 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, err := h.noteStore.GetNotesBySkill(skillID)
+	notes, err := h.noteService.GetNotes(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get notes")
+		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var resp []NoteResponse
-
 	for _, n := range notes {
 		resp = append(resp, noteToResponse(&n))
 	}
@@ -59,14 +70,14 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
-// JSON body for adding a note, since all
-// it takes is  the note content
+// JSON body for adding a note
 type AddNoteRequest struct {
+	Title   string `json:"title"`
 	Content string `json:"content"`
+	Type    string `json:"type,omitempty"` // optional, defaults to "manual"
 }
 
-// adds a buffer note to a skill, the more learning
-// the more the notes get updated
+// adds a buffer note to a skill
 // POST /api/skills/{id}/notes
 func (h *NoteHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
@@ -81,17 +92,12 @@ func (h *NoteHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Content == "" {
-		respondError(w, http.StatusBadRequest, "content is required")
+	if err := h.noteService.CreateNote(skillID, req.Title, req.Content, req.Type); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.noteStore.AddNote(skillID, req.Content); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to add note")
-		return
-	}
-
-	notes, _ := h.noteStore.GetNotesBySkill(skillID)
+	notes, _ := h.noteService.GetNotes(skillID)
 	var resp []NoteResponse
 	for _, n := range notes {
 		resp = append(resp, noteToResponse(&n))
@@ -115,8 +121,8 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteStore.DeleteNote(noteID); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to delete note")
+	if err := h.noteService.DeleteNote(noteID); err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -126,9 +132,9 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 // Returns all notes across all skills
 // GET /api/notes
 func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
-	notes, err := h.noteStore.GetAllNotes()
+	notes, err := h.noteService.GetAllNotes()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get notes")
+		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
