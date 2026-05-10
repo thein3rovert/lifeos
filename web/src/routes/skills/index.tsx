@@ -173,12 +173,12 @@ function SkillsPage() {
     }
   }
 
-  const handleAddNote = async (content: string) => {
-    if (!content.trim() || !selectedSkillId) return
+  const handleAddNote = async (title: string, content: string) => {
+    if (!title.trim() || !content.trim() || !selectedSkillId) return
 
     setAddingNote(true)
     try {
-      const updatedNotes = await api.notes.add(selectedSkillId, content)
+      const updatedNotes = await api.notes.add(selectedSkillId, title, content)
       setSkillDetail(prev => prev ? { ...prev, notes: updatedNotes } : null)
       // Refresh skills list to update note counts
       const skillsData = await api.skills.list()

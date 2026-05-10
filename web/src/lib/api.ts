@@ -33,8 +33,11 @@ export interface Skill {
 export interface Note {
   id: number
   skill_id: string
+  title: string
   content: string
+  type: 'manual' | 'ai-generated'
   created_at: string
+  updated_at?: string
 }
 
 export interface SkillDetail {
@@ -103,13 +106,18 @@ export const api = {
   notes: {
     listAll: () => fetcher<Note[]>('/api/notes'),
     list: (skillId: string) => fetcher<Note[]>(`/api/skills/${skillId}/notes`),
-    add: (skillId: string, content: string) =>
+    add: (skillId: string, title: string, content: string, type?: 'manual' | 'ai-generated') =>
       fetcher<Note[]>(`/api/skills/${skillId}/notes`, {
         method: 'POST',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title, content, type: type || 'manual' }),
       }),
     delete: (skillId: string, noteId: number) =>
       fetcher(`/api/skills/${skillId}/notes/${noteId}`, { method: 'DELETE' }),
+    update: (skillId: string, noteId: number, content: string) =>
+      fetcher<Note>(`/api/skills/${skillId}/notes/${noteId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      }),
   },
 
   chat: {

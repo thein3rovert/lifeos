@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/skills/utils'
 
 type SkillNotesProps = {
   skillDetail: SkillDetail | null
-  onAddNote: (content: string) => void
+  onAddNote: (title: string, content: string) => void
   onDeleteNote: (noteId: number) => void
   addingNote: boolean
   onAIPreview?: () => void
@@ -22,16 +22,17 @@ export function SkillNotes({
 }: SkillNotesProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNote, setNewNote] = useState('')
 
   const handleOpenModal = () => { setIsModalOpen(true); setIsMinimized(false) }
   const handleMinimizeModal = () => { setIsModalOpen(false); setIsMinimized(true) }
   const handleResumeModal = () => { setIsModalOpen(true); setIsMinimized(false) }
-  const handleCloseModal = () => { setIsModalOpen(false); setIsMinimized(false); setNewNote('') }
+  const handleCloseModal = () => { setIsModalOpen(false); setIsMinimized(false); setNewNoteTitle(''); setNewNote('') }
 
   const handleSubmit = () => {
-    if (newNote.trim()) {
-      onAddNote(newNote)
+    if (newNoteTitle.trim() && newNote.trim()) {
+      onAddNote(newNoteTitle, newNote)
       handleCloseModal()
     }
   }
@@ -103,7 +104,18 @@ export function SkillNotes({
                 className="p-3 bg-raised border border-default rounded-md group"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-xxs text-muted">{formatDate(note.created_at)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-atlas-sm font-medium text-white">{note.title}</span>
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xxs"
+                      style={{
+                        background: note.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
+                        color: note.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
+                      }}
+                    >
+                      {note.type === 'ai-generated' ? 'AI' : 'Manual'}
+                    </span>
+                  </div>
                   <button
                     onClick={() => onDeleteNote(note.id)}
                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-hover rounded-md transition-all"
@@ -111,6 +123,7 @@ export function SkillNotes({
                     <X className="w-3 h-3 text-tertiary" strokeWidth={1.5} />
                   </button>
                 </div>
+                <span className="text-xxs text-muted block mb-2">{formatDate(note.created_at)}</span>
                 <p className="text-atlas-xs text-secondary whitespace-pre-wrap">{note.content}</p>
               </div>
             ))
@@ -163,14 +176,21 @@ export function SkillNotes({
               </div>
             </div>
 
-            <div className="flex-1 p-4 min-h-0">
+            <div className="flex-1 p-4 min-h-0 flex flex-col gap-3">
+              <input
+                type="text"
+                value={newNoteTitle}
+                onChange={(e) => setNewNoteTitle(e.target.value)}
+                placeholder="Note title..."
+                className="w-full h-10 px-3 text-atlas-base bg-raised border border-default rounded-md text-white placeholder:text-muted focus:outline-none focus:border-highlight"
+                autoFocus
+              />
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your note here..."
-                className="w-full h-full min-h-dialog p-3 text-atlas-base bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-default resize-none"
-                autoFocus
+                className="w-full flex-1 min-h-dialog p-3 text-atlas-base bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-default resize-none"
               />
             </div>
 
@@ -189,7 +209,7 @@ export function SkillNotes({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!newNote.trim() || addingNote}
+                disabled={!newNoteTitle.trim() || !newNote.trim() || addingNote}
                 className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
               >
                 {addingNote ? 'Adding...' : 'Add Note'}
