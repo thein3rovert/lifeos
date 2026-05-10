@@ -206,6 +206,22 @@ function SkillsPage() {
     }
   }
 
+  const handleEditNote = async (noteId: number, title: string, content: string) => {
+    if (!selectedSkillId) return
+    setAddingNote(true)
+
+    try {
+      await api.notes.edit(selectedSkillId, noteId, title, content)
+      // Refresh note list
+      const updatedNotes = await api.notes.list(selectedSkillId)
+      setSkillDetail(prev => prev ? { ...prev, notes: updatedNotes } : null)
+    } catch (err) {
+      console.error('Failed to edit note:', err)
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
   const handleAIPreview = async () => {
     if (!selectedSkillId) return
 
@@ -289,6 +305,7 @@ function SkillsPage() {
         skillDetail={skillDetail}
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
+        onEditNote={handleEditNote}
         addingNote={addingNote}
         onAIPreview={handleAIPreview}
         aiLoading={aiLoading}

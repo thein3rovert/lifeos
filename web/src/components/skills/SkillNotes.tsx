@@ -1,4 +1,4 @@
-import { Plus, X, Sparkles, Minimize2, Edit3, Loader2 } from 'lucide-react'
+import { Plus, X, Sparkles, Minimize2, Edit3, Loader2, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import type { SkillDetail } from '@/lib/skills/types'
 import { formatDate } from '@/lib/skills/utils'
@@ -7,6 +7,7 @@ type SkillNotesProps = {
   skillDetail: SkillDetail | null
   onAddNote: (title: string, content: string) => void
   onDeleteNote: (noteId: number) => void
+  onEditNote: (noteId: number, title: string, content: string) => void
   addingNote: boolean
   onAIPreview?: () => void
   aiLoading?: boolean
@@ -16,6 +17,7 @@ export function SkillNotes({
   skillDetail,
   onAddNote,
   onDeleteNote,
+  onEditNote,
   addingNote,
   onAIPreview,
   aiLoading,
@@ -24,15 +26,34 @@ export function SkillNotes({
   const [isMinimized, setIsMinimized] = useState(false)
   const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNote, setNewNote] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
 
-  const handleOpenModal = () => { setIsModalOpen(true); setIsMinimized(false) }
+  const handleOpenModal = () => { setIsModalOpen(true); setIsMinimized(false); setEditingNoteId(null) }
   const handleMinimizeModal = () => { setIsModalOpen(false); setIsMinimized(true) }
   const handleResumeModal = () => { setIsModalOpen(true); setIsMinimized(false) }
-  const handleCloseModal = () => { setIsModalOpen(false); setIsMinimized(false); setNewNoteTitle(''); setNewNote('') }
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setIsMinimized(false)
+    setNewNoteTitle('')
+    setNewNote('')
+    setEditingNoteId(null)
+  }
+
+  const handleOpenEditModal = (noteId: number, title: string, content: string) => {
+    setEditingNoteId(noteId)
+    setNewNoteTitle(title)
+    setNewNote(content)
+    setIsModalOpen(true)
+    setIsMinimized(false)
+  }
 
   const handleSubmit = () => {
     if (newNoteTitle.trim() && newNote.trim()) {
-      onAddNote(newNoteTitle, newNote)
+      if (editingNoteId) {
+        onEditNote(editingNoteId, newNoteTitle, newNote)
+      } else {
+        onAddNote(newNoteTitle, newNote)
+      }
       handleCloseModal()
     }
   }
@@ -116,12 +137,22 @@ export function SkillNotes({
                       {note.type === 'ai-generated' ? 'AI' : 'Manual'}
                     </span>
                   </div>
-                  <button
-                    onClick={() => onDeleteNote(note.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-hover rounded-md transition-all"
-                  >
-                    <X className="w-3 h-3 text-tertiary" strokeWidth={1.5} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditModal(note.id, note.title, note.content)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-hover rounded-md transition-all"
+                      title="Edit note"
+                    >
+                      <Pencil className="w-3 h-3 text-tertiary" strokeWidth={1.5} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteNote(note.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-hover rounded-md transition-all"
+                      title="Delete note"
+                    >
+                      <X className="w-3 h-3 text-tertiary" strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </div>
                 <span className="text-xxs text-muted block mb-2">{formatDate(note.created_at)}</span>
                 <p className="text-atlas-xs text-secondary whitespace-pre-wrap">{note.content}</p>
@@ -157,7 +188,7 @@ export function SkillNotes({
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="min-w-dialog-sm max-w-dialog-xl max-w-dialog-md max-h-dialog bg-raised border border-default rounded-lg shadow-2xl flex flex-col resize overflow-auto">
             <div className="h-10 flex items-center justify-between px-4 border-b border-default">
-              <span className="text-atlas-base font-medium text-white">Add Note</span>
+              <span className="text-atlas-base font-medium text-white">{editingNoteId ? 'Edit Note' : 'Add Note'}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={handleMinimizeModal}
@@ -212,7 +243,7 @@ export function SkillNotes({
                 disabled={!newNoteTitle.trim() || !newNote.trim() || addingNote}
                 className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
               >
-                {addingNote ? 'Adding...' : 'Add Note'}
+                {addingNote ? (editingNoteId ? 'Updating...' : 'Adding...') : (editingNoteId ? 'Update Note' : 'Add Note')}
               </button>
             </div>
           </div>

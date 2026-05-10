@@ -118,6 +118,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ content }),
       }),
+    edit: (skillId: string, noteId: number, title: string, content: string) =>
+      fetcher<{ status: string }>(`/api/skills/${skillId}/notes/${noteId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title, content }),
+      }),
   },
 
   chat: {

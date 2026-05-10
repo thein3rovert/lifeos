@@ -63,3 +63,4 @@ package-lock.json
 server
 /.next/
 agent.md
+logs
