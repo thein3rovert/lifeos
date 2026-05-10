@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2 } from 'lucide-react'
-import { api, type ChatMessage } from '@/lib/api'
+import { api, type ChatMessage, type Note } from '@/lib/api'
 
 type SkillChatProps = {
   skillId: string
@@ -17,6 +17,12 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   const [minimized, setMinimized] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Note selection state
+  const [notes, setNotes] = useState<Note[]>([])
+  const [showNoteSelector, setShowNoteSelector] = useState(false)
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null)
+  const [noteFilter, setNoteFilter] = useState('')
 
   // Initialize session and load messages
   useEffect(() => {
@@ -39,6 +45,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       const { messages: existingMessages } = await api.chat.getMessages(skillId)
       console.log('Fetched messages:', existingMessages)
       setMessages(existingMessages)
+      // Load notes for context selection
+      const skillNotes = await api.notes.list(skillId)
+      setNotes(skillNotes)
     } catch (err) {
       console.error('Failed to initialize chat:', err)
     } finally {
@@ -87,7 +96,45 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       e.preventDefault()
       handleSendMessage()
     }
+    // Close note selector on Escape
+    if (e.key === 'Escape' && showNoteSelector) {
+      setShowNoteSelector(false)
+      setNoteFilter('')
+    }
   }
+
+  const handleInputChange = (value: string) => {
+    setInput(value)
+
+    // Detect slash command
+    if (value === '/') {
+      setShowNoteSelector(true)
+      setNoteFilter('')
+    } else if (value.startsWith('/') && !value.includes(' ')) {
+      // Filter notes as user types after /
+      setShowNoteSelector(true)
+      setNoteFilter(value.slice(1).toLowerCase())
+    } else {
+      setShowNoteSelector(false)
+      setNoteFilter('')
+    }
+  }
+
+  const handleSelectNote = (note: Note) => {
+    setSelectedNote(note)
+    setInput('') // Clear input after selection
+    setShowNoteSelector(false)
+    setNoteFilter('')
+  }
+
+  const handleRemoveNoteContext = () => {
+    setSelectedNote(null)
+  }
+
+  // Filter notes based on search term
+  const filteredNotes = notes.filter(note =>
+    note.title.toLowerCase().includes(noteFilter)
+  )
 
   if (!isOpen) return null
 
@@ -215,12 +262,83 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-default shrink-0 bg-input">
+            <div className="p-4 border-t border-default shrink-0 bg-input relative">
+              {/* Note context badge */}
+              {selectedNote && (
+                <div className="mb-2 flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md"
+                    style={{
+                      background: 'var(--bg-elevated)',
+                      boxShadow: 'var(--shadow-neuro-raised)',
+                    }}
+                  >
+                    <span className="text-atlas-xs text-secondary">Context:</span>
+                    <span className="text-atlas-xs font-medium text-white">{selectedNote.title}</span>
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xxs"
+                      style={{
+                        background: selectedNote.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
+                        color: selectedNote.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
+                      }}
+                    >
+                      {selectedNote.type === 'ai-generated' ? 'AI' : 'Manual'}
+                    </span>
+                    <button
+                      onClick={handleRemoveNoteContext}
+                      className="p-0.5 hover:bg-hover rounded transition-colors"
+                      title="Remove context"
+                    >
+                      <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Note selector dropdown */}
+              {showNoteSelector && notes.length > 0 && (
+                <div
+                  className="absolute bottom-full left-4 right-4 mb-2 max-h-64 overflow-y-auto rounded-lg"
+                  style={{
+                    background: 'var(--bg-raised)',
+                    boxShadow: 'var(--shadow-neuro-soft)',
+                    border: '1px solid var(--border-default)',
+                  }}
+                >
+                  <div className="p-2 border-b border-default">
+                    <span className="text-xxs text-muted uppercase tracking-wide">Select a note to add as context</span>
+                  </div>
+                  {filteredNotes.length === 0 ? (
+                    <div className="p-4 text-center text-muted text-atlas-xs">No notes found</div>
+                  ) : (
+                    <div className="p-1">
+                      {filteredNotes.map((note) => (
+                        <button
+                          key={note.id}
+                          onClick={() => handleSelectNote(note)}
+                          className="w-full flex items-center gap-2 p-2 hover:bg-hover rounded-md transition-colors text-left"
+                        >
+                          <span className="flex-1 text-atlas-sm text-white truncate">{note.title}</span>
+                          <span
+                            className="px-1.5 py-0.5 rounded text-xxs shrink-0"
+                            style={{
+                              background: note.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
+                              color: note.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
+                            }}
+                          >
+                            {note.type === 'ai-generated' ? 'AI' : 'Manual'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-3">
                 <div className="w-1 rounded-full bg-highlight shrink-0 self-stretch" />
                 <textarea
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="ENTER TEXT..."
                   className="flex-1 min-h-[48px] max-h-32 px-3 py-3 rounded text-atlas-sm text-white placeholder:text-muted placeholder:uppercase placeholder:tracking-wide resize-none focus:outline-none transition-all"
