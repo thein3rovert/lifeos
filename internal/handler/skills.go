@@ -218,7 +218,7 @@ func AddNote(noteStore store.NoteStore) http.HandlerFunc {
 			return
 		}
 
-		if err := noteStore.AddNote(skillID, content); err != nil {
+		if err := noteStore.AddNote(skillID, "Note", content, "manual"); err != nil {
 			http.Error(w, "Failed to add note", http.StatusInternalServerError)
 			return
 		}
