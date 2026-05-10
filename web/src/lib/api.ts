@@ -123,10 +123,10 @@ export const api = {
   chat: {
     getOrCreateSession: (skillId: string) =>
       fetcher<ChatSession>(`/api/skills/${skillId}/session`, { method: 'POST' }),
-    sendMessage: (skillId: string, message: string, noteId?: number) =>
+    sendMessage: (skillId: string, message: string, noteIds?: number[]) =>
       fetcher<{ response: string }>(`/api/skills/${skillId}/chat`, {
         method: 'POST',
-        body: JSON.stringify({ message, noteId }),
+        body: JSON.stringify({ message, noteIds }),
       }),
     getMessages: (skillId: string) =>
       fetcher<{ messages: ChatMessage[] }>(`/api/skills/${skillId}/messages`),

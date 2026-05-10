@@ -21,7 +21,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   // Note selection state
   const [notes, setNotes] = useState<Note[]>([])
   const [showNoteSelector, setShowNoteSelector] = useState(false)
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null)
+  const [selectedNotes, setSelectedNotes] = useState<Note[]>([])
   const [noteFilter, setNoteFilter] = useState('')
 
   // Save note modal state
@@ -65,7 +65,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
     if (!input.trim() || loading) return
 
     const userMessage = input.trim()
-    const noteIdToSend = selectedNote?.id
+    const noteIdsToSend = selectedNotes.length > 0 ? selectedNotes.map(n => n.id) : undefined
     setInput('')
 
     // Add user message optimistically
@@ -79,7 +79,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
     setLoading(true)
     try {
-      const { response } = await api.chat.sendMessage(skillId, userMessage, noteIdToSend)
+      const { response } = await api.chat.sendMessage(skillId, userMessage, noteIdsToSend)
 
       // Add assistant response
       const assistantMsg: ChatMessage = {
@@ -128,33 +128,37 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   }
 
   const handleSelectNote = (note: Note) => {
-    setSelectedNote(note)
+    // Only add if not already selected
+    if (!selectedNotes.find(n => n.id === note.id)) {
+      setSelectedNotes(prev => [...prev, note])
+    }
     setInput('') // Clear input after selection
     setShowNoteSelector(false)
     setNoteFilter('')
   }
 
-  const handleRemoveNoteContext = () => {
-    setSelectedNote(null)
+  const handleRemoveNoteContext = (noteId: number) => {
+    setSelectedNotes(prev => prev.filter(n => n.id !== noteId))
   }
 
-  // Filter notes based on search term
+  // Filter notes based on search term and exclude already selected
   const filteredNotes = (notes || []).filter(note =>
-    note.title.toLowerCase().includes(noteFilter)
+    note.title.toLowerCase().includes(noteFilter) &&
+    !selectedNotes.find(n => n.id === note.id)
   )
 
   const handleUpdateExistingNote = async () => {
-    if (!selectedNote || !contentToSave.trim()) return
+    if (!selectedNotes[0] || !contentToSave.trim()) return
 
     setSaving(true)
     try {
-      await api.notes.update(skillId, selectedNote.id, contentToSave)
+      await api.notes.update(skillId, selectedNotes[0].id, contentToSave)
       // Refresh notes
       const updatedNotes = await api.notes.list(skillId)
       setNotes(updatedNotes)
       setContentToSave('')
       setShowSaveModal(false)
-      setSelectedNote(null)
+      setSelectedNotes([])
     } catch (err) {
       console.error('Failed to update note:', err)
     } finally {
@@ -174,7 +178,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       setContentToSave('')
       setNewNoteTitle('')
       setShowSaveModal(false)
-      setSelectedNote(null)
+      setSelectedNotes([])
     } catch (err) {
       console.error('Failed to create note:', err)
     } finally {
@@ -322,35 +326,38 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
             {/* Input */}
             <div className="p-4 border-t border-default shrink-0 bg-input relative">
-              {/* Note context badge */}
-              {selectedNote && (
-                <div className="mb-2 flex items-center gap-2">
-                  <div
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-md"
-                    style={{
-                      background: 'var(--bg-elevated)',
-                      boxShadow: 'var(--shadow-neuro-raised)',
-                    }}
-                  >
-                    <span className="text-atlas-xs text-secondary">Context:</span>
-                    <span className="text-atlas-xs font-medium text-white">{selectedNote.title}</span>
-                    <span
-                      className="px-1.5 py-0.5 rounded text-xxs"
+              {/* Note context badges */}
+              {selectedNotes.length > 0 && (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="text-atlas-xs text-secondary">Context:</span>
+                  {selectedNotes.map(note => (
+                    <div
+                      key={note.id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md"
                       style={{
-                        background: selectedNote.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
-                        color: selectedNote.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
+                        background: 'var(--bg-elevated)',
+                        boxShadow: 'var(--shadow-neuro-raised)',
                       }}
                     >
-                      {selectedNote.type === 'ai-generated' ? 'AI' : 'Manual'}
-                    </span>
-                    <button
-                      onClick={handleRemoveNoteContext}
-                      className="p-0.5 hover:bg-hover rounded transition-colors"
-                      title="Remove context"
-                    >
-                      <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
-                    </button>
-                  </div>
+                      <span className="text-atlas-xs font-medium text-white">{note.title}</span>
+                      <span
+                        className="px-1.5 py-0.5 rounded text-xxs"
+                        style={{
+                          background: note.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
+                          color: note.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
+                        }}
+                      >
+                        {note.type === 'ai-generated' ? 'AI' : 'Manual'}
+                      </span>
+                      <button
+                        onClick={() => handleRemoveNoteContext(note.id)}
+                        className="p-0.5 hover:bg-hover rounded transition-colors"
+                        title="Remove context"
+                      >
+                        <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -461,7 +468,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                   <Upload className="w-4 h-4 text-yellow-600" strokeWidth={1.5} />
                   <span className="text-atlas-sm font-medium text-white">Update existing note</span>
                 </div>
-                <p className="text-xxs text-muted">Append to: {selectedNote?.title}</p>
+                <p className="text-xxs text-muted">Append to: {selectedNotes[0]?.title}</p>
               </button>
 
               {/* Create new note */}

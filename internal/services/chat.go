@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
@@ -83,8 +84,8 @@ func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
 }
 
 // SendMessage handles sending a chat message and saving it
-// noteId is optional - if provided, note content will be prepended as context
-func (s *ChatService) SendMessage(skillID, message string, noteId *int) (string, error) {
+// noteIds is optional - if provided, note contents will be prepended as context
+func (s *ChatService) SendMessage(skillID, message string, noteIds []int) (string, error) {
 	// Get the skill
 	skill, err := s.skillStore.GetSkill(skillID)
 	if err != nil {
@@ -96,16 +97,22 @@ func (s *ChatService) SendMessage(skillID, message string, noteId *int) (string,
 		return "", fmt.Errorf("no active session for skill")
 	}
 
-	// Prepend note content if noteId is provided
+	// Prepend note contents if noteIds are provided
 	finalMessage := message
-	if noteId != nil {
+	if len(noteIds) > 0 {
 		notes, err := s.noteStore.GetNotesBySkill(skillID)
 		if err == nil {
-			for _, note := range notes {
-				if note.ID == *noteId {
-					finalMessage = fmt.Sprintf("[Context from note '%s']\n\n%s\n\n---\n\n%s", note.Title, note.Content, message)
-					break
+			var contextParts []string
+			for _, noteID := range noteIds {
+				for _, note := range notes {
+					if note.ID == noteID {
+						contextParts = append(contextParts, fmt.Sprintf("[Note: %s]\n%s", note.Title, note.Content))
+						break
+					}
 				}
+			}
+			if len(contextParts) > 0 {
+				finalMessage = fmt.Sprintf("[Context from %d note(s)]\n\n%s\n\n---\n\n%s", len(contextParts), strings.Join(contextParts, "\n\n"), message)
 			}
 		}
 	}
