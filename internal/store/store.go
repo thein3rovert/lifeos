@@ -28,11 +28,12 @@ type SkillStore interface {
 
 // NoteStore is for buffered skill notes
 type NoteStore interface {
-	AddNote(skillID, content string) error
+	AddNote(skillID, title, content, noteType string) error
 	GetNotesBySkill(skillID string) ([]model.Note, error)
 	GetAllNotes() ([]model.Note, error)
 	ClearNotes(skillID string) error
 	DeleteNote(noteID int) error
+	UpdateNote(noteID int, additionalContent string) error
 	CountNotesBySkill(skillID string) (int, error)
 	GetSkillNoteCounts() (map[string]int, error)
 }
