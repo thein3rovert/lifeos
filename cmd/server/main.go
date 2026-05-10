@@ -65,19 +65,20 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// ── Initialize API handlers ─────────────────────────────────────
-	photoAPI := api.NewPhotoHandler(photoStore)
-	skillAPI := api.NewSkillHandler(skillStore, noteStore)
-	noteAPI := api.NewNoteHandler(noteStore)
-	aiAPI := api.NewAIHandler(skillStore, noteStore)
-	tagAPI := api.NewTagHandler(photoStore)
-
-	// Now using service instead of just handlers
+	// ── Initialize services ─────────────────────────────────────
 	sidecarURL := os.Getenv("SIDECAR_URL")
 	if sidecarURL == "" {
 		sidecarURL = "http://127.0.0.1:3002"
 	}
 	chatService := service.NewChatService(skillStore, chatMsgStore, sidecarURL)
+	noteService := service.NewNoteService(noteStore, skillStore)
+
+	// ── Initialize API handlers ─────────────────────────────────────
+	photoAPI := api.NewPhotoHandler(photoStore)
+	skillAPI := api.NewSkillHandler(skillStore, noteStore)
+	noteAPI := api.NewNoteHandler(noteService)
+	aiAPI := api.NewAIHandler(skillStore, noteStore)
+	tagAPI := api.NewTagHandler(photoStore)
 	chatAPI := api.NewChatHandler(chatService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
