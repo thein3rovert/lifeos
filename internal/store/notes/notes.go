@@ -78,6 +78,15 @@ func (s *NoteStore) UpdateNote(noteID int, additionalContent string) error {
 	return err
 }
 
+// EditNote replaces the entire note content and title
+func (s *NoteStore) EditNote(noteID int, title, content string) error {
+	_, err := s.db.Exec(
+		"UPDATE skill_notes SET title = ?, content = ?, updated_at = ? WHERE id = ?",
+		title, content, time.Now(), noteID,
+	)
+	return err
+}
+
 // ClearNotes removes all notes for a skill (called after appending to skill)
 func (s *NoteStore) ClearNotes(skillID string) error {
 	_, err := s.db.Exec("DELETE FROM skill_notes WHERE skill_id = ?", skillID)

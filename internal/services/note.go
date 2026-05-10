@@ -62,6 +62,19 @@ func (s *NoteService) UpdateNote(noteID int, content string) error {
 	return s.noteStore.UpdateNote(noteID, content)
 }
 
+// EditNote fully replaces note title and content
+func (s *NoteService) EditNote(noteID int, title, content string) error {
+	if err := validateNoteTitle(title); err != nil {
+		return err
+	}
+
+	if err := validateNoteContent(content); err != nil {
+		return err
+	}
+
+	return s.noteStore.EditNote(noteID, title, content)
+}
+
 
 // DeleteNote deletes a note by ID
 func (s *NoteService) DeleteNote(noteID int) error {

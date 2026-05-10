@@ -102,6 +102,7 @@ func main() {
 	mux.HandleFunc("GET /api/skills/{id}/notes", noteAPI.GetNotes)
 	mux.HandleFunc("POST /api/skills/{id}/notes", noteAPI.AddNote)
 	mux.HandleFunc("PUT /api/skills/{id}/notes/{noteId}", noteAPI.UpdateNote)
+	mux.HandleFunc("PATCH /api/skills/{id}/notes/{noteId}", noteAPI.EditNote)
 	mux.HandleFunc("DELETE /api/skills/{id}/notes/{noteId}", noteAPI.DeleteNote)
 
 	// AI workflow
