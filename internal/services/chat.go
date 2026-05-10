@@ -8,18 +8,21 @@ import (
 	"net/http"
 
 	"github.com/thein3rovert/lifeos/internal/store"
+	"github.com/thein3rovert/lifeos/internal/store/notes"
 )
 
 type ChatService struct {
 	skillStore *store.SQLSkillStore
 	msgStore   *store.ChatMessageStore
+	noteStore  *notes.NoteStore
 	sidecarURL string
 }
 
-func NewChatService(skillStore *store.SQLSkillStore, msgStore *store.ChatMessageStore, sidecarURL string) *ChatService {
+func NewChatService(skillStore *store.SQLSkillStore, msgStore *store.ChatMessageStore, noteStore *notes.NoteStore, sidecarURL string) *ChatService {
 	return &ChatService{
 		skillStore: skillStore,
 		msgStore:   msgStore,
+		noteStore:  noteStore,
 		sidecarURL: sidecarURL,
 	}
 }
@@ -36,20 +39,40 @@ func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
 	}
 
 	// Create new session via sidecar
-	reqBody := map[string]string{"skillId": skillID}
-	jsonData, _ := json.Marshal(reqBody)
-
-	resp, err := http.Post(s.sidecarURL+"/session/create", "application/json", bytes.NewBuffer(jsonData))
+	reqBody := map[string]string{
+		"skillId":    skillID,
+		"skillTitle": skill.Title,
+	}
+	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := http.Post(s.sidecarURL+"/session/getOrCreate", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to call sidecar: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-	var result map[string]interface{}
-	json.Unmarshal(body, &result)
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("sidecar returned status %d: %s", resp.StatusCode, string(body))
+	}
 
-	sessionID := result["sessionId"].(string)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	sessionID, ok := result["sessionId"].(string)
+	if !ok {
+		return "", fmt.Errorf("sessionId not found in response or invalid type")
+	}
 
 	// Save session ID to skill
 	if err := s.skillStore.SetSessionID(skillID, sessionID); err != nil {
@@ -60,7 +83,8 @@ func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
 }
 
 // SendMessage handles sending a chat message and saving it
-func (s *ChatService) SendMessage(skillID, message string) (string, error) {
+// noteId is optional - if provided, note content will be prepended as context
+func (s *ChatService) SendMessage(skillID, message string, noteId *int) (string, error) {
 	// Get the skill
 	skill, err := s.skillStore.GetSkill(skillID)
 	if err != nil {
@@ -72,10 +96,24 @@ func (s *ChatService) SendMessage(skillID, message string) (string, error) {
 		return "", fmt.Errorf("no active session for skill")
 	}
 
+	// Prepend note content if noteId is provided
+	finalMessage := message
+	if noteId != nil {
+		notes, err := s.noteStore.GetNotesBySkill(skillID)
+		if err == nil {
+			for _, note := range notes {
+				if note.ID == *noteId {
+					finalMessage = fmt.Sprintf("[Context from note '%s']\n\n%s\n\n---\n\n%s", note.Title, note.Content, message)
+					break
+				}
+			}
+		}
+	}
+
 	// Build request body
 	reqBody := map[string]interface{}{
 		"sessionId":    skill.OpenCodeSessionID,
-		"message":      message,
+		"message":      finalMessage,
 		"skillContent": skill.Content,
 	}
 
@@ -85,7 +123,7 @@ func (s *ChatService) SendMessage(skillID, message string) (string, error) {
 		return "", fmt.Errorf("failed to call sidecar: %w", err)
 	}
 
-	// Save user message
+	// Save user message (original, not with context)
 	if err := s.msgStore.SaveChatMessage(skillID, skill.OpenCodeSessionID, "user", message); err != nil {
 		fmt.Printf("Warning: failed to save user message: %v\n", err)
 	}
