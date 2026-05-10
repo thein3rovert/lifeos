@@ -70,16 +70,34 @@ func (s *SQLiteStore) migrate() error {
 
 		// Add ai chat message table
 		`CREATE TABLE IF NOT EXISTS chat_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        skill_id TEXT NOT NULL,
-        session_id TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
-        content TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
-    );`,
+	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        skill_id TEXT NOT NULL,
+	        session_id TEXT NOT NULL,
+	        role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+	        content TEXT NOT NULL,
+	        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
+	    );`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_messages_skill_session ON chat_messages(skill_id, session_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);`,
+
+		// Add skill_notes table
+		`CREATE TABLE IF NOT EXISTS skill_notes (
+	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        skill_id TEXT NOT NULL,
+	        title TEXT NOT NULL DEFAULT '',
+	        content TEXT NOT NULL,
+	        type TEXT NOT NULL DEFAULT 'manual' CHECK(type IN ('manual', 'ai-generated')),
+	        created_at DATETIME NOT NULL,
+	        updated_at DATETIME,
+	        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
+	    );`,
+		`CREATE INDEX IF NOT EXISTS idx_skill_notes_skill_id ON skill_notes(skill_id);`,
+
+		// Migrations for existing skill_notes table
+		`ALTER TABLE skill_notes ADD COLUMN title TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE skill_notes ADD COLUMN type TEXT NOT NULL DEFAULT 'manual' CHECK(type IN ('manual', 'ai-generated'));`,
+		`ALTER TABLE skill_notes ADD COLUMN updated_at DATETIME;`,
 	}
 	for _, q := range queries {
 		if _, err := s.db.Exec(q); err != nil {
