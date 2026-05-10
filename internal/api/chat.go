@@ -59,6 +59,7 @@ func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request)
 
 type ChatMessageRequest struct {
 	Message string `json:"message"`
+	NoteId  *int   `json:"noteId,omitempty"` // optional note ID for context
 }
 
 type ChatMessageResponse struct {
@@ -85,7 +86,7 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the chat service to handle the businesss logic
-	response, err := h.chatService.SendMessage(skillID, req.Message)
+	response, err := h.chatService.SendMessage(skillID, req.Message, req.NoteId)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

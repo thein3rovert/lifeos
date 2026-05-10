@@ -129,6 +129,39 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+type UpdateNoteRequest struct {
+	Content string `json:"content"`
+}
+
+// UpdateNote appends content to an existing note
+// PUT /api/skills/{id}/notes/{noteId}
+func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	noteIDStr := r.PathValue("noteId")
+	if noteIDStr == "" {
+		respondError(w, http.StatusBadRequest, "note ID is required")
+		return
+	}
+
+	noteID, err := strconv.Atoi(noteIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid note ID")
+		return
+	}
+
+	var req UpdateNoteRequest
+	if err := decodeJSON(r, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.noteService.UpdateNote(noteID, req.Content); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
 // Returns all notes across all skills
 // GET /api/notes
 func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {

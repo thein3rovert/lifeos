@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2 } from 'lucide-react'
+import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2, Save, Upload, Plus } from 'lucide-react'
 import { api, type ChatMessage, type Note } from '@/lib/api'
 
 type SkillChatProps = {
@@ -23,6 +23,12 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   const [showNoteSelector, setShowNoteSelector] = useState(false)
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [noteFilter, setNoteFilter] = useState('')
+
+  // Save note modal state
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [contentToSave, setContentToSave] = useState('') // Track which AI response to save
 
   // Initialize session and load messages
   useEffect(() => {
@@ -59,6 +65,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
     if (!input.trim() || loading) return
 
     const userMessage = input.trim()
+    const noteIdToSend = selectedNote?.id
     setInput('')
 
     // Add user message optimistically
@@ -72,7 +79,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
     setLoading(true)
     try {
-      const { response } = await api.chat.sendMessage(skillId, userMessage)
+      const { response } = await api.chat.sendMessage(skillId, userMessage, noteIdToSend)
 
       // Add assistant response
       const assistantMsg: ChatMessage = {
@@ -132,9 +139,48 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   }
 
   // Filter notes based on search term
-  const filteredNotes = notes.filter(note =>
+  const filteredNotes = (notes || []).filter(note =>
     note.title.toLowerCase().includes(noteFilter)
   )
+
+  const handleUpdateExistingNote = async () => {
+    if (!selectedNote || !contentToSave.trim()) return
+
+    setSaving(true)
+    try {
+      await api.notes.update(skillId, selectedNote.id, contentToSave)
+      // Refresh notes
+      const updatedNotes = await api.notes.list(skillId)
+      setNotes(updatedNotes)
+      setContentToSave('')
+      setShowSaveModal(false)
+      setSelectedNote(null)
+    } catch (err) {
+      console.error('Failed to update note:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCreateNewNote = async () => {
+    if (!newNoteTitle.trim() || !contentToSave.trim()) return
+
+    setSaving(true)
+    try {
+      await api.notes.add(skillId, newNoteTitle, contentToSave, 'ai-generated')
+      // Refresh notes
+      const updatedNotes = await api.notes.list(skillId)
+      setNotes(updatedNotes)
+      setContentToSave('')
+      setNewNoteTitle('')
+      setShowSaveModal(false)
+      setSelectedNote(null)
+    } catch (err) {
+      console.error('Failed to create note:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -240,6 +286,19 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                         {msg.content}
                       </div>
                     </div>
+                    {/* Save button - only for AI messages */}
+                    {msg.role === 'assistant' && (
+                      <button
+                        onClick={() => {
+                          setContentToSave(msg.content)
+                          setShowSaveModal(true)
+                        }}
+                        className="h-8 w-8 flex items-center justify-center hover:bg-yellow-600/20 text-yellow-600 rounded shrink-0 transition-all"
+                        title="Save to note"
+                      >
+                        <Save className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -370,6 +429,81 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
           </>
         )}
       </div>
+
+      {/* Save Note Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div
+            className="w-96 rounded-lg"
+            style={{
+              background: 'var(--bg-raised)',
+              boxShadow: 'var(--shadow-neuro-soft)',
+              border: '1px solid var(--border-default)',
+            }}
+          >
+            <div className="p-4 border-b border-default">
+              <h3 className="text-atlas-md font-semibold text-white">Save Content to Note</h3>
+              <p className="text-atlas-xs text-muted mt-1">Choose how to save your refined content</p>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Update existing note */}
+              <button
+                onClick={handleUpdateExistingNote}
+                disabled={saving}
+                className="w-full p-3 rounded-md text-left hover:bg-hover transition-colors disabled:opacity-50"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Upload className="w-4 h-4 text-yellow-600" strokeWidth={1.5} />
+                  <span className="text-atlas-sm font-medium text-white">Update existing note</span>
+                </div>
+                <p className="text-xxs text-muted">Append to: {selectedNote?.title}</p>
+              </button>
+
+              {/* Create new note */}
+              <div
+                className="p-3 rounded-md"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="w-4 h-4 text-blue-600" strokeWidth={1.5} />
+                  <span className="text-atlas-sm font-medium text-white">Create new note</span>
+                </div>
+                <input
+                  type="text"
+                  value={newNoteTitle}
+                  onChange={(e) => setNewNoteTitle(e.target.value)}
+                  placeholder="Enter note title..."
+                  className="w-full px-2 py-1.5 mb-2 rounded text-atlas-xs bg-black border border-default text-white placeholder:text-muted focus:outline-none focus:border-highlight"
+                />
+                <button
+                  onClick={handleCreateNewNote}
+                  disabled={!newNoteTitle.trim() || saving}
+                  className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded transition-colors"
+                >
+                  {saving ? 'Creating...' : 'Create AI Note'}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-default flex justify-end">
+              <button
+                onClick={() => { setShowSaveModal(false); setNewNoteTitle('') }}
+                className="px-4 py-2 text-atlas-xs text-secondary hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

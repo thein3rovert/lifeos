@@ -70,7 +70,7 @@ func main() {
 	if sidecarURL == "" {
 		sidecarURL = "http://127.0.0.1:3002"
 	}
-	chatService := service.NewChatService(skillStore, chatMsgStore, sidecarURL)
+	chatService := service.NewChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
 	noteService := service.NewNoteService(noteStore, skillStore)
 
 	// ── Initialize API handlers ─────────────────────────────────────
@@ -101,6 +101,7 @@ func main() {
 	mux.HandleFunc("GET /api/notes", noteAPI.GetAllNotes)
 	mux.HandleFunc("GET /api/skills/{id}/notes", noteAPI.GetNotes)
 	mux.HandleFunc("POST /api/skills/{id}/notes", noteAPI.AddNote)
+	mux.HandleFunc("PUT /api/skills/{id}/notes/{noteId}", noteAPI.UpdateNote)
 	mux.HandleFunc("DELETE /api/skills/{id}/notes/{noteId}", noteAPI.DeleteNote)
 
 	// AI workflow
