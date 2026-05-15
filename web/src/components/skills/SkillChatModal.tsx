@@ -192,7 +192,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   const sizeClass = fullscreen
     ? 'w-full h-full'
     : minimized
-    ? 'w-[480px] h-12'
+    ? 'w-[400px] h-[600px]'
     : 'w-[800px] h-[600px]'
 
   // Position - center when open, bottom-right when minimized
@@ -201,16 +201,18 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
     : 'items-center justify-center'
 
   return (
-    <div className={`fixed inset-0 flex z-50 p-4 ${positionClass} ${
-      minimized ? 'bg-transparent pointer-events-none' : 'bg-black/70 backdrop-blur-sm'
+    <div className={`fixed inset-0 flex z-50 ${minimized ? 'pointer-events-none' : ''} ${positionClass} ${
+      minimized ? 'bg-transparent pr-4 pb-4' : 'bg-black/70 backdrop-blur-sm p-4'
     }`}>
       <div
-        className={`flex flex-col transition-all duration-200 pointer-events-auto ${sizeClass}`}
+        className={`flex flex-col transition-all duration-200 pointer-events-auto ${sizeClass} ${
+          minimized ? 'rounded-l-lg' : 'rounded-lg'
+        }`}
         style={{
-          maxHeight: fullscreen ? '100%' : 'calc(100vh - 2rem)',
+          maxHeight: minimized ? '100vh' : fullscreen ? '100%' : 'calc(100vh - 2rem)',
           background: 'var(--bg-raised)',
           boxShadow: 'var(--shadow-neuro-soft)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: minimized ? 'var(--radius-lg) 0 0 var(--radius-lg)' : 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
         }}
       >
@@ -250,8 +252,8 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
           </div>
         </div>
 
-        {!minimized && (
-          <>
+        {/* Content - always visible now */}
+        <>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {initializing ? (
@@ -433,8 +435,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 </button>
               </div>
             </div>
-          </>
-        )}
+        </>
       </div>
 
       {/* Save Note Modal */}
