@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/thein3rovert/lifeos/internal/model"
-	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
+	"github.com/thein3rovert/lifeos/internal/store/skills"
 )
 
 type NoteService struct {
 	noteStore  *notes.NoteStore
-	skillStore *store.SQLSkillStore
+	skillStore *skills.SQLSkillStore
 }
 
-func NewNoteService(noteStore *notes.NoteStore, skillStore *store.SQLSkillStore) *NoteService {
+func NewNoteService(noteStore *notes.NoteStore, skillStore *skills.SQLSkillStore) *NoteService {
 	return &NoteService{
 		noteStore:  noteStore,
 		skillStore: skillStore,

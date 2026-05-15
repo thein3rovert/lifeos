@@ -10,16 +10,17 @@ import (
 
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
+	"github.com/thein3rovert/lifeos/internal/store/skills"
 )
 
 type ChatService struct {
-	skillStore *store.SQLSkillStore
+	skillStore *skills.SQLSkillStore
 	msgStore   *store.ChatMessageStore
 	noteStore  *notes.NoteStore
 	sidecarURL string
 }
 
-func NewChatService(skillStore *store.SQLSkillStore, msgStore *store.ChatMessageStore, noteStore *notes.NoteStore, sidecarURL string) *ChatService {
+func NewChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatMessageStore, noteStore *notes.NoteStore, sidecarURL string) *ChatService {
 	return &ChatService{
 		skillStore: skillStore,
 		msgStore:   msgStore,

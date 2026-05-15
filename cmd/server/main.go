@@ -13,6 +13,7 @@ import (
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/github"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
+	skillstore "github.com/thein3rovert/lifeos/internal/store/skills"
 )
 
 // go run cmd/server/main.go
@@ -41,7 +42,7 @@ func main() {
 	githubSkillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
 
 	// Create SQLite-backed skill store (primary source, GitHub for sync)
-	skillStore, err := store.NewSQLSkillStore(db.DB(), githubSkillStore)
+	skillStore, err := skillstore.NewSQLSkillStore(db.DB(), githubSkillStore)
 	if err != nil {
 		log.Fatalf("Failed to initialise skill store: %v", err)
 	}
