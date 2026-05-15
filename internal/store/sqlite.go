@@ -93,6 +93,20 @@ func (s *SQLiteStore) migrate() error {
 	        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
 	    );`,
 		`CREATE INDEX IF NOT EXISTS idx_skill_notes_skill_id ON skill_notes(skill_id);`,
+
+		// Add skill_files table for references/assets
+		`CREATE TABLE IF NOT EXISTS skill_files (
+	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        skill_id TEXT NOT NULL,
+	        path TEXT NOT NULL,
+	        type TEXT NOT NULL CHECK(type IN ('file', 'dir')),
+	        name TEXT NOT NULL,
+	        content TEXT,
+	        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	        UNIQUE(skill_id, path),
+	        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
+	    );`,
+		`CREATE INDEX IF NOT EXISTS idx_skill_files_skill_id ON skill_files(skill_id);`,
 	}
 	for _, q := range queries {
 		if _, err := s.db.Exec(q); err != nil {
