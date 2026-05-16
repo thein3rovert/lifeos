@@ -4,6 +4,7 @@ import type { Skill } from '@/lib/skills/types'
 import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 import { CreateSkillDialog } from './CreateSkillDialog'
 import { PushSelectionDialog } from './PushSelectionDialog'
+import { SkillItem } from './SkillItem'
 
 type SkillsSidebarProps = {
   skills: Skill[]
@@ -142,34 +143,15 @@ export function SkillsSidebar({
             const hasPendingSync = skill.pending_sync
 
             return (
-              <button
+              <SkillItem
                 key={skill.id}
-                onClick={() => onSelectSkill(skill.id)}
-                className={`
-                  w-full flex items-center gap-2 px-3 py-2 text-left text-atlas-base
-                  transition-all duration-150 rounded-md mx-1 my-0.5
-                  ${selectedSkillId === skill.id
-                    ? 'text-white border-l-2 border-highlight'
-                    : 'text-secondary hover:text-white border-l-2 border-transparent'
-                  }
-                `}
-                style={{
-                  background: selectedSkillId === skill.id ? 'var(--bg-elevated)' : 'transparent',
-                  boxShadow: selectedSkillId === skill.id ? 'var(--shadow-neuro-raised)' : 'none',
-                }}
-              >
-                <ChevronRight className="w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
-                <span className="truncate flex-1">{skill.title}</span>
-
-                <div className="flex items-center gap-1">
-                  {hasNotes && (
-                    <span className="w-2 h-2 bg-yellow-600 rounded-full shrink-0" />
-                  )}
-                  {hasPendingSync && (
-                    <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0" />
-                  )}
-                </div>
-              </button>
+                skillId={skill.id}
+                skillTitle={skill.title}
+                isSelected={selectedSkillId === skill.id}
+                hasNotes={hasNotes}
+                hasPendingSync={!!hasPendingSync}
+                onSelect={() => onSelectSkill(skill.id)}
+              />
             )
           })
         )}
