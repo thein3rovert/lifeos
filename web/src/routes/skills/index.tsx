@@ -43,6 +43,10 @@ function SkillsPage() {
   // Load skill detail when selected
   useEffect(() => {
     if (selectedSkillId) {
+      // Only clear reference if it's from a different skill
+      if (selectedReference && selectedReference.skill_id !== selectedSkillId) {
+        setSelectedReference(null)
+      }
       loadSkillDetail(selectedSkillId)
     }
   }, [selectedSkillId])
@@ -174,10 +178,20 @@ function SkillsPage() {
     }
   }
 
-  const handleSelectReference = (reference: SkillReference) => {
+  const handleSelectReference = (reference: SkillReference | null) => {
+    if (!reference) {
+      setSelectedReference(null)
+      return
+    }
+
     console.log('Selected reference:', reference)
     console.log('Content length:', reference.content?.length)
     setSelectedReference(reference)
+
+    // Switch to the skill that owns this reference (will load notes for that skill)
+    if (reference.skill_id !== selectedSkillId) {
+      setSelectedSkillId(reference.skill_id)
+    }
   }
 
   const handleAddNote = async (title: string, content: string) => {

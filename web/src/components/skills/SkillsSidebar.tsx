@@ -10,7 +10,7 @@ type SkillsSidebarProps = {
   skills: Skill[]
   selectedSkillId: string | null
   onSelectSkill: (id: string) => void
-  onSelectReference?: (reference: any) => void
+  onSelectReference?: (reference: any | null) => void
   loading: boolean
   syncing: boolean
   onSync: () => void

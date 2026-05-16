@@ -11,7 +11,7 @@ type SkillItemProps = {
   hasNotes: boolean
   hasPendingSync: boolean
   onSelect: () => void
-  onSelectReference?: (reference: SkillReference) => void
+  onSelectReference?: (reference: SkillReference | null) => void
 }
 
 export function SkillItem({
@@ -64,7 +64,13 @@ export function SkillItem({
 
         {/* Skill name */}
         <button
-          onClick={onSelect}
+          onClick={() => {
+            onSelect()
+            // Clear any selected reference when clicking the skill name
+            if (onSelectReference) {
+              onSelectReference(null)
+            }
+          }}
           className={`
             flex-1 flex items-center gap-2 px-2 py-2 text-left text-atlas-base
             transition-all duration-150 rounded-md
