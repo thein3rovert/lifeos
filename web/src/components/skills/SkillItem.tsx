@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronRight, ChevronDown, File, Folder } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { SkillReference } from '@/lib/api'
+import type { SkillReference } from '@/types'
 import { buildTree, type TreeNode } from '@/lib/utils/tree'
 
 type SkillItemProps = {

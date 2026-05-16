@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Download, Check } from 'lucide-react'
-import type { Skill } from '@/lib/skills/types'
+import type { Skill } from '@/types'
 
 type PullSelectionDialogProps = {
   isOpen: boolean

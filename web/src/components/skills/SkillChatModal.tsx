@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2, Save, Upload, Plus } from 'lucide-react'
-import { api, type ChatMessage, type Note } from '@/lib/api'
+import { api } from '@/lib/api'
+import type { ChatMessage, Note } from '@/types'
 
 type SkillChatProps = {
   skillId: string

@@ -1,6 +1,6 @@
 import { Plus, X, Sparkles, Minimize2, Edit3, Loader2, Pencil } from 'lucide-react'
 import { useState } from 'react'
-import type { SkillDetail } from '@/lib/skills/types'
+import type { SkillDetail } from '@/types'
 import { formatDate } from '@/lib/skills/utils'
 
 type SkillNotesProps = {

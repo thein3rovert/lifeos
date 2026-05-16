@@ -1,7 +1,6 @@
 import { FileEdit, X, Save, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
-import type { SkillDetail } from '@/lib/skills/types'
-import type { SkillReference } from '@/lib/api'
+import type { SkillDetail, SkillReference } from '@/types'
 import { stripFrontmatter } from '@/lib/skills/utils'
 import { RenderMarkdown } from '@/components/RenderMarkdown'
 

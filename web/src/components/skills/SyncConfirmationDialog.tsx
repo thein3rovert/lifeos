@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import type { Skill } from '@/lib/skills/types'
+import type { Skill } from '@/types'
 
 type SyncConfirmationDialogProps = {
   isOpen: boolean

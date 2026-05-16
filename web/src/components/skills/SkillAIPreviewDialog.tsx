@@ -1,5 +1,5 @@
 import { X, Sparkles, Check, Loader2 } from 'lucide-react'
-import type { AIPreviewResponse } from '@/lib/api'
+import type { AIPreviewResponse } from '@/types'
 
 type SkillAIPreviewDialogProps = {
   isOpen: boolean

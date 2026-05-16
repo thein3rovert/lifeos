@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCw, Upload, Plus} from 'lucide-react'
-import type { Skill } from '@/lib/skills/types'
+import type { Skill } from '@/types'
 import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 import { CreateSkillDialog } from './CreateSkillDialog'
 import { PushSelectionDialog } from './PushSelectionDialog'

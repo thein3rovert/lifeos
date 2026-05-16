@@ -8,7 +8,7 @@ import {
   Plus
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { Note, Skill } from '@/lib/api'
+import type { Note, Skill } from '@/types'
 
 export const Route = createFileRoute('/')({
   component: DashboardPage,
