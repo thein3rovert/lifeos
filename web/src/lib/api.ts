@@ -56,6 +56,16 @@ export interface ChatSession {
   sessionId: string
 }
 
+export interface SkillReference {
+  id: number
+  skill_id: string
+  path: string
+  type: 'file' | 'dir'
+  name: string
+  content: string
+  updated_at: string
+}
+
 // We need the title and id of skill to allow preview
 export interface AIPreviewResponse {
   skill_id: string
@@ -135,5 +145,10 @@ export const api = {
       }),
     getMessages: (skillId: string) =>
       fetcher<{ messages: ChatMessage[] }>(`/api/skills/${skillId}/messages`),
+  },
+
+  references: {
+    list: (skillId: string) => fetcher<SkillReference[]>(`/api/skills/${skillId}/files`),
+    get: (skillId: string, path: string) => fetcher<SkillReference>(`/api/skills/${skillId}/files/${path}`),
   },
 }

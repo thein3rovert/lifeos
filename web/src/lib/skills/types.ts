@@ -22,3 +22,13 @@ export type SkillDetail = {
   skill: Skill
   notes: Note[]
 }
+
+export type SkillReference = {
+  id: number
+  skill_id: string
+  path: string
+  type: 'file' | 'dir'
+  name: string
+  content: string
+  updated_at: string
+}
