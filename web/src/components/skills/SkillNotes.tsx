@@ -71,7 +71,7 @@ export function SkillNotes({
       <aside className="w-notes shrink-0 bg-black border border-default rounded-md flex flex-col">
         {/* Panel Header */}
         <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
-          <span className="text-atlas-xs font-medium text-secondary uppercase tracking-[0.08em]">
+          <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">
             Skill Notes
             {noteCount > 0 && (
               <span className="ml-2 px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black">
@@ -83,7 +83,7 @@ export function SkillNotes({
             {isMinimized && hasDraftNote && (
               <button
                 onClick={handleResumeModal}
-                className="p-1 hover:bg-hover rounded-md transition-colors text-blue-600"
+                className="p-1 hover:bg-hover rounded-md transition-colors text-blue-500"
                 title="Continue editing note"
               >
                 <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -104,7 +104,7 @@ export function SkillNotes({
           <div className="px-3 py-2 bg-blue-600/10 border-b border-blue-600/20">
             <button
               onClick={handleResumeModal}
-              className="w-full text-left text-atlas-xs text-blue-600 hover:underline"
+              className="w-full text-left text-xs text-blue-500 hover:underline"
             >
               Continue editing note... ({newNote.length} chars)
             </button>
@@ -114,7 +114,7 @@ export function SkillNotes({
         {/* Notes List */}
         <div className="flex-1 overflow-auto p-3 space-y-2">
           {!skillDetail?.notes || skillDetail.notes.length === 0 ? (
-            <div className="text-center py-8 text-muted text-atlas-xs">
+            <div className="text-center py-8 text-muted text-xs">
               <p>No notes yet</p>
               <p className="mt-2 text-xxs">Click + to add a note</p>
             </div>
@@ -126,13 +126,13 @@ export function SkillNotes({
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-atlas-sm font-medium text-white">{note.title}</span>
+                    <span className="text-sm font-medium text-white">{note.title}</span>
                     <span
-                      className="px-1.5 py-0.5 rounded text-xxs"
-                      style={{
-                        background: note.type === 'ai-generated' ? 'var(--accent-highlight-muted)' : 'var(--status-warning-muted)',
-                        color: note.type === 'ai-generated' ? 'var(--accent-highlight)' : 'var(--status-warning)',
-                      }}
+                      className={`px-1.5 py-0.5 rounded text-xxs ${
+                        note.type === 'ai-generated'
+                          ? 'bg-highlight-muted text-highlight'
+                          : 'bg-warning-muted text-warning'
+                      }`}
                     >
                       {note.type === 'ai-generated' ? 'AI' : 'Manual'}
                     </span>
@@ -155,7 +155,7 @@ export function SkillNotes({
                   </div>
                 </div>
                 <span className="text-xxs text-muted block mb-2">{formatDate(note.created_at)}</span>
-                <p className="text-atlas-xs text-secondary whitespace-pre-wrap">{note.content}</p>
+                <p className="text-xs text-secondary whitespace-pre-wrap">{note.content}</p>
               </div>
             ))
           )}
@@ -167,7 +167,7 @@ export function SkillNotes({
             <button
               onClick={onAIPreview}
               disabled={aiLoading}
-              className="w-full h-7 flex items-center justify-center bg-blue-600/10 hover:bg-blue-600/20 disabled:opacity-50 border border-blue-600/30 text-blue-600 text-atlas-xs font-medium rounded-md transition-colors duration-150"
+              className="w-full h-7 flex items-center justify-center bg-blue-600/10 hover:bg-blue-600/20 disabled:opacity-50 border border-blue-600/30 text-blue-500 text-xs font-medium rounded-md transition-colors duration-150"
               title="Send notes to AI for skill update"
             >
               {aiLoading ? (
@@ -186,9 +186,11 @@ export function SkillNotes({
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="min-w-dialog-sm max-w-dialog-xl max-w-dialog-md max-h-dialog bg-raised border border-default rounded-lg shadow-2xl flex flex-col resize overflow-auto">
+          <div className="min-w-dialog-sm max-w-dialog-xl max-w-dialog-md max-h-dialog bg-raised border border-default rounded-lg flex flex-col resize overflow-auto"
+            style={{ boxShadow: 'var(--shadow-overlay)' }}
+          >
             <div className="h-10 flex items-center justify-between px-4 border-b border-default">
-              <span className="text-atlas-base font-medium text-white">{editingNoteId ? 'Edit Note' : 'Add Note'}</span>
+              <span className="text-base font-medium text-white">{editingNoteId ? 'Edit Note' : 'Add Note'}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={handleMinimizeModal}
@@ -213,7 +215,7 @@ export function SkillNotes({
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
                 placeholder="Note title..."
-                className="w-full h-10 px-3 text-atlas-base bg-raised border border-default rounded-md text-white placeholder:text-muted focus:outline-none focus:border-highlight"
+                className="w-full h-10 px-3 text-base bg-raised border border-default rounded-md text-white placeholder:text-muted focus:outline-none focus:border-highlight"
                 autoFocus
               />
               <textarea
@@ -221,7 +223,7 @@ export function SkillNotes({
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your note here..."
-                className="w-full flex-1 min-h-dialog p-3 text-atlas-base bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-default resize-none"
+                className="w-full flex-1 min-h-dialog p-3 text-base bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-default resize-none"
               />
             </div>
 
@@ -234,14 +236,14 @@ export function SkillNotes({
             <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-default">
               <button
                 onClick={handleMinimizeModal}
-                className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
+                className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-xs font-medium rounded-md transition-colors duration-150"
               >
                 Minimize
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!newNoteTitle.trim() || !newNote.trim() || addingNote}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md transition-colors duration-150"
+                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
               >
                 {addingNote ? (editingNoteId ? 'Updating...' : 'Adding...') : (editingNoteId ? 'Update Note' : 'Add Note')}
               </button>

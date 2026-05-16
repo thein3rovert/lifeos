@@ -28,7 +28,6 @@ export function SkillItem({
   const [tree, setTree] = useState<TreeNode[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Fetch references when expanded
   useEffect(() => {
     if (expanded && references.length === 0) {
       setLoading(true)
@@ -66,13 +65,12 @@ export function SkillItem({
         <button
           onClick={() => {
             onSelect()
-            // Clear any selected reference when clicking the skill name
             if (onSelectReference) {
               onSelectReference(null)
             }
           }}
           className={`
-            flex-1 flex items-center gap-2 px-2 py-2 text-left text-atlas-base
+            flex-1 flex items-center gap-2 px-2 py-2 text-left text-base
             transition-all duration-150 rounded-md
             ${
               isSelected
@@ -80,9 +78,7 @@ export function SkillItem({
                 : 'text-secondary hover:text-white border-l-2 border-transparent hover:bg-hover'
             }
           `}
-          style={{
-            boxShadow: isSelected ? 'var(--shadow-neuro-raised)' : 'none',
-          }}
+          style={isSelected ? { boxShadow: 'var(--shadow-neuro-raised)' } : {}}
         >
           <span className="truncate flex-1">{skillTitle}</span>
 

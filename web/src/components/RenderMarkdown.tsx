@@ -32,7 +32,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Paragraphs
     p: ({ children }) => (
-      <p className="text-secondary mb-3 text-atlas-base leading-6">
+      <p className="text-secondary mb-3 text-base leading-6">
         {children}
       </p>
     ),
@@ -51,12 +51,12 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Lists
     ul: ({ children }) => (
-      <ul className="text-secondary marker:text-muted mb-3 ml-4 list-disc space-y-1 text-atlas-base">
+      <ul className="text-secondary marker:text-muted mb-3 ml-4 list-disc space-y-1 text-base">
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="text-secondary marker:text-muted mb-3 ml-4 list-decimal space-y-1 text-atlas-base marker:font-semibold">
+      <ol className="text-secondary marker:text-muted mb-3 ml-4 list-decimal space-y-1 text-base marker:font-semibold">
         {children}
       </ol>
     ),
@@ -66,7 +66,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Blockquotes
     blockquote: ({ children }) => (
-      <blockquote className="border-l-2 border-default my-3 py-2 pr-3 pl-3 text-atlas-base italic bg-hover/50">
+      <blockquote className="border-l-2 border-default my-3 py-2 pr-3 pl-3 text-base italic bg-hover/50">
         {children}
       </blockquote>
     ),

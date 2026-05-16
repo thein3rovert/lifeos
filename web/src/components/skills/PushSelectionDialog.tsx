@@ -19,7 +19,6 @@ export function PushSelectionDialog({
 }: PushSelectionDialogProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  // Filter to only show skills with pending changes
   const pendingSkills = skills.filter(s => s.pending_sync)
 
   const handleToggle = (skillId: string) => {
@@ -54,12 +53,14 @@ export function PushSelectionDialog({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-dialog-sm bg-raised border border-default rounded-lg shadow-2xl flex flex-col max-h-dialog">
+      <div className="w-full max-w-dialog-sm bg-raised border border-default rounded-lg flex flex-col max-h-dialog"
+        style={{ boxShadow: 'var(--shadow-overlay)' }}
+      >
         {/* Header */}
         <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
-            <Upload className="w-4 h-4 text-blue-600" strokeWidth={1.5} />
-            <span className="text-atlas-base font-medium text-white">
+            <Upload className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+            <span className="text-base font-medium text-white">
               Push Changes to GitHub
             </span>
           </div>
@@ -75,7 +76,7 @@ export function PushSelectionDialog({
         <div className="px-4 py-2 border-b border-default bg-raised">
           <button
             onClick={handleSelectAll}
-            className="flex items-center gap-2 text-atlas-xs text-secondary hover:text-white transition-colors"
+            className="flex items-center gap-2 text-xs text-secondary hover:text-white transition-colors"
           >
             <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
               selectedIds.size === pendingSkills.length && pendingSkills.length > 0
@@ -93,7 +94,7 @@ export function PushSelectionDialog({
         {/* Skills List */}
         <div className="flex-1 overflow-auto py-1">
           {pendingSkills.length === 0 ? (
-            <div className="px-4 py-8 text-center text-tertiary text-atlas-xs">
+            <div className="px-4 py-8 text-center text-tertiary text-xs">
               No pending changes to push
             </div>
           ) : (
@@ -122,7 +123,7 @@ export function PushSelectionDialog({
 
                   {/* Skill Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-atlas-base text-white truncate">
+                    <p className="text-base text-white truncate">
                       {skill.title}
                     </p>
                     <p className="text-xxs text-muted">
@@ -140,20 +141,20 @@ export function PushSelectionDialog({
 
         {/* Footer */}
         <div className="h-14 flex items-center justify-between px-4 border-t border-default bg-raised shrink-0">
-          <span className="text-atlas-xs text-secondary">
+          <span className="text-xs text-secondary">
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleClose}
-              className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-atlas-xs font-medium rounded-md transition-colors duration-150"
+              className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-xs font-medium rounded-md transition-colors duration-150"
             >
               Cancel
             </button>
             <button
               onClick={handlePush}
               disabled={selectedIds.size === 0 || isLoading}
-              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-atlas-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
+              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
             >
               {isLoading ? (
                 <>Pushing...</>
