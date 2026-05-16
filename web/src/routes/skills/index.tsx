@@ -132,8 +132,7 @@ function SkillsPage() {
   const handlePush = async () => {
     setPushing(true)
     try {
-      const result = await api.skills.push()
-      console.log('Push result:', result)
+      await handlePush()
       // Refresh skills to get updated pending_sync status
       const data = await api.skills.list()
       setSkills(data)

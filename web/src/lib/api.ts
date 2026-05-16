@@ -14,7 +14,7 @@ import type {
 } from '@/types'
 
 // API Base URL - should match Go server
-const API_BASE_URL = 'http://100.105.217.77:6060'
+const API_BASE_URL = import.meta.env.VITE_API_URL as string
 
 async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
