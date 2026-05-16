@@ -1,4 +1,4 @@
-import type { SkillReference } from '../api'
+import type { SkillReference } from '@/types'
 
 export type TreeNode = {
   name: string
