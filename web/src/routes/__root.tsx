@@ -142,7 +142,7 @@ function NavItem({ to, icon, children }: { to: string; icon: React.ReactNode; ch
     <Link
       to={to}
       className={`
-        flex items-center gap-2.5 h-7 px-2 rounded text-atlas-base font-medium
+        flex items-center gap-2.5 h-7 px-2 rounded text-base font-medium
         transition-colors duration-150 ease-out
         ${isActive
           ? 'bg-selected text-white'
