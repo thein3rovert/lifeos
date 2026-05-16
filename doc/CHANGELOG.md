@@ -4,6 +4,26 @@ All notable changes and features will be documented in this file.
 
 ---
 
+## [2026-05-16] - UI Refactoring & Design System Fixes
+
+### Added
+- **Export barrel files** - Clean barrel exports for components and lib modules
+- **CSS border utilities** - Custom `.border-default`, `.border-subtle`, `.border-strong` utility classes
+
+### Changed
+- **Component structure** - Reorganized component directories (ui/, layout/, skills/)
+- **Type consolidation** - Single `src/types/index.ts` as single source of truth
+- **Styling standardization** - All components use Tailwind classes + CSS variables
+- **Import paths** - Use `@/` path alias instead of relative paths
+- **Atlas token usage** - Components reference CSS variables correctly
+
+### Fixed
+- **Border color bug** - `border-default` was showing white instead of dark gray
+- **CSS build output** - Stale build cache causing wrong colors to display
+- **border-default/border-subtle utility classes** - Added missing CSS custom property mappings
+
+---
+
 ## [2026-05-16] - Skill References & Side Panel Chat
 
 ### Added
@@ -161,4 +181,4 @@ This changelog follows these conventions:
 
 ---
 
-Last Updated: 2026-05-16
+Last Updated: 2026-05-17

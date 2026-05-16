@@ -122,7 +122,7 @@ function DashboardPage() {
                   className="h-6 pl-7 pr-2 text-xs bg-input border border-default rounded text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-40"
                 />
               </div>
-              <button className="h-6 px-2 flex items-center justify-center bg-gray-100 hover:bg-white text-black rounded transition-colors duration-150">
+              <button className="h-6 px-2 flex items-center justify-center bg-accent-primary hover:brightness-95 text-black rounded transition-colors duration-150">
                 <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             </div>
