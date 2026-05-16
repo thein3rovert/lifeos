@@ -11,8 +11,8 @@ import {
   Menu
 } from 'lucide-react'
 import { useState } from 'react'
-import NotFound from '@/components/NotFound'
-import ErrorComponent from '@/components/ErrorComponent'
+import NotFound from '@/components/ui/NotFound'
+import ErrorComponent from '@/components/ui/ErrorComponent'
 
 import appCss from '@/global.css?url'
 

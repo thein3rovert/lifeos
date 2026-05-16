@@ -2,7 +2,7 @@ import { FileEdit, X, Save, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import type { SkillDetail, SkillReference } from '@/types'
 import { stripFrontmatter } from '@/lib/skills/utils'
-import { RenderMarkdown } from '@/components/RenderMarkdown'
+import { RenderMarkdown } from '@/components/ui/RenderMarkdown'
 
 type SkillContentProps = {
   skillDetail: SkillDetail | null
