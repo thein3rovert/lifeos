@@ -234,6 +234,7 @@ func (s *SkillStore) GetSkillFiles(skillID string) ([]model.SkillFile, error) {
 	}
 
 	var files []model.SkillFile
+
 	for _, item := range contents {
 		file := model.SkillFile{
 			SkillID:   skillID,

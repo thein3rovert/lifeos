@@ -75,7 +75,6 @@ func (s *NoteService) EditNote(noteID int, title, content string) error {
 	return s.noteStore.EditNote(noteID, title, content)
 }
 
-
 // DeleteNote deletes a note by ID
 func (s *NoteService) DeleteNote(noteID int) error {
 	return s.noteStore.DeleteNote(noteID)
@@ -94,7 +93,6 @@ func (s *NoteService) ClearNotes(skillID string) error {
 
 	return s.noteStore.ClearNotes(skillID)
 }
-
 
 // ============== Validation Helpers ==================
 

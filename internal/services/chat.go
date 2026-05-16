@@ -28,6 +28,7 @@ func NewChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatMessag
 		sidecarURL: sidecarURL,
 	}
 }
+
 // CreateOrResumeSession creates a new OpenCode session or returns existing one
 func (s *ChatService) CreateOrResumeSession(skillID string) (string, error) {
 	skill, err := s.skillStore.GetSkill(skillID)
