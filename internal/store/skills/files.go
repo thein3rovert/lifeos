@@ -39,17 +39,17 @@ func (s *SQLSkillStore) GetSkillFiles(skillID string) ([]model.SkillFile, error)
 	`
 	rows, err := s.db.Query(query, skillID)
 	if err != nil {
-		return nil, err
+		return []model.SkillFile{}, err
 	}
 	defer rows.Close()
 
-	var files []model.SkillFile
+	files := []model.SkillFile{}
 	for rows.Next() {
 		var f model.SkillFile
 		var content sql.NullString
 		err := rows.Scan(&f.ID, &f.SkillID, &f.Path, &f.Type, &f.Name, &content, &f.UpdatedAt)
 		if err != nil {
-			return nil, err
+			return []model.SkillFile{}, err
 		}
 		if content.Valid {
 			f.Content = content.String
