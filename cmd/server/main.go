@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/thein3rovert/lifeos/internal/api"
+	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	"github.com/thein3rovert/lifeos/internal/middleware"
 	service "github.com/thein3rovert/lifeos/internal/services"
@@ -76,7 +77,8 @@ func main() {
 
 	// ── Initialize API handlers ─────────────────────────────────────
 	photoAPI := api.NewPhotoHandler(photoStore)
-	skillAPI := api.NewSkillHandler(skillStore, noteStore)
+	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
+	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
@@ -97,6 +99,8 @@ func main() {
 	mux.HandleFunc("POST /api/skills/{id}/push", skillAPI.PushSingleSkill)
 	mux.HandleFunc("POST /api/skills/edit", skillAPI.EditSkill)
 	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
+	mux.HandleFunc("GET /api/skills/{id}/files", skillFileAPI.ListFile)
+	mux.HandleFunc("GET /api/skills/{id}/files/{path...}", skillFileAPI.GetFile)
 
 	// Notes
 	mux.HandleFunc("GET /api/notes", noteAPI.GetAllNotes)
