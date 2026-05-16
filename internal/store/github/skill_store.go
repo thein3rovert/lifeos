@@ -217,3 +217,42 @@ func (s *SkillStore) SaveSkill(skill *model.Skill) error {
 	body := "Automated update from LifeOS"
 	return s.client.CreatePR(ctx, title, branchName, s.branch, body)
 }
+
+// GetSkillFiles fetches all files in a skill's references directory
+func (s *SkillStore) GetSkillFiles(skillID string) ([]model.SkillFile, error) {
+
+	// Return empty context
+	ctx := context.Background()
+
+	referencesPath := fmt.Sprintf("%s/%s/references", s.skillsPath, skillID)
+
+	// Recursively fetch all contents
+	contents, err := s.client.ListDirectoryRecursive(ctx, referencesPath)
+	if err != nil {
+		// If references folder doesn't exist, return empty list
+		return []model.SkillFile{}, nil
+	}
+
+	var files []model.SkillFile
+	for _, item := range contents {
+		file := model.SkillFile{
+			SkillID:   skillID,
+			Path:      strings.TrimPrefix(item.Path, s.skillsPath+"/"+skillID+"/"),
+			Type:      item.Type,
+			Name:      item.Name,
+			UpdatedAt: time.Now(),
+		}
+
+		// Fetch content for files (not directories)
+		if item.Type == "file" && (strings.HasSuffix(item.Name, ".md") || strings.HasSuffix(item.Name, ".json")) {
+			content, err := s.client.GetFileContent(ctx, item.Path)
+			if err == nil {
+				file.Content = content
+			}
+		}
+
+		files = append(files, file)
+	}
+
+	return files, nil
+}

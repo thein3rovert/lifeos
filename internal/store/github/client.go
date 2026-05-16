@@ -190,3 +190,29 @@ func (c *Client) GetFileContent(ctx context.Context, path string) (string, error
 	}
 	return string(decoded), nil
 }
+
+// ListDirectoryRecursive recursively lists all files and folders in a directory
+func (c *Client) ListDirectoryRecursive(ctx context.Context, dir string) ([]Content, error) {
+	var allContents []Content
+
+	contents, err := c.ListDirectoryContents(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range contents {
+		allContents = append(allContents, item)
+
+		// If it's a directory, recursively fetch its contents
+		if item.Type == "dir" {
+			subContents, err := c.ListDirectoryRecursive(ctx, item.Path)
+			if err != nil {
+				// Log error but continue with other items
+				continue
+			}
+			allContents = append(allContents, subContents...)
+		}
+	}
+
+	return allContents, nil
+}
