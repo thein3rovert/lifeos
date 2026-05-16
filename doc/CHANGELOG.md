@@ -4,6 +4,46 @@ All notable changes and features will be documented in this file.
 
 ---
 
+## [2026-05-16] - Skill References & Side Panel Chat
+
+### Added
+- **Skill References Tree View** - Collapsible folder structure in sidebar showing reference files
+- **Reference File Viewer** - Click any reference file to view content in main panel
+- **Side Panel Chat** - Minimized chat modal shows as functional side panel (400px width)
+- **Tree Builder Utility** - Converts flat file paths to nested tree structure
+- **Recursive Directory Sync** - Fetches all files/folders from GitHub references directory
+
+### Backend
+- `skill_files` table - Stores reference files with content (skill_id, path, type, name, content, updated_at)
+- `GET /api/skills/{id}/files` - List all reference files for a skill
+- `GET /api/skills/{id}/files/{path...}` - Get single reference file by path
+- `internal/store/skills/files.go` - CRUD operations for skill files
+- `internal/api/skills/files.go` - API handlers for skill references
+- `ListDirectoryRecursive()` in GitHub client - Recursive folder fetching
+- `GetSkillFiles()` in GitHub SkillStore - Fetches and caches reference files
+- Sync automatically fetches references for each skill
+
+### Frontend
+- `SkillItem` component - Expandable skill with collapsible reference tree
+- `TreeView` / `TreeNodeItem` - Recursive tree rendering with folder icons
+- `buildTree()` utility - Converts flat array to nested tree structure
+- `SkillReference` type - TypeScript interface for reference files
+- `api.references.list()` / `api.references.get()` - API client methods
+- References display in main content area when clicked
+- Markdown rendering for reference files
+
+### Changed
+- Chat modal minimized mode now 400px width (was collapsed header only)
+- Chat modal keeps full functionality when minimized (messages + input)
+- Padding adjustments for minimized chat (16px right/bottom margin)
+
+### Fixed
+- Empty array return instead of null when no references found
+- RenderMarkdown uses `children` prop (not `content`)
+- Proper API route registration for file endpoints
+
+---
+
 ## [2026-05-10] - Notes in Chat Integration
 
 ### Added
@@ -121,4 +161,4 @@ This changelog follows these conventions:
 
 ---
 
-Last Updated: 2026-05-10
+Last Updated: 2026-05-16
