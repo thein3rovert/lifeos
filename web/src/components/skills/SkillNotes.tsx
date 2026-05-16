@@ -68,7 +68,7 @@ export function SkillNotes({
 
   return (
     <>
-      <aside className="w-notes shrink-0 bg-black border border-default rounded-md flex flex-col">
+      <aside className="w-notes shrink-0 bg-base border border-default rounded-md flex flex-col">
         {/* Panel Header */}
         <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
           <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">

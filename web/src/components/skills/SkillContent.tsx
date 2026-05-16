@@ -33,7 +33,7 @@ export function SkillContent({ skillDetail, selectedReference, onSave, saving, o
   }
 
   return (
-    <main className="flex-1 min-w-0 bg-black border border-default rounded-md flex flex-col">
+    <main className="flex-1 min-w-0 bg-base border border-default rounded-md flex flex-col">
       {selectedReference ? (
         <>
           <div className="h-8 flex items-center justify-between px-4 border-b border-default shrink-0">

@@ -438,7 +438,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                   value={newNoteTitle}
                   onChange={(e) => setNewNoteTitle(e.target.value)}
                   placeholder="Enter note title..."
-                  className="w-full px-2 py-1.5 mb-2 rounded text-xs bg-black border border-default text-white placeholder:text-muted focus:outline-none focus:border-highlight"
+                  className="w-full px-2 py-1.5 mb-2 rounded text-xs bg-input border border-default text-white placeholder:text-muted focus:outline-none focus:border-highlight"
                 />
                 <button
                   onClick={handleCreateNewNote}

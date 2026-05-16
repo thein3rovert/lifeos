@@ -113,7 +113,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
     ),
     thead: ({ children }) => <thead className="bg-raised">{children}</thead>,
     tbody: ({ children }) => (
-      <tbody className="divide-y divide-default bg-black">{children}</tbody>
+      <tbody className="divide-y divide-default bg-base">{children}</tbody>
     ),
     tr: ({ children }) => <tr>{children}</tr>,
     th: ({ children }) => (

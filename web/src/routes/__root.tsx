@@ -53,12 +53,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="bg-black text-white font-sans antialiased min-h-screen">
+      <body className="bg-base text-white font-sans antialiased min-h-screen">
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
           <aside className={`
             ${sidebarCollapsed ? 'w-0' : 'w-sidebar'}
-            shrink-0 bg-black border-r border-default
+            shrink-0 bg-base border-r border-default
             flex flex-col overflow-hidden transition-all duration-200
           `}>
             {/* Logo area with collapse button */}
@@ -111,7 +111,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Main content area */}
-          <main className="flex-1 min-w-0 bg-black overflow-hidden">
+          <main className="flex-1 min-w-0 bg-base overflow-hidden">
             {children}
           </main>
         </div>

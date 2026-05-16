@@ -65,10 +65,10 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   /* ---------- Text sizes ---------- */
+  --text-base: 13px;
   --text-xxs: 10px;
   --text-xs: 11px;
   --text-sm: 12px;
-  --text-base: 13px;
   --text-md: 14px;
   --text-lg: 16px;
   --text-xl: 20px;
@@ -212,6 +212,12 @@ body {
 .min-h-dialog { min-height: var(--height-dialog-min); }
 .min-h-dialog-content { min-height: var(--height-dialog-content); }
 .min-h-dialog-content-sm { min-height: var(--height-dialog-content-min); }
+
+/* Border utilities */
+.border-default { border-color: var(--color-border-default); }
+.border-subtle { border-color: var(--color-border-subtle); }
+.border-strong { border-color: var(--color-border-strong); }
+.border-variant { border-color: var(--color-border-variant); }
 
 /* ==========================================================================
    ATLAS COMPONENT UTILITIES
