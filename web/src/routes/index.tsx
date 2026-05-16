@@ -8,6 +8,7 @@ import {
   Plus
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton'
 import type { Note, Skill } from '@/types'
 
 export const Route = createFileRoute('/')({
@@ -82,20 +83,27 @@ function DashboardPage() {
       <div className="flex gap-4">
         {/* Stats cards - 2/3 width */}
         <div className="flex-1 flex gap-4">
-          <StatCard
-            label="Total Skills"
-            value={stats.totalSkills}
-            trend={stats.skillsTrend}
-            icon={<BookOpen className="w-5 h-5" strokeWidth={1.5} />}
-            loading={loading}
-          />
-          <StatCard
-            label="Total Photos"
-            value={stats.totalPhotos}
-            trend={stats.photosTrend}
-            icon={<ImageIcon className="w-5 h-5" strokeWidth={1.5} />}
-            loading={loading}
-          />
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="Total Skills"
+                value={stats.totalSkills}
+                trend={stats.skillsTrend}
+                icon={<BookOpen className="w-5 h-5" strokeWidth={1.5} />}
+              />
+              <StatCard
+                label="Total Photos"
+                value={stats.totalPhotos}
+                trend={stats.photosTrend}
+                icon={<ImageIcon className="w-5 h-5" strokeWidth={1.5} />}
+              />
+            </>
+          )}
         </div>
 
         {/* Empty placeholder - 1/3 width */}
@@ -139,9 +147,11 @@ function DashboardPage() {
           {/* Table body */}
           <div className="flex-1 overflow-auto">
             {loading ? (
-              <div className="flex items-center justify-center h-32 text-muted text-xs">
-                Loading notes...
-              </div>
+              <>
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+              </>
             ) : filteredNotes.length === 0 ? (
               <div className="flex items-center justify-center h-32 text-muted text-xs">
                 {searchQuery ? 'No notes match your search' : 'No notes yet'}
@@ -195,28 +205,24 @@ function StatCard({
   label,
   value,
   trend,
-  icon,
-  loading
+  icon
 }: {
   label: string
   value: number
   trend: string
   icon: React.ReactNode
-  loading: boolean
 }) {
   return (
-    <div className="border border-default rounded bg-input p-4 flex items-start justify-between">
+    <div className="border border-default rounded bg-raised p-4 flex items-start justify-between">
       <div className="space-y-1">
         <span className="text-[11px] text-tertiary uppercase tracking-wide">{label}</span>
-        <div className="text-3xl font-semibold text-white">
-          {loading ? '-' : value}
-        </div>
+        <div className="text-3xl font-semibold text-white">{value}</div>
         <div className="flex items-center gap-1 text-xs">
           <TrendingUp className="w-3 h-3 text-success" strokeWidth={1.5} />
           <span className="text-success">{trend} vs last month</span>
         </div>
       </div>
-      <div className="p-2 bg-raised rounded border border-default text-tertiary">
+      <div className="p-2 bg-input rounded border border-default text-tertiary">
         {icon}
       </div>
     </div>

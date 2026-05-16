@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import NotFound from '@/components/ui/NotFound'
 import ErrorComponent from '@/components/ui/ErrorComponent'
+import { Toaster } from '@/components/ui/Toast'
 
 import appCss from '@/global.css?url'
 
@@ -127,6 +128,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             },
           ]}
         />
+        <Toaster />
         <Scripts />
       </body>
     </html>
