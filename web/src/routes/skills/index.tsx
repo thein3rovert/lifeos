@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { api, type AIPreviewResponse } from '@/lib/api'
+import { api, type AIPreviewResponse, type SkillReference } from '@/lib/api'
 import type { Skill, SkillDetail } from '@/lib/skills/types'
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
 import { SkillContent } from '@/components/skills/SkillContent'
@@ -19,6 +19,7 @@ function SkillsPage() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [skillDetail, setSkillDetail] = useState<SkillDetail | null>(null)
+  const [selectedReference, setSelectedReference] = useState<SkillReference | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -173,6 +174,12 @@ function SkillsPage() {
     }
   }
 
+  const handleSelectReference = (reference: SkillReference) => {
+    console.log('Selected reference:', reference)
+    console.log('Content length:', reference.content?.length)
+    setSelectedReference(reference)
+  }
+
   const handleAddNote = async (title: string, content: string) => {
     if (!title.trim() || !content.trim() || !selectedSkillId) return
 
@@ -282,6 +289,7 @@ function SkillsPage() {
         skills={skills}
         selectedSkillId={selectedSkillId}
         onSelectSkill={setSelectedSkillId}
+        onSelectReference={handleSelectReference}
         loading={loading}
         syncing={syncing}
         onSync={handleSync}
@@ -296,6 +304,7 @@ function SkillsPage() {
 
       <SkillContent
         skillDetail={skillDetail}
+        selectedReference={selectedReference}
         onSave={handleSaveSkill}
         saving={saving}
         onOpenChat={() => setShowChat(true)}

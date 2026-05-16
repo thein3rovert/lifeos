@@ -11,6 +11,7 @@ type SkillItemProps = {
   hasNotes: boolean
   hasPendingSync: boolean
   onSelect: () => void
+  onSelectReference?: (reference: SkillReference) => void
 }
 
 export function SkillItem({
@@ -20,6 +21,7 @@ export function SkillItem({
   hasNotes,
   hasPendingSync,
   onSelect,
+  onSelectReference,
 }: SkillItemProps) {
   const [expanded, setExpanded] = useState(false)
   const [references, setReferences] = useState<SkillReference[]>([])
@@ -93,7 +95,7 @@ export function SkillItem({
           ) : tree.length === 0 ? (
             <div className="px-2 py-1 text-xxs text-tertiary">No references</div>
           ) : (
-            <TreeView nodes={tree} />
+            <TreeView nodes={tree} onSelectFile={onSelectReference} />
           )}
         </div>
       )}
@@ -102,24 +104,30 @@ export function SkillItem({
 }
 
 // Recursive tree view component
-function TreeView({ nodes, depth = 0 }: { nodes: TreeNode[]; depth?: number }) {
+function TreeView({ nodes, depth = 0, onSelectFile }: { nodes: TreeNode[]; depth?: number; onSelectFile?: (ref: SkillReference) => void }) {
   return (
     <div>
       {nodes.map((node) => (
-        <TreeNodeItem key={node.path} node={node} depth={depth} />
+        <TreeNodeItem key={node.path} node={node} depth={depth} onSelectFile={onSelectFile} />
       ))}
     </div>
   )
 }
 
-function TreeNodeItem({ node, depth }: { node: TreeNode; depth: number }) {
+function TreeNodeItem({ node, depth, onSelectFile }: { node: TreeNode; depth: number; onSelectFile?: (ref: SkillReference) => void }) {
   const [expanded, setExpanded] = useState(false)
   const hasChildren = node.children && node.children.length > 0
 
   return (
     <div>
       <button
-        onClick={() => hasChildren && setExpanded(!expanded)}
+        onClick={() => {
+          if (hasChildren) {
+            setExpanded(!expanded)
+          } else if (node.reference && onSelectFile) {
+            onSelectFile(node.reference)
+          }
+        }}
         className="w-full flex items-center gap-1.5 px-2 py-1 text-xxs text-secondary hover:text-white hover:bg-hover rounded-md transition-colors"
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
@@ -142,7 +150,7 @@ function TreeNodeItem({ node, depth }: { node: TreeNode; depth: number }) {
         <span className="truncate">{node.name}</span>
       </button>
 
-      {expanded && hasChildren && <TreeView nodes={node.children!} depth={depth + 1} />}
+      {expanded && hasChildren && <TreeView nodes={node.children!} depth={depth + 1} onSelectFile={onSelectFile} />}
     </div>
   )
 }

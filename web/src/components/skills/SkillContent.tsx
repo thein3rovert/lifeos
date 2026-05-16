@@ -1,17 +1,19 @@
 import { FileEdit, X, Save, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import type { SkillDetail } from '@/lib/skills/types'
+import type { SkillReference } from '@/lib/api'
 import { stripFrontmatter } from '@/lib/skills/utils'
 import { RenderMarkdown } from '@/components/RenderMarkdown'
 
 type SkillContentProps = {
   skillDetail: SkillDetail | null
+  selectedReference?: SkillReference | null
   onSave?: (content: string) => void
   saving?: boolean
   onOpenChat?: () => void
 }
 
-export function SkillContent({ skillDetail, onSave, saving, onOpenChat }: SkillContentProps) {
+export function SkillContent({ skillDetail, selectedReference, onSave, saving, onOpenChat }: SkillContentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
 
@@ -33,7 +35,30 @@ export function SkillContent({ skillDetail, onSave, saving, onOpenChat }: SkillC
 
   return (
     <main className="flex-1 min-w-0 bg-black border border-default rounded-md flex flex-col">
-      {skillDetail ? (
+      {selectedReference ? (
+        // Show reference content
+        <>
+          <div className="h-8 flex items-center justify-between px-4 border-b border-default shrink-0">
+            <div className="flex items-center gap-3">
+              <h1 className="text-atlas-base font-semibold text-white">{selectedReference.name}</h1>
+              <span className="px-2 py-0.5 text-xxs uppercase tracking-[0.08em] bg-raised border border-default rounded-md text-tertiary">
+                Reference
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-6">
+            {selectedReference.content ? (
+              <>
+                <div className="text-xxs text-tertiary mb-2">Content length: {selectedReference.content.length} chars</div>
+                <RenderMarkdown>{selectedReference.content}</RenderMarkdown>
+              </>
+            ) : (
+              <div className="text-muted text-atlas-sm">No content available</div>
+            )}
+          </div>
+        </>
+      ) : skillDetail ? (
         <>
           <div className="h-8 flex items-center justify-between px-4 border-b border-default shrink-0">
             <div className="flex items-center gap-3">

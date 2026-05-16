@@ -10,6 +10,7 @@ type SkillsSidebarProps = {
   skills: Skill[]
   selectedSkillId: string | null
   onSelectSkill: (id: string) => void
+  onSelectReference?: (reference: any) => void
   loading: boolean
   syncing: boolean
   onSync: () => void
@@ -26,6 +27,7 @@ export function SkillsSidebar({
   skills,
   selectedSkillId,
   onSelectSkill,
+  onSelectReference,
   loading,
   syncing,
   onSync,
@@ -151,6 +153,7 @@ export function SkillsSidebar({
                 hasNotes={hasNotes}
                 hasPendingSync={!!hasPendingSync}
                 onSelect={() => onSelectSkill(skill.id)}
+                onSelectReference={onSelectReference}
               />
             )
           })
