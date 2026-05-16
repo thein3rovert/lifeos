@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
-import type { AIPreviewResponse, Skill, SkillDetail, SkillReference } from '@/types'
+import type { AIPreviewResponse, SkillReference } from '@/types'
+import { useSkills } from '@/hooks/useSkills'
+import { useNotes } from '@/hooks/useNotes'
+import { useSync } from '@/hooks/useSync'
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar'
 import { SkillContent } from '@/components/skills/SkillContent'
 import { SkillNotes } from '@/components/skills/SkillNotes'
@@ -15,17 +18,36 @@ export const Route = createFileRoute('/skills/')({
 })
 
 function SkillsPage() {
-  // State
-  const [skills, setSkills] = useState<Skill[]>([])
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
-  const [skillDetail, setSkillDetail] = useState<SkillDetail | null>(null)
+  const {
+    skills,
+    selectedSkill,
+    skillDetail,
+    loading,
+    detailLoading,
+    selectSkill,
+    refreshSkills,
+    refreshDetail,
+  } = useSkills()
+
+  const {
+    adding,
+    addNote,
+    editNote,
+    deleteNote,
+  } = useNotes()
+
+  const {
+    syncState,
+    sync,
+    push,
+    pushSelected,
+    checkHasLocalChanges,
+  } = useSync()
+
+  // UI State
   const [selectedReference, setSelectedReference] = useState<SkillReference | null>(null)
-  const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [pushing, setPushing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [addingNote, setAddingNote] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiPreview, setAiPreview] = useState<AIPreviewResponse | null>(null)
   const [showAIPreview, setShowAIPreview] = useState(false)
@@ -35,279 +57,168 @@ function SkillsPage() {
   const [selectedPullIds, setSelectedPullIds] = useState<string[]>([])
   const [showChat, setShowChat] = useState(false)
 
-  // Load skills list on mount
+  // Load skills on mount
   useEffect(() => {
-    loadSkills()
+    refreshSkills()
   }, [])
 
   // Load skill detail when selected
   useEffect(() => {
-    if (selectedSkillId) {
-      // Only clear reference if it's from a different skill
-      if (selectedReference && selectedReference.skill_id !== selectedSkillId) {
+    if (selectedSkill) {
+      if (selectedReference && selectedReference.skill_id !== selectedSkill.id) {
         setSelectedReference(null)
       }
-      loadSkillDetail(selectedSkillId)
+      refreshDetail()
     }
-  }, [selectedSkillId])
+  }, [selectedSkill?.id])
 
   // Handlers
-  const loadSkills = async () => {
-    try {
-      const data = await api.skills.list()
-      setSkills(data)
-      // Auto-select first skill
-      if (data.length > 0 && !selectedSkillId) {
-        setSelectedSkillId(data[0].id)
-      }
-    } catch (err) {
-      console.error('Failed to load skills:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleSync = useCallback(() => {
+    setShowPullDialog(true)
+  }, [])
 
-  const loadSkillDetail = async (id: string) => {
-    try {
-      const data = await api.skills.get(id)
-      setSkillDetail(data)
-    } catch (err) {
-      console.error('Failed to load skill detail:', err)
-    }
-  }
-
-  const handleSync = async () => {
-    setShowPullDialog(true) // Show selection dialog
-  }
-
-  const handlePullSelected = async (skillIds: string[]) => {
+  const handlePullSelected = useCallback(async (skillIds: string[]) => {
     setShowPullDialog(false)
-
-    // Check if any selected skills have local changes
     const selectedSkills = skills.filter(s => skillIds.includes(s.id))
     const hasLocalChanges = selectedSkills.some(s => s.pending_sync || (s.note_count && s.note_count > 0))
 
     if (hasLocalChanges) {
-      // Show confirmation dialog
       setSelectedPullIds(skillIds)
       setShowSyncConfirmation(true)
     } else {
-      // No conflicts, pull directly
       await performPull(skillIds)
     }
-  }
+  }, [skills])
 
-  const performPull = async (skillIds: string[]) => {
+  const performPull = useCallback(async (skillIds: string[]) => {
     setShowSyncConfirmation(false)
-    setSyncing(true)
-    try {
-      // Sync all from GitHub
-      await api.skills.sync()
-      // Reload skills list
-      const allSkills = await api.skills.list()
-      setSkills(allSkills)
-      // If currently viewing a pulled skill, reload it
-      if (selectedSkillId && skillIds.includes(selectedSkillId)) {
-        await loadSkillDetail(selectedSkillId)
-      }
-    } catch (err) {
-      console.error('Sync failed:', err)
-    } finally {
-      setSyncing(false)
+    await sync()
+    await refreshSkills()
+    if (selectedSkill && skillIds.includes(selectedSkill.id)) {
+      await refreshDetail()
     }
-  }
+  }, [sync, refreshSkills, refreshDetail, selectedSkill])
 
-  const handlePullAnyway = () => {
+  const handlePullAnyway = useCallback(() => {
     performPull(selectedPullIds)
-  }
+  }, [performPull, selectedPullIds])
 
-  const handlePushFirst = async () => {
+  const handlePushFirst = useCallback(async () => {
     setShowSyncConfirmation(false)
-    // Push pending changes first
-    await handlePush()
-    // Then pull
+    await push()
     await performPull(selectedPullIds)
-  }
+  }, [push, performPull, selectedPullIds])
 
-  const handlePush = async () => {
-    setPushing(true)
-    try {
-      await handlePush()
-      // Refresh skills to get updated pending_sync status
-      const data = await api.skills.list()
-      setSkills(data)
-    } catch (err) {
-      console.error('Push failed:', err)
-    } finally {
-      setPushing(false)
-    }
-  }
+  const handlePushSelected = useCallback(async (skillIds: string[]) => {
+    await pushSelected(skillIds)
+    await refreshSkills()
+  }, [pushSelected, refreshSkills])
 
-  const handlePushSelected = async (skillIds: string[]) => {
-    setPushing(true)
-    try {
-      // Push each selected skill individually
-      for (const skillId of skillIds) {
-        await api.skills.pushSingle(skillId)
-      }
-      // Refresh skills list
-      const data = await api.skills.list()
-      setSkills(data)
-    } catch (err) {
-      console.error('Failed to push selected skills:', err)
-    } finally {
-      setPushing(false)
-    }
-  }
-
-  const handleSaveSkill = async (content: string) => {
-    if (!selectedSkillId) return
-
+  const handleSaveSkill = useCallback(async (content: string) => {
+    if (!selectedSkill) return
     setSaving(true)
     try {
-      const updatedSkill = await api.skills.save(selectedSkillId, content)
-      // Update local state
-      setSkillDetail(prev => prev ? { ...prev, skill: updatedSkill } : null)
-      // Update skills list to show pending sync indicator
-      setSkills(prev => prev.map(s => s.id === updatedSkill.id ? updatedSkill : s))
+      const updatedSkill = await api.skills.save(selectedSkill.id, content)
+      await refreshSkills()
+      await refreshDetail()
     } catch (err) {
       console.error('Failed to save skill:', err)
     } finally {
       setSaving(false)
     }
-  }
+  }, [selectedSkill, refreshSkills, refreshDetail])
 
-  const handleSelectReference = (reference: SkillReference | null) => {
+  const handleSelectReference = useCallback((reference: SkillReference | null) => {
     if (!reference) {
       setSelectedReference(null)
       return
     }
-
-    console.log('Selected reference:', reference)
-    console.log('Content length:', reference.content?.length)
     setSelectedReference(reference)
-
-    // Switch to the skill that owns this reference (will load notes for that skill)
-    if (reference.skill_id !== selectedSkillId) {
-      setSelectedSkillId(reference.skill_id)
+    if (reference.skill_id !== selectedSkill?.id) {
+      selectSkill(reference.skill_id)
     }
-  }
+  }, [selectedSkill, selectSkill])
 
-  const handleAddNote = async (title: string, content: string) => {
-    if (!title.trim() || !content.trim() || !selectedSkillId) return
-
-    setAddingNote(true)
-    try {
-      const updatedNotes = await api.notes.add(selectedSkillId, title, content)
-      setSkillDetail(prev => prev ? { ...prev, notes: updatedNotes } : null)
-      // Refresh skills list to update note counts
-      const skillsData = await api.skills.list()
-      setSkills(skillsData)
-    } catch (err) {
-      console.error('Failed to add note:', err)
-    } finally {
-      setAddingNote(false)
+  const handleAddNote = useCallback(async (title: string, content: string) => {
+    if (!title.trim() || !content.trim() || !selectedSkill) return
+    const result = await addNote(selectedSkill.id, title, content)
+    if (result) {
+      await refreshSkills()
     }
-  }
+  }, [selectedSkill, addNote, refreshSkills])
 
-  const handleDeleteNote = async (noteId: number) => {
-    if (!selectedSkillId) return
+  const handleDeleteNote = useCallback(async (noteId: number) => {
+    if (!selectedSkill) return
+    await deleteNote(selectedSkill.id, noteId)
+    await refreshSkills()
+  }, [selectedSkill, deleteNote, refreshSkills])
 
-    try {
-      await api.notes.delete(selectedSkillId, noteId)
-      setSkillDetail(prev =>
-        prev ? { ...prev, notes: prev.notes.filter(n => n.id !== noteId) } : null
-      )
-      // Refresh skills list to update note counts
-      const skillsData = await api.skills.list()
-      setSkills(skillsData)
-    } catch (err) {
-      console.error('Failed to delete note:', err)
-    }
-  }
+  const handleEditNote = useCallback(async (noteId: number, title: string, content: string) => {
+    if (!selectedSkill) return
+    await editNote(selectedSkill.id, noteId, title, content)
+  }, [selectedSkill, editNote])
 
-  const handleEditNote = async (noteId: number, title: string, content: string) => {
-    if (!selectedSkillId) return
-    setAddingNote(true)
-
-    try {
-      await api.notes.edit(selectedSkillId, noteId, title, content)
-      // Refresh note list
-      const updatedNotes = await api.notes.list(selectedSkillId)
-      setSkillDetail(prev => prev ? { ...prev, notes: updatedNotes } : null)
-    } catch (err) {
-      console.error('Failed to edit note:', err)
-    } finally {
-      setAddingNote(false)
-    }
-  }
-
-  const handleAIPreview = async () => {
-    if (!selectedSkillId) return
-
+  const handleAIPreview = useCallback(async () => {
+    if (!selectedSkill) return
     setAiLoading(true)
     setShowAIPreview(true)
     try {
-      const preview = await api.skills.previewAIUpdate(selectedSkillId)
+      const preview = await api.skills.previewAIUpdate(selectedSkill.id)
       setAiPreview(preview)
     } catch (err) {
-      console.error('Failed to get AI preview make sure your AI provider\n is connected and running:', err)
+      console.error('Failed to get AI preview:', err)
       setShowAIPreview(false)
     } finally {
       setAiLoading(false)
     }
-  }
+  }, [selectedSkill])
 
-  // Save ai aupdate after preview is done
-  const handleSaveAIUpdate = async () => {
-    if (!selectedSkillId || !aiPreview) return
-
+  const handleSaveAIUpdate = useCallback(async () => {
+    if (!selectedSkill || !aiPreview) return
     try {
-      await api.skills.saveAIUpdate(selectedSkillId, aiPreview.updated_content)
-      // Refresh skill detail and skills list
-      const updatedDetail = await api.skills.get(selectedSkillId)
-      setSkillDetail(updatedDetail)
-      const skillsData = await api.skills.list()
-      setSkills(skillsData)
+      await api.skills.saveAIUpdate(selectedSkill.id, aiPreview.updated_content)
+      await refreshSkills()
+      await refreshDetail()
       setShowAIPreview(false)
       setAiPreview(null)
     } catch (err) {
-      console.error('Failed to save AI update make sure your AI provider\n is connected and running:', err)
+      console.error('Failed to save AI update:', err)
     }
-  }
+  }, [selectedSkill, aiPreview, refreshSkills, refreshDetail])
 
-  const handleAIReject = () => {
+  const handleAIReject = useCallback(() => {
     setShowAIPreview(false)
     setAiPreview(null)
-  }
+  }, [])
 
-  const handleCreateSkill = async (title: string, format: string, content: string) => {
+  const handleCreateSkill = useCallback(async (title: string, format: string, content: string) => {
     setCreatingSkill(true)
     try {
       const newSkill = await api.skills.create(title, format, content)
-      // Refresh skills list and select the new skill
-      const skillsData = await api.skills.list()
-      setSkills(skillsData)
-      setSelectedSkillId(newSkill.id)
+      await refreshSkills()
+      selectSkill(newSkill.id)
     } catch (err) {
       console.error('Failed to create new skill:', err)
     } finally {
       setCreatingSkill(false)
     }
-  }
+  }, [refreshSkills, selectSkill])
+
+  const syncing = syncState === 'pulling'
+  const pushing = syncState === 'pushing'
 
   return (
     <div className="flex h-full gap-3 p-4">
       <SkillsSidebar
         skills={skills}
-        selectedSkillId={selectedSkillId}
-        onSelectSkill={setSelectedSkillId}
+        selectedSkillId={selectedSkill?.id || null}
+        onSelectSkill={selectSkill}
         onSelectReference={handleSelectReference}
         loading={loading}
         syncing={syncing}
         onSync={handleSync}
         pushing={pushing}
-        onPush={handlePush}
+        onPush={push}
         onPushSelected={handlePushSelected}
         collapsed={sidebarCollapsed}
         onToggleCollapse={setSidebarCollapsed}
@@ -328,12 +239,11 @@ function SkillsPage() {
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
         onEditNote={handleEditNote}
-        addingNote={addingNote}
+        addingNote={adding}
         onAIPreview={handleAIPreview}
         aiLoading={aiLoading}
       />
 
-      {/* AI Preview Dialog */}
       <SkillAIPreviewDialog
         isOpen={showAIPreview}
         preview={aiPreview}
@@ -343,7 +253,6 @@ function SkillsPage() {
         onReject={handleAIReject}
       />
 
-      {/* Pull Selection Dialog */}
       <PullSelectionDialog
         isOpen={showPullDialog}
         skills={skills}
@@ -352,7 +261,6 @@ function SkillsPage() {
         isLoading={syncing}
       />
 
-      {/* Sync Confirmation Dialog */}
       <SyncConfirmationDialog
         isOpen={showSyncConfirmation}
         skills={skills.filter(s => selectedPullIds.includes(s.id))}
@@ -361,10 +269,9 @@ function SkillsPage() {
         onPullAnyway={handlePullAnyway}
       />
 
-      {/* Floating Chat */}
-      {selectedSkillId && skillDetail && (
+      {selectedSkill && skillDetail && (
         <SkillChatModal
-          skillId={selectedSkillId}
+          skillId={selectedSkill.id}
           skillTitle={skillDetail.skill.title}
           isOpen={showChat}
           onClose={() => setShowChat(false)}
