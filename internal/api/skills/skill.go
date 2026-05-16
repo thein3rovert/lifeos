@@ -1,6 +1,7 @@
-package api
+package skills
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -8,6 +9,58 @@ import (
 	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store"
 )
+
+// ===============================
+// HELPER FUNCTIONS
+// ===============================
+
+// respondJSON writes a JSON response
+func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		json.NewEncoder(w).Encode(data)
+	}
+}
+
+// respondError writes a JSON error response
+func respondError(w http.ResponseWriter, status int, message string) {
+	respondJSON(w, status, map[string]string{"error": message})
+}
+
+// decodeJSON decodes request body
+func decodeJSON(r *http.Request, dst interface{}) error {
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(dst)
+}
+
+// NoteResponse for JSON serialization
+type NoteResponse struct {
+	ID        int     `json:"id"`
+	SkillID   string  `json:"skill_id"`
+	Title     string  `json:"title"`
+	Content   string  `json:"content"`
+	Type      string  `json:"type"`
+	CreatedAt string  `json:"created_at"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+}
+
+func noteToResponse(n *model.Note) NoteResponse {
+	var updatedAt *string
+	if n.UpdatedAt != nil {
+		updatedAtStr := n.UpdatedAt.String()
+		updatedAt = &updatedAtStr
+	}
+	return NoteResponse{
+		ID:        n.ID,
+		SkillID:   n.SkillID,
+		Title:     n.Title,
+		Content:   n.Content,
+		Type:      n.Type,
+		CreatedAt: n.CreatedAt.String(),
+		UpdatedAt: updatedAt,
+	}
+}
 
 // ===============================
 // TYPES
@@ -96,17 +149,17 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 	}
 
 	// Return the created skill after creation
-	respondJSON(w, http.StatusCreated, skillToResponse(newSkill))
+	respondJSON(w, http.StatusCreated, SkillToResponse(newSkill))
 
 }
 
 // skillToResponse converts a model.Skill to a SkillResponse
-func skillToResponse(s *model.Skill) SkillResponse {
-	return skillToResponseWithNotes(s, 0)
+func SkillToResponse(s *model.Skill) SkillResponse {
+	return SkillToResponseWithNotes(s, 0)
 }
 
 // skillToResponseWithNotes converts a model.Skill to a SkillResponse with note count
-func skillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
+func SkillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
 	resp := SkillResponse{
 		ID:          s.ID,
 		Title:       s.Title,
@@ -138,7 +191,7 @@ func (h *SkillHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 
 	var resp []SkillResponse
 	for _, s := range skills {
-		resp = append(resp, skillToResponseWithNotes(&s, noteCounts[s.ID]))
+		resp = append(resp, SkillToResponseWithNotes(&s, noteCounts[s.ID]))
 	}
 
 	respondJSON(w, http.StatusOK, resp)
@@ -169,7 +222,7 @@ func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := SkillDetailResponse{
-		Skill: skillToResponse(skill),
+		Skill: SkillToResponse(skill),
 		Notes: noteResponses,
 	}
 
@@ -214,7 +267,7 @@ func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, skillToResponse(skill))
+	respondJSON(w, http.StatusOK, SkillToResponse(skill))
 }
 
 // SyncSkills forces a refresh of skills from GitHub
@@ -235,7 +288,7 @@ func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 
 	var resp []SkillResponse
 	for _, s := range skills {
-		resp = append(resp, skillToResponse(&s))
+		resp = append(resp, SkillToResponse(&s))
 	}
 
 	respondJSON(w, http.StatusOK, resp)
@@ -316,5 +369,5 @@ func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, skillToResponse(skill))
+	respondJSON(w, http.StatusOK, SkillToResponse(skill))
 }

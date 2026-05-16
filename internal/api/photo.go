@@ -28,10 +28,10 @@ func NewPhotoHandler(s store.Store) *PhotoHandler {
 func (h *PhotoHandler) ListPhotos(w http.ResponseWriter, r *http.Request) {
 	photos, err := h.store.ListPhotos()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to list photos")
+		RespondError(w, http.StatusInternalServerError, "failed to list photos")
 		return
 	}
-	respondJSON(w, http.StatusOK, photos)
+	RespondJSON(w, http.StatusOK, photos)
 }
 
 // GetPhoto returns a single photo by ID
@@ -39,7 +39,7 @@ func (h *PhotoHandler) ListPhotos(w http.ResponseWriter, r *http.Request) {
 func (h *PhotoHandler) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		respondError(w, http.StatusBadRequest, "photo ID is required")
+		RespondError(w, http.StatusBadRequest, "photo ID is required")
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h *PhotoHandler) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	// TODO: Add GetPhotoByID to store interface
 	photos, err := h.store.ListPhotos()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get photo")
+		RespondError(w, http.StatusInternalServerError, "failed to get photo")
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *PhotoHandler) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
-		respondError(w, http.StatusNotFound, "photo not found")
+		RespondError(w, http.StatusNotFound, "photo not found")
 		return
 	}
 
@@ -71,26 +71,26 @@ func (h *PhotoHandler) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	tags, _ := h.store.GetPhotoTags(photo.ID)
 	photo.Tags = tags
 
-	respondJSON(w, http.StatusOK, photo)
+	RespondJSON(w, http.StatusOK, photo)
 }
 
 // UploadPhoto handles photo upload via multipart form
 // POST /api/photos/upload
 func (h *PhotoHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "failed to parse form")
+		RespondError(w, http.StatusBadRequest, "failed to parse form")
 		return
 	}
 
 	file, header, err := r.FormFile("photo")
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "photo file is required")
+		RespondError(w, http.StatusBadRequest, "photo file is required")
 		return
 	}
 	defer file.Close()
 
 	if err := os.MkdirAll("photos", 0755); err != nil {
-		respondError(w, http.StatusInternalServerError, "could not create photos directory")
+		RespondError(w, http.StatusInternalServerError, "could not create photos directory")
 		return
 	}
 
@@ -99,13 +99,13 @@ func (h *PhotoHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	destination, err := os.Create(savePath)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "could not save file")
+		RespondError(w, http.StatusInternalServerError, "could not save file")
 		return
 	}
 	defer destination.Close()
 
 	if _, err := io.Copy(destination, file); err != nil {
-		respondError(w, http.StatusInternalServerError, "could not write file")
+		RespondError(w, http.StatusInternalServerError, "could not write file")
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *PhotoHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.SavePhoto(photo); err != nil {
-		respondError(w, http.StatusInternalServerError, "could not save photo metadata")
+		RespondError(w, http.StatusInternalServerError, "could not save photo metadata")
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h *PhotoHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respondJSON(w, http.StatusCreated, photo)
+	RespondJSON(w, http.StatusCreated, photo)
 }
 
 // SearchPhotos searches photos by query string
@@ -153,11 +153,11 @@ func (h *PhotoHandler) SearchPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to search photos")
+		RespondError(w, http.StatusInternalServerError, "failed to search photos")
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]interface{}{
+	RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"photos":       photos,
 		"search_query": query,
 	})

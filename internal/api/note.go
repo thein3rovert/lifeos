@@ -29,7 +29,7 @@ type NoteResponse struct {
 }
 
 // Map note response to note model
-func noteToResponse(n *model.Note) NoteResponse {
+func NoteToResponse(n *model.Note) NoteResponse {
 	var updatedAt *string
 	if n.UpdatedAt != nil {
 		updatedAtStr := n.UpdatedAt.String()
@@ -52,22 +52,22 @@ func noteToResponse(n *model.Note) NoteResponse {
 func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return
 	}
 
 	notes, err := h.noteService.GetNotes(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var resp []NoteResponse
 	for _, n := range notes {
-		resp = append(resp, noteToResponse(&n))
+		resp = append(resp, NoteToResponse(&n))
 	}
 
-	respondJSON(w, http.StatusOK, resp)
+	RespondJSON(w, http.StatusOK, resp)
 }
 
 // JSON body for adding a note
@@ -82,28 +82,28 @@ type AddNoteRequest struct {
 func (h *NoteHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return
 	}
 
 	var req AddNoteRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.noteService.CreateNote(skillID, req.Title, req.Content, req.Type); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	notes, _ := h.noteService.GetNotes(skillID)
 	var resp []NoteResponse
 	for _, n := range notes {
-		resp = append(resp, noteToResponse(&n))
+		resp = append(resp, NoteToResponse(&n))
 	}
 
-	respondJSON(w, http.StatusCreated, resp)
+	RespondJSON(w, http.StatusCreated, resp)
 }
 
 // DeleteNote removes a single buffer note
@@ -111,22 +111,22 @@ func (h *NoteHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	noteIDStr := r.PathValue("noteId")
 	if noteIDStr == "" {
-		respondError(w, http.StatusBadRequest, "note ID is required")
+		RespondError(w, http.StatusBadRequest, "note ID is required")
 		return
 	}
 
 	noteID, err := strconv.Atoi(noteIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "invalid note ID")
+		RespondError(w, http.StatusBadRequest, "invalid note ID")
 		return
 	}
 
 	if err := h.noteService.DeleteNote(noteID); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	RespondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 type UpdateNoteRequest struct {
@@ -138,28 +138,28 @@ type UpdateNoteRequest struct {
 func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	noteIDStr := r.PathValue("noteId")
 	if noteIDStr == "" {
-		respondError(w, http.StatusBadRequest, "note ID is required")
+		RespondError(w, http.StatusBadRequest, "note ID is required")
 		return
 	}
 
 	noteID, err := strconv.Atoi(noteIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "invalid note ID")
+		RespondError(w, http.StatusBadRequest, "invalid note ID")
 		return
 	}
 
 	var req UpdateNoteRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.noteService.UpdateNote(noteID, req.Content); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	RespondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
 type EditNoteRequest struct {
@@ -172,28 +172,28 @@ type EditNoteRequest struct {
 func (h *NoteHandler) EditNote(w http.ResponseWriter, r *http.Request) {
 	noteIDStr := r.PathValue("noteId")
 	if noteIDStr == "" {
-		respondError(w, http.StatusBadRequest, "note ID is required")
+		RespondError(w, http.StatusBadRequest, "note ID is required")
 		return
 	}
 
 	noteID, err := strconv.Atoi(noteIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "invalid note ID")
+		RespondError(w, http.StatusBadRequest, "invalid note ID")
 		return
 	}
 
 	var req EditNoteRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.noteService.EditNote(noteID, req.Title, req.Content); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	RespondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
 // Returns all notes across all skills
@@ -201,14 +201,14 @@ func (h *NoteHandler) EditNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	notes, err := h.noteService.GetAllNotes()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var resp []NoteResponse
 	for _, n := range notes {
-		resp = append(resp, noteToResponse(&n))
+		resp = append(resp, NoteToResponse(&n))
 	}
 
-	respondJSON(w, http.StatusOK, resp)
+	RespondJSON(w, http.StatusOK, resp)
 }

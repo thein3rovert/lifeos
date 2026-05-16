@@ -24,7 +24,7 @@ func NewChatHandler(chatService *service.ChatService) *ChatHandler {
 func getSkillID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return "", false
 	}
 	return skillID, true
@@ -50,11 +50,11 @@ func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request)
 
 	sessionID, err := h.chatService.CreateOrResumeSession(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
+		RespondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
 		return
 	}
 
-	respondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
+	RespondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
 }
 
 type ChatMessageRequest struct {
@@ -70,13 +70,13 @@ type ChatMessageResponse struct {
 // POST /api/skills/{id}/chat
 func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	var req ChatMessageRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if req.Message == "" {
-		respondError(w, http.StatusBadRequest, "message is required")
+		RespondError(w, http.StatusBadRequest, "message is required")
 		return
 	}
 
@@ -88,10 +88,10 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	// Call the chat service to handle the businesss logic
 	response, err := h.chatService.SendMessage(skillID, req.Message, req.NoteIds)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusOK, ChatMessageResponse{Response: response})
+	RespondJSON(w, http.StatusOK, ChatMessageResponse{Response: response})
 }
 
 type ChatMessage struct {
@@ -117,7 +117,7 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Printf("[GetChatMessages] Error: %v\n", err)
-		respondError(w, http.StatusInternalServerError, "failed to get messages")
+		RespondError(w, http.StatusInternalServerError, "failed to get messages")
 		return
 	}
 
@@ -132,5 +132,5 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	respondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
+	RespondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
 }

@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// respondJSON writes a JSON response with the given status code
-func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+// RespondJSON writes a JSON response with the given status code
+func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
@@ -16,13 +16,13 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
-// respondError writes a JSON error response
-func respondError(w http.ResponseWriter, status int, message string) {
-	respondJSON(w, status, map[string]string{"error": message})
+// RespondError writes a JSON error response
+func RespondError(w http.ResponseWriter, status int, message string) {
+	RespondJSON(w, status, map[string]string{"error": message})
 }
 
-// decodeJSON decodes a JSON request body into dst
-func decodeJSON(r *http.Request, dst interface{}) error {
+// DecodeJSON decodes a JSON request body into dst
+func DecodeJSON(r *http.Request, dst interface{}) error {
 	if r.Body == nil {
 		return errBodyRequired
 	}

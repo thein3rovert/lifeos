@@ -27,7 +27,7 @@ type TagResponse struct {
 func (h *TagHandler) ListTags(w http.ResponseWriter, r *http.Request) {
 	tags, err := h.store.ListTags()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to list tags")
+		RespondError(w, http.StatusInternalServerError, "failed to list tags")
 		return
 	}
 
@@ -36,5 +36,5 @@ func (h *TagHandler) ListTags(w http.ResponseWriter, r *http.Request) {
 		resp = append(resp, TagResponse{ID: t.ID, Name: t.Name})
 	}
 
-	respondJSON(w, http.StatusOK, resp)
+	RespondJSON(w, http.StatusOK, resp)
 }

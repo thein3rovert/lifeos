@@ -8,8 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"strings"
 
+	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/yuin/goldmark"
 )
@@ -33,25 +35,25 @@ func NewAIHandler(skillStore store.SkillStore, noteStore store.NoteStore) *AIHan
 func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return
 	}
 
 	// Get notes for this skill
 	notes, err := h.noteStore.GetNotesBySkill(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get notes")
+		RespondError(w, http.StatusInternalServerError, "failed to get notes")
 		return
 	}
 	if len(notes) == 0 {
-		respondError(w, http.StatusBadRequest, "no notes to preview")
+		RespondError(w, http.StatusBadRequest, "no notes to preview")
 		return
 	}
 
 	// Get current skill
 	skill, err := h.skillStore.GetSkill(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get skill")
+		RespondError(w, http.StatusInternalServerError, "failed to get skill")
 		return
 	}
 
@@ -68,7 +70,7 @@ func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	updatedContent, err := callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
 	if err != nil {
 		log.Printf("Sidecar error: %v", err)
-		respondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
+		RespondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
 		return
 	}
 
@@ -79,7 +81,7 @@ func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 		buf.WriteString(markdownContent)
 	}
 
-	respondJSON(w, http.StatusOK, map[string]interface{}{
+	RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"skill_id":         skill.ID,
 		"title":            skill.Title,
 		"original_content": skill.Content,
@@ -98,25 +100,25 @@ type SaveSkillUpdateRequest struct {
 func (h *AIHandler) SaveSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return
 	}
 
 	var req SaveSkillUpdateRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if req.UpdatedContent == "" {
-		respondError(w, http.StatusBadRequest, "updated_content is required")
+		RespondError(w, http.StatusBadRequest, "updated_content is required")
 		return
 	}
 
 	// Get current skill
 	skill, err := h.skillStore.GetSkill(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get skill")
+		RespondError(w, http.StatusInternalServerError, "failed to get skill")
 		return
 	}
 
@@ -125,7 +127,7 @@ func (h *AIHandler) SaveSkillUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Save (creates PR on GitHub)
 	if err := h.skillStore.SaveSkill(skill); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to save skill: "+err.Error())
+		RespondError(w, http.StatusInternalServerError, "failed to save skill: "+err.Error())
 		return
 	}
 
@@ -134,7 +136,7 @@ func (h *AIHandler) SaveSkillUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Warning: failed to clear notes for skill %s: %v", skillID, err)
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{
+	RespondJSON(w, http.StatusOK, map[string]string{
 		"status":   "saved",
 		"skill_id": skillID,
 	})
@@ -149,24 +151,24 @@ type RenderMarkdownRequest struct {
 // POST /api/skills/preview-render
 func (h *AIHandler) RenderMarkdown(w http.ResponseWriter, r *http.Request) {
 	var req RenderMarkdownRequest
-	if err := decodeJSON(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "invalid request body")
+	if err := DecodeJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if req.Content == "" {
-		respondJSON(w, http.StatusOK, map[string]string{"html": ""})
+		RespondJSON(w, http.StatusOK, map[string]string{"html": ""})
 		return
 	}
 
 	markdownContent := stripMarkdownFrontMatter(req.Content)
 	var buf bytes.Buffer
 	if err := goldmark.Convert([]byte(markdownContent), &buf); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to render markdown")
+		RespondError(w, http.StatusInternalServerError, "failed to render markdown")
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"html": buf.String()})
+	RespondJSON(w, http.StatusOK, map[string]string{"html": buf.String()})
 }
 
 // AppendNotesToSkill appends all buffer notes to skill content via AI and saves
@@ -174,26 +176,26 @@ func (h *AIHandler) RenderMarkdown(w http.ResponseWriter, r *http.Request) {
 func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		respondError(w, http.StatusBadRequest, "skill ID is required")
+		RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return
 	}
 
 	// Get all notes for this skill
 	notes, err := h.noteStore.GetNotesBySkill(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get notes")
+		RespondError(w, http.StatusInternalServerError, "failed to get notes")
 		return
 	}
 
 	if len(notes) == 0 {
-		respondError(w, http.StatusBadRequest, "no notes to append")
+		RespondError(w, http.StatusBadRequest, "no notes to append")
 		return
 	}
 
 	// Get current skill
 	skill, err := h.skillStore.GetSkill(skillID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to get skill")
+		RespondError(w, http.StatusInternalServerError, "failed to get skill")
 		return
 	}
 
@@ -210,14 +212,14 @@ func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 	updatedContent, err := callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
 	if err != nil {
 		log.Printf("Sidecar error: %v", err)
-		respondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
+		RespondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
 		return
 	}
 
 	// Update and save
 	skill.Content = updatedContent
 	if err := h.skillStore.SaveSkill(skill); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to save skill: "+err.Error())
+		RespondError(w, http.StatusInternalServerError, "failed to save skill: "+err.Error())
 		return
 	}
 
@@ -226,7 +228,7 @@ func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Warning: failed to clear notes for skill %s: %v", skillID, err)
 	}
 
-	respondJSON(w, http.StatusOK, skillToResponse(skill))
+	RespondJSON(w, http.StatusOK, skillsapi.SkillToResponse(skill))
 }
 
 // callSideCarForSkillUpdate calls the Node.js sidecar for AI skill updates
