@@ -59,7 +59,6 @@ func (s *SQLSkillStore) SaveSkillFile(file *model.SkillFile) error {
 		file.Name,
 		file.Content,
 		time.Now(),
-		file.GitHubSHA,
 	)
 	return err
 }

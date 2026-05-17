@@ -28,6 +28,10 @@ func NewSQLSkillStore(db *sql.DB, githubStore store.SkillStore) (*SQLSkillStore,
 		return nil, fmt.Errorf("failed to create skills table: %w", err)
 	}
 
+	if err := s.createSkillFilesTable(); err != nil {
+		return nil, fmt.Errorf("failed to create skill_files table: %w", err)
+	}
+
 	return s, nil
 }
 
@@ -269,6 +273,15 @@ func (s *SQLSkillStore) PushToGitHub() error {
 	for _, skill := range pending {
 		if err := s.githubStore.SaveSkill(&skill); err != nil {
 			return fmt.Errorf("failed to push skill %s: %w", skill.ID, err)
+		}
+
+		files, err := s.GetModifiedSkillFiles()
+		if err == nil && len(files) > 0 {
+			for _, file := range files {
+				if err := s.githubStore.SaveSkillReferenceFile(file.SkillID, file.Path, file.Content); err != nil {
+					return fmt.Errorf("failed to clear pending sync: %w", err)
+				}
+			}
 		}
 
 		// Mark as synced
