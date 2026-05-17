@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2, Save, Upload, Plus } from 'lucide-react'
+import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2, Save, Upload, Plus, File, Folder } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { ChatMessage, Note } from '@/types'
+import type { ChatMessage, Note, SkillReference } from '@/types'
 
 type SkillChatProps = {
   skillId: string
@@ -24,6 +24,12 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   const [showNoteSelector, setShowNoteSelector] = useState(false)
   const [selectedNotes, setSelectedNotes] = useState<Note[]>([])
   const [noteFilter, setNoteFilter] = useState('')
+
+  // Reference selection state
+  const [references, setReferences] = useState<SkillReference[]>([])
+  const [showRefSelector, setShowRefSelector] = useState(false)
+  const [selectedRefs, setSelectedRefs] = useState<SkillReference[]>([])
+  const [refFilter, setRefFilter] = useState('')
 
   // Save note modal state
   const [showSaveModal, setShowSaveModal] = useState(false)
@@ -49,8 +55,12 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       await api.chat.getOrCreateSession(skillId)
       const { messages: existingMessages } = await api.chat.getMessages(skillId)
       setMessages(existingMessages)
-      const skillNotes = await api.notes.list(skillId)
+      const [skillNotes, skillRefs] = await Promise.all([
+        api.notes.list(skillId),
+        api.references.list(skillId)
+      ])
       setNotes(skillNotes)
+      setReferences(skillRefs)
     } catch (err) {
       console.error('Failed to initialize chat:', err)
     } finally {
@@ -61,7 +71,16 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return
 
-    const userMessage = input.trim()
+    let userMessage = input.trim()
+
+    // Include reference content in message
+    if (selectedRefs.length > 0) {
+      const refContent = selectedRefs.map(r =>
+        `### ${r.name}\n${r.content}`
+      ).join('\n\n')
+      userMessage = `Context from reference files:\n${refContent}\n\n---\n\nUser question: ${userMessage}`
+    }
+
     const noteIdsToSend = selectedNotes.length > 0 ? selectedNotes.map(n => n.id) : undefined
     setInput('')
 
@@ -104,15 +123,34 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
   const handleInputChange = (value: string) => {
     setInput(value)
-    if (value === '/') {
+
+    // Check for /ref command first
+    if (value === '/ref' || (value.startsWith('/ref') && !value.includes(' '))) {
+      setShowRefSelector(true)
+      setShowNoteSelector(false)
+      setRefFilter(value.startsWith('/ref') ? value.slice(5).toLowerCase() : '')
+    }
+    // Check for / command (notes)
+    else if (value === '/') {
       setShowNoteSelector(true)
+      setShowRefSelector(false)
       setNoteFilter('')
     } else if (value.startsWith('/') && !value.includes(' ')) {
-      setShowNoteSelector(true)
-      setNoteFilter(value.slice(1).toLowerCase())
+      // Check if it's /ref... or just /
+      if (value.toLowerCase().startsWith('/ref')) {
+        setShowRefSelector(true)
+        setShowNoteSelector(false)
+        setRefFilter(value.slice(5).toLowerCase())
+      } else {
+        setShowNoteSelector(true)
+        setShowRefSelector(false)
+        setNoteFilter(value.slice(1).toLowerCase())
+      }
     } else {
       setShowNoteSelector(false)
+      setShowRefSelector(false)
       setNoteFilter('')
+      setRefFilter('')
     }
   }
 
@@ -122,16 +160,38 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
     }
     setInput('')
     setShowNoteSelector(false)
+    setShowRefSelector(false)
     setNoteFilter('')
+    setRefFilter('')
+  }
+
+  const handleSelectRef = (ref: SkillReference) => {
+    if (!selectedRefs.find(r => r.path === ref.path)) {
+      setSelectedRefs(prev => [...prev, ref])
+    }
+    setInput('')
+    setShowNoteSelector(false)
+    setShowRefSelector(false)
+    setNoteFilter('')
+    setRefFilter('')
   }
 
   const handleRemoveNoteContext = (noteId: number) => {
     setSelectedNotes(prev => prev.filter(n => n.id !== noteId))
   }
 
+  const handleRemoveRefContext = (refPath: string) => {
+    setSelectedRefs(prev => prev.filter(r => r.path !== refPath))
+  }
+
   const filteredNotes = (notes || []).filter(note =>
     note.title.toLowerCase().includes(noteFilter) &&
     !selectedNotes.find(n => n.id === note.id)
+  )
+
+  const filteredRefs = (references || []).filter(ref =>
+    ref.name.toLowerCase().includes(refFilter) &&
+    !selectedRefs.find(r => r.path === ref.path)
   )
 
   const handleUpdateExistingNote = async () => {
@@ -304,39 +364,65 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
         {/* Input */}
         <div className="p-4 border-t border-default shrink-0 bg-input relative">
           {/* Note context badges */}
-          {selectedNotes.length > 0 && (
+          {(selectedNotes.length > 0 || selectedRefs.length > 0) && (
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-secondary">Context:</span>
-              {selectedNotes.map(note => (
-                <div
-                  key={note.id}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated"
-                  style={{ boxShadow: 'var(--shadow-neuro-raised)' }}
-                >
-                  <span className="text-xs font-medium text-white">{note.title}</span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-xxs ${
-                      note.type === 'ai-generated'
-                        ? 'bg-highlight-muted text-highlight'
-                        : 'bg-warning-muted text-warning'
-                    }`}
-                  >
-                    {note.type === 'ai-generated' ? 'AI' : 'Manual'}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveNoteContext(note.id)}
-                    className="p-0.5 hover:bg-hover rounded transition-colors"
-                    title="Remove context"
-                  >
-                    <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
-                  </button>
-                </div>
-              ))}
+              {selectedNotes.length > 0 && (
+                <>
+                  <span className="text-xs text-secondary">Notes:</span>
+                  {selectedNotes.map(note => (
+                    <div
+                      key={note.id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated"
+                      style={{ boxShadow: 'var(--shadow-neuro-raised)' }}
+                    >
+                      <span className="text-xs font-medium text-white">{note.title}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-xxs shrink-0 ${
+                          note.type === 'ai-generated'
+                            ? 'bg-highlight-muted text-highlight'
+                            : 'bg-warning-muted text-warning'
+                        }`}
+                      >
+                        AI
+                      </span>
+                      <button
+                        onClick={() => handleRemoveNoteContext(note.id)}
+                        className="p-0.5 hover:bg-hover rounded transition-colors"
+                        title="Remove context"
+                      >
+                        <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+              {selectedRefs.length > 0 && (
+                <>
+                  <span className="text-xs text-secondary">Refs:</span>
+                  {selectedRefs.map(ref => (
+                    <div
+                      key={ref.path}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated"
+                      style={{ boxShadow: 'var(--shadow-neuro-raised)' }}
+                    >
+                      <File className="w-3 h-3 text-tertiary shrink-0" strokeWidth={1.5} />
+                      <span className="text-xs font-medium text-white">{ref.name.replace(/\.md$/, '')}</span>
+                      <button
+                        onClick={() => handleRemoveRefContext(ref.path)}
+                        className="p-0.5 hover:bg-hover rounded transition-colors"
+                        title="Remove context"
+                      >
+                        <X className="w-3 h-3 text-muted" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
 
           {/* Note selector dropdown */}
-          {showNoteSelector && notes.length > 0 && (
+          {showNoteSelector && (notes || []).length > 0 && (
             <div
               className="absolute bottom-full left-4 right-4 mb-2 max-h-64 overflow-y-auto rounded-lg bg-raised border border-default"
               style={{ boxShadow: 'var(--shadow-neuro-soft)' }}
@@ -364,6 +450,38 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                       >
                         {note.type === 'ai-generated' ? 'AI' : 'Manual'}
                       </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Reference selector dropdown */}
+          {showRefSelector && (references || []).length > 0 && (
+            <div
+              className="absolute bottom-full left-4 right-4 mb-2 max-h-64 overflow-y-auto rounded-lg bg-raised border border-default"
+              style={{ boxShadow: 'var(--shadow-neuro-soft)' }}
+            >
+              <div className="p-2 border-b border-default">
+                <span className="text-xxs text-muted uppercase tracking-wide">Select a reference file to add as context</span>
+              </div>
+              {filteredRefs.length === 0 ? (
+                <div className="p-4 text-center text-muted text-xs">No references found</div>
+              ) : (
+                <div className="p-1">
+                  {filteredRefs.map((ref) => (
+                    <button
+                      key={ref.path}
+                      onClick={() => handleSelectRef(ref)}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-hover rounded-md transition-colors text-left"
+                    >
+                      {ref.type === 'dir' ? (
+                        <Folder className="w-4 h-4 text-highlight shrink-0" strokeWidth={1.5} />
+                      ) : (
+                        <File className="w-4 h-4 text-tertiary shrink-0" strokeWidth={1.5} />
+                      )}
+                      <span className="flex-1 text-sm text-white truncate">{ref.name.replace(/\.md$/, '')}</span>
                     </button>
                   ))}
                 </div>
