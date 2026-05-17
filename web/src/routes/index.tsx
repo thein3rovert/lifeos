@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   TrendingUp,
   Image as ImageIcon,
@@ -62,20 +62,20 @@ function DashboardPage() {
   }, [])
 
   // Helper to get skill title by ID
-  const getSkillTitle = (skillId: string) => {
+  const getSkillTitle = useCallback((skillId: string) => {
     const skill = skills.find(s => s.id === skillId)
     return skill?.title || skillId
-  }
+  }, [skills])
 
   // Filter notes by search query
-  const filteredNotes = notes.filter(note => {
-    if (!searchQuery) return true
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery) return notes
     const query = searchQuery.toLowerCase()
-    return (
+    return notes.filter(note =>
       note.content.toLowerCase().includes(query) ||
       getSkillTitle(note.skill_id).toLowerCase().includes(query)
     )
-  })
+  }, [notes, searchQuery, getSkillTitle])
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">

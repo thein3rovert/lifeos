@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { ChevronRight, ChevronDown, File, Folder } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { SkillReference } from '@/types'
@@ -14,7 +14,7 @@ type SkillItemProps = {
   onSelectReference?: (reference: SkillReference | null) => void
 }
 
-export function SkillItem({
+export const SkillItem = memo(function SkillItem({
   skillId,
   skillTitle,
   isSelected,
@@ -103,7 +103,7 @@ export function SkillItem({
       )}
     </div>
   )
-}
+})
 
 // Recursive tree view component
 function TreeView({ nodes, depth = 0, onSelectFile }: { nodes: TreeNode[]; depth?: number; onSelectFile?: (ref: SkillReference) => void }) {
