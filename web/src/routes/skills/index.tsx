@@ -23,7 +23,6 @@ function SkillsPage() {
     selectedSkill,
     skillDetail,
     loading,
-    detailLoading,
     selectSkill,
     refreshSkills,
     refreshDetail,
@@ -41,7 +40,6 @@ function SkillsPage() {
     sync,
     push,
     pushSelected,
-    checkHasLocalChanges,
   } = useSync()
 
   // UI State
@@ -118,7 +116,7 @@ function SkillsPage() {
     if (!selectedSkill) return
     setSaving(true)
     try {
-      const updatedSkill = await api.skills.save(selectedSkill.id, content)
+      await api.skills.save(selectedSkill.id, content)
       await refreshSkills()
       await refreshDetail()
     } catch (err) {
