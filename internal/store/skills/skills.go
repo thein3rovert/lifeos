@@ -275,7 +275,16 @@ func (s *SQLSkillStore) PushToGitHub() error {
 			return fmt.Errorf("failed to push skill %s: %w", skill.ID, err)
 		}
 
-		files, err := s.GetModifiedSkillFiles()
+			// Mark as synced
+		skill.PendingSync = false
+		skill.SyncedAt = time.Now()
+		if err := s.updateSyncStatus(&skill); err != nil {
+			return fmt.Errorf("failed to update sync status for %s: %w", skill.ID, err)
+		}
+	}
+
+	// Push all modiffied files
+	files, err := s.GetModifiedSkillFiles()
 		if err == nil && len(files) > 0 {
 			for _, file := range files {
 				if err := s.githubStore.SaveSkillReferenceFile(file.SkillID, file.Path, file.Content); err != nil {
@@ -284,13 +293,10 @@ func (s *SQLSkillStore) PushToGitHub() error {
 			}
 		}
 
-		// Mark as synced
-		skill.PendingSync = false
-		skill.SyncedAt = time.Now()
-		if err := s.updateSyncStatus(&skill); err != nil {
-			return fmt.Errorf("failed to update sync status for %s: %w", skill.ID, err)
+		// Clear pending sync for files ONCE after all files pushed
+		if err := s.ClearPendingSync(); err != nil {
+			return fmt.Errorf("Failed to clean pending sync: %w", err)
 		}
-	}
 
 	return nil
 }
