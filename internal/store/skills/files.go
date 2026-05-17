@@ -14,6 +14,7 @@ func init() {
 
 // CreateSkillFilesTable creates the skill_files table with pending_sync
 func (s *SQLSkillStore) createSkillFilesTable() error {
+	// First create table (IF NOT EXISTS handles existing tables)
 	query := `
 	CREATE TABLE IF NOT EXISTS skill_files (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,16 +27,28 @@ func (s *SQLSkillStore) createSkillFilesTable() error {
 		pending_sync BOOLEAN DEFAULT FALSE,
 		github_sha TEXT,
 		UNIQUE(skill_id, path)
-	);
-	CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync);
-	`
+	)`
 	_, err := s.db.Exec(query)
 	if err != nil {
 		return err
 	}
-	// Migration: add column if table exists
-	_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`)
-	_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`)
+
+	// Create index separately (only runs if table was newly created or already has column)
+	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync)`)
+
+	// Migration: add pending_sync column if it doesn't exist
+	var count int
+	row := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'pending_sync'")
+	if err := row.Scan(&count); err == nil && count == 0 {
+		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`)
+	}
+
+	// Migration: add github_sha column if it doesn't exist
+	row = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'github_sha'")
+	if err := row.Scan(&count); err == nil && count == 0 {
+		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`)
+	}
+
 	return nil
 }
 
@@ -59,6 +72,7 @@ func (s *SQLSkillStore) SaveSkillFile(file *model.SkillFile) error {
 		file.Name,
 		file.Content,
 		time.Now(),
+		file.GitHubSHA,
 	)
 	return err
 }

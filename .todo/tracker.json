@@ -1,0 +1,139 @@
+{
+  "project": "LifeOS",
+  "last_updated": "2026-05-16T17:45:00Z",
+  "current_focus": [
+    {
+      "id": "step7-error-handling",
+      "title": "Proper error handling across all layers",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "tighten-up"
+    }
+  ],
+  "completed": [
+    {
+      "id": "step1-init",
+      "title": "Project initialization",
+      "completed_date": "2026-04-01"
+    },
+    {
+      "id": "step2-router",
+      "title": "Router + routes setup",
+      "completed_date": "2026-04-01"
+    },
+    {
+      "id": "step3-templates",
+      "title": "Template system",
+      "completed_date": "2026-04-01"
+    },
+    {
+      "id": "step4-sqlite",
+      "title": "SQLite + store layer",
+      "completed_date": "2026-04-01"
+    },
+    {
+      "id": "step5-photos",
+      "title": "Photos module with search & tags",
+      "completed_date": "2026-04-13"
+    },
+    {
+      "id": "step6-skills",
+      "title": "Skills module with GitHub sync",
+      "completed_date": "2026-04-15"
+    },
+    {
+      "id": "step6-ai-integration",
+      "title": "AI-powered skill updates (OpenCode sidecar)",
+      "completed_date": "2026-04-26"
+    },
+    {
+      "id": "step6-chat",
+      "title": "Chat with skills - persistent conversation",
+      "completed_date": "2026-05-10"
+    },
+    {
+      "id": "frontend-migration",
+      "title": "TanStack Start frontend migration",
+      "completed_date": "2026-04-26"
+    },
+    {
+      "id": "step7-config",
+      "title": "Environment variables + direnv support",
+      "completed_date": "2026-04-26"
+    },
+    {
+      "id": "chat-side-panel",
+      "title": "Chat modal minimized mode - side panel",
+      "completed_date": "2026-05-16"
+    },
+    {
+      "id": "skills-references-tree",
+      "title": "Skills sidebar - show reference folders and assets in tree view",
+      "completed_date": "2026-05-16"
+    }
+  ],
+  "next_up": [
+    {
+      "id": "skills-download-formats",
+      "title": "Download skills in different formats (opencode, claude, copilot)",
+      "priority": "medium",
+      "category": "skills",
+      "estimated_effort": "small"
+    },
+    {
+      "id": "skills-assets",
+      "title": "Skills assets section (images, files)",
+      "priority": "medium",
+      "category": "skills",
+      "estimated_effort": "medium"
+    },
+    {
+      "id": "skills-download-assets",
+      "title": "Download skills with assets",
+      "priority": "medium",
+      "category": "skills",
+      "estimated_effort": "small",
+      "depends_on": ["skills-assets"]
+    },
+    {
+      "id": "photos-albums",
+      "title": "Albums/collections - group photos together",
+      "priority": "low",
+      "category": "photos",
+      "estimated_effort": "medium"
+    },
+    {
+      "id": "glossary",
+      "title": "Glossary for nix and other tools (Static Webpage)",
+      "priority": "low",
+      "category": "new-feature",
+      "estimated_effort": "medium",
+      "notes": "Useful for other people, host publicly later"
+    },
+    {
+      "id": "cheatsheet",
+      "title": "Cheatsheet Webpage (Static Webpage)",
+      "priority": "low",
+      "category": "new-feature",
+      "estimated_effort": "medium",
+      "notes": "Contains all tools used, commands and descriptions"
+    }
+  ],
+  "backlog": [],
+  "blocked": [],
+  "notes": [
+    "Photos module fully functional with tags and search",
+    "Skills module has full CRUD + AI preview + GitHub sync",
+    "Chat integration with notes context complete",
+    "Frontend migrated to TanStack Start with Atlas design system",
+    "OpenCode sidecar running on port 3002 for AI features"
+  ],
+  "tech_stack": {
+    "backend": "Go + Chi router",
+    "database": "SQLite (modernc.org/sqlite)",
+    "frontend": "TanStack Start + TypeScript",
+    "ai": "OpenCode sidecar (Node.js + Express, port 3002)",
+    "markdown": "goldmark",
+    "styling": "Atlas Design System (custom CSS variables)"
+  }
+}

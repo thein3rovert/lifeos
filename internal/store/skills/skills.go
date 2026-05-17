@@ -259,7 +259,7 @@ func (s *SQLSkillStore) GetPendingSkills() ([]model.Skill, error) {
 	return s.scanSkills(rows)
 }
 
-// PushToGitHub pushes pending skills to GitHub
+// PushToGitHub pushes pending skills and files to GitHub
 func (s *SQLSkillStore) PushToGitHub() error {
 	if s.githubStore == nil {
 		return fmt.Errorf("no GitHub store configured")
@@ -270,12 +270,13 @@ func (s *SQLSkillStore) PushToGitHub() error {
 		return err
 	}
 
+	// Push all skills first
 	for _, skill := range pending {
 		if err := s.githubStore.SaveSkill(&skill); err != nil {
 			return fmt.Errorf("failed to push skill %s: %w", skill.ID, err)
 		}
 
-			// Mark as synced
+		// Mark as synced
 		skill.PendingSync = false
 		skill.SyncedAt = time.Now()
 		if err := s.updateSyncStatus(&skill); err != nil {
@@ -283,20 +284,29 @@ func (s *SQLSkillStore) PushToGitHub() error {
 		}
 	}
 
-	// Push all modiffied files
+	// Push files using type assertion (only GitHub store has this)
+	type referencePusher interface {
+		SaveSkillReferenceFile(skillID, filePath, content string) error
+	}
+
+	pusher, ok := s.githubStore.(referencePusher)
+	if !ok {
+		// GitHub store doesn't support pushing files
+		return nil
+	}
+
 	files, err := s.GetModifiedSkillFiles()
-		if err == nil && len(files) > 0 {
-			for _, file := range files {
-				if err := s.githubStore.SaveSkillReferenceFile(file.SkillID, file.Path, file.Content); err != nil {
-					return fmt.Errorf("failed to clear pending sync: %w", err)
-				}
+	if err == nil && len(files) > 0 {
+		for _, file := range files {
+			if err := pusher.SaveSkillReferenceFile(file.SkillID, file.Path, file.Content); err != nil {
+				return fmt.Errorf("failed to push file %s: %w", file.Path, err)
 			}
 		}
-
-		// Clear pending sync for files ONCE after all files pushed
+		// Clear pending sync for files after all are pushed
 		if err := s.ClearPendingSync(); err != nil {
-			return fmt.Errorf("Failed to clean pending sync: %w", err)
+			return fmt.Errorf("failed to clear pending sync: %w", err)
 		}
+	}
 
 	return nil
 }

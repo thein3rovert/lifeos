@@ -104,6 +104,11 @@ export const api = {
   references: {
     list: (skillId: string) => fetcher<SkillReference[]>(`/api/skills/${skillId}/files`),
     get: (skillId: string, path: string) => fetcher<SkillReference>(`/api/skills/${skillId}/files/${path}`),
+    save: (skillId: string, path: string, content: string) =>
+      fetcher<{ status: string }>(`/api/skills/${skillId}/files/${path}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      }),
   },
 }
 

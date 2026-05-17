@@ -3,6 +3,7 @@ package skills
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store/skills"
@@ -63,10 +64,17 @@ func (h *SkillFileHandler)SaveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract filename from path
+	parts := strings.Split(path, "/")
+	name := parts[len(parts)-1]
+
 	file := &model.SkillFile {
 		SkillID: skillID,
 		Path: path,
+		Type: "file",
+		Name: name,
 		Content: body.Content,
+		GitHubSHA: "", // Empty for local edits
 	}
 	 err := h.skillStore.SaveSkillFile(file)
 

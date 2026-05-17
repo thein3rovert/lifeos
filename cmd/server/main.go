@@ -101,6 +101,7 @@ func main() {
 	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
 	mux.HandleFunc("GET /api/skills/{id}/files", skillFileAPI.ListFile)
 	mux.HandleFunc("GET /api/skills/{id}/files/{path...}", skillFileAPI.GetFile)
+	mux.HandleFunc("PUT /api/skills/{id}/files/{path...}", skillFileAPI.SaveFile)
 
 	// Notes
 	mux.HandleFunc("GET /api/notes", noteAPI.GetAllNotes)

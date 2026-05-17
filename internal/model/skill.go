@@ -25,4 +25,5 @@ type SkillFile struct {
 	Name      string    `json:"name"`    // file/folder name
 	Content   string    `json:"content"` // file content (empty for dirs)
 	UpdatedAt time.Time `json:"updated_at"`
+	GitHubSHA string    `json:"github_sha"`
 }

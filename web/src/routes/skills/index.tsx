@@ -202,6 +202,16 @@ function SkillsPage() {
     }
   }, [refreshSkills, selectSkill])
 
+  const handleRefetchReference = useCallback(async () => {
+    if (!selectedReference) return
+    try {
+      const updated = await api.references.get(selectedReference.skill_id, selectedReference.path)
+      setSelectedReference(updated)
+    } catch (err) {
+      console.error('Failed to refetch reference:', err)
+    }
+  }, [selectedReference])
+
   const syncing = syncState === 'pulling'
   const pushing = syncState === 'pushing'
 
@@ -230,6 +240,7 @@ function SkillsPage() {
         onSave={handleSaveSkill}
         saving={saving}
         onOpenChat={() => setShowChat(true)}
+        onRefetch={handleRefetchReference}
       />
 
       <SkillNotes
