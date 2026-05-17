@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/thein3rovert/lifeos/internal/model"
 	"github.com/thein3rovert/lifeos/internal/store/skills"
 )
 
@@ -45,4 +46,35 @@ func (h *SkillFileHandler) GetFile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(file)
+}
+
+
+func (h *SkillFileHandler)SaveFile(w http.ResponseWriter, r *http.Request) {
+
+	skillID := r.PathValue("id")
+	path := r.PathValue("path")
+
+	var body struct {
+		Content string `json:"content"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	file := &model.SkillFile {
+		SkillID: skillID,
+		Path: path,
+		Content: body.Content,
+	}
+	 err := h.skillStore.SaveSkillFile(file)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w. WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status":"saved"})
 }

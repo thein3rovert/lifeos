@@ -218,6 +218,23 @@ func (s *SkillStore) SaveSkill(skill *model.Skill) error {
 	return s.client.CreatePR(ctx, title, branchName, s.branch, body)
 }
 
+func (s *SkillStore) SaveSkillReferenceFile(skillID, filepath, content string) error {
+	ctx := context.Background()
+
+	fullPath := fmt.Sprintf("%s/%s/references/%s", s.skillsPath, skillID, filepath)
+	sha, err := s.client.GetFileSHA(ctx, fullPath)
+	if err != nil {
+		sha = ""
+	}
+
+	branchName := fmt.Sprintf("update-ref-%s-%d", skillID, time.Now().Unix())
+	if err := s.client.CreateBranch(ctx, branchName, s.branch); err  != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("Update reference: %s/%s", skillID, filepath)
+	return s.client.CommitFile(ctx, fullPath, content, sha, branchName, message)
+}
 // GetSkillFiles fetches all files in a skill's references directory
 func (s *SkillStore) GetSkillFiles(skillID string) ([]model.SkillFile, error) {
 
