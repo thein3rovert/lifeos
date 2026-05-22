@@ -137,7 +137,7 @@ func main() {
 	lifeosMCPServer := mcpServer.NewMCPServer()
 	// Server sent event transport
 	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+port))
-	mux.Handle("/mcp/", http.StripPrefix("/mcp", sse))
+	mux.Handle("/mcp/",middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 
 	// ── HTML routes (existing, will be removed in Phase 4) ─────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -165,8 +165,8 @@ func main() {
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
-	log.Printf("Server starting on %s", port)
-	if err := http.ListenAndServe(":"+port, middleware.CORS(middleware.CustomLogger(mux))); err != nil {
+	log.Printf("Server starting on %s (HTTPS)", port)
+	if err := http.ListenAndServeTLS(":"+port, "cert.pem", "key.pem", middleware.CORS(middleware.CustomLogger(mux))); err != nil {
 		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
 		log.Fatal(err)
 	}
