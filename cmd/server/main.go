@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mark3labs/mcp-go/server"
 	"github.com/thein3rovert/lifeos/internal/api"
 	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
 	"github.com/thein3rovert/lifeos/internal/handler"
+	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
 	"github.com/thein3rovert/lifeos/internal/middleware"
 	service "github.com/thein3rovert/lifeos/internal/services"
 	"github.com/thein3rovert/lifeos/internal/store"
@@ -64,6 +66,12 @@ func main() {
 
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
+
+	// Get port from env
+	port := os.Getenv("LIFEOS_PORT")
+	if port == "" {
+		port = "6060"
+	}
 
 	mux := http.NewServeMux()
 
@@ -125,6 +133,12 @@ func main() {
 	mux.HandleFunc("POST /api/skills/{id}/chat", chatAPI.SendChatMessage)
 	mux.HandleFunc("GET /api/skills/{id}/messages", chatAPI.GetChatMessages)
 
+	// ==== MCP SSE Endpoints ====
+	lifeosMCPServer := mcpServer.NewMCPServer()
+	// Server sent event transport
+	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+port))
+	mux.Handle("/mcp/", http.StripPrefix("/mcp", sse))
+
 	// ── HTML routes (existing, will be removed in Phase 4) ─────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("LifeOS is running"))
@@ -150,11 +164,6 @@ func main() {
 	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
-
-	port := os.Getenv("LIFEOS_PORT")
-	if port == "" {
-		port = "6060"
-	}
 
 	log.Printf("Server starting on %s", port)
 	if err := http.ListenAndServe(":"+port, middleware.CORS(middleware.CustomLogger(mux))); err != nil {
