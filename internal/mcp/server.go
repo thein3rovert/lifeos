@@ -37,7 +37,6 @@ func NewMCPServer() *server.MCPServer {
 
 	s.AddTool(listTool, listFilesHandler)
 
-
 // === Second Tool ===
 // Lets the agents ask "show me the content of files Y"
 readTool := mcp.NewTool("read_file",
@@ -47,13 +46,12 @@ readTool := mcp.NewTool("read_file",
 	mcp.Description("Absolute path to the file to read"),
 	),
 )
-
 s.AddTool(readTool, readFileHandler)
 return s
 }
 
 // Utils MCP File Handlers
-func listFilesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, err) {
+func listFilesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	targetPath, err := req.RequireString("path")
 	if err != nil {
 		return mcp.NewToolResultError("path is required"), nil
@@ -92,7 +90,7 @@ func listFilesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 }
 
 // readFileHandler responds to the read_file tool call
-func readFileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRequest, error) {
+func readFileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 
 	// TODO: Add reusable to utils or one funtion
 	targetPath, err := req.RequireString("path")
