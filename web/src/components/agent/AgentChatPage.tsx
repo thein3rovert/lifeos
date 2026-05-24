@@ -1,13 +1,94 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp } from "lucide-react";
+import { SendHorizontal, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
-export function AgentChatPage() {
+type Message = {
+  role: string;
+  content: string;
+  status?: "streaming" | "complete";
+};
+
+export default function AgentChatPage() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<
-    Array<{ role: "user" | "assistant"; content: string }>
-  >([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [agentStatus, setAgentStatus] = useState<string>("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, agentStatus]);
+
+  // Connect to SSE for real-time agent updates
+  useEffect(() => {
+    const eventSource = new EventSource(`${import.meta.env.VITE_API_URL}/api/agent/events`);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        console.log("[Agent UI] Received SSE event:", payload.type, payload);
+        
+        if (payload.type === "message.part.updated") {
+          // Show what the agent is doing
+          const part = payload.properties.part;
+          if (part.type === "tool") {
+            setAgentStatus(`🔧 Using tool: ${part.name}`);
+          } else if (part.type === "text" && payload.properties.delta) {
+            // Stream text as it comes in
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant" && last.status === "streaming") {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...last, content: last.content + payload.properties.delta },
+                ];
+              } else {
+                return [...prev, { role: "assistant", content: payload.properties.delta, status: "streaming" }];
+              }
+            });
+          }
+        } else if (payload.type === "session.status") {
+          const status = payload.properties.status;
+          if (status.type === "busy") {
+            setAgentStatus("💭 Thinking...");
+          } else if (status.type === "idle") {
+            setAgentStatus("");
+            // Mark last message as complete
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.status === "streaming") {
+                return [...prev.slice(0, -1), { ...last, status: "complete" }];
+              }
+              return prev;
+            });
+          }
+        } else if (payload.type === "message.updated") {
+          setAgentStatus("");
+          setIsLoading(false);
+        } else if (payload.type === "connected") {
+          console.log("[Agent UI] SSE connection established");
+        }
+      } catch (err) {
+        console.error("Failed to parse SSE event:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.error("SSE connection error");
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   // Close on click outside
   useEffect(() => {
@@ -27,24 +108,51 @@ export function AgentChatPage() {
   }, [isExpanded]);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isLoading) return;
 
-    // Add user message
-    const userMessage = { role: "user" as const, content: message };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = message.trim();
     setMessage("");
+    setMessages((prev) => [...prev, { role: "user", content: userMessage, status: "complete" }]);
+    setIsLoading(true);
+    setAgentStatus("💭 Starting...");
 
-    // TODO: Call sidecar API
-    // For now, just echo back
-    setTimeout(() => {
+    try {
+      // SSE will handle streaming updates, but we still call the API
+      // in case SSE misses something or for final confirmation
+      const data = await api.agent.chat(userMessage, sessionId);
+      
+      // Only add response if SSE didn't already stream it
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.content) {
+          // SSE already added it, just mark complete
+          return [...prev.slice(0, -1), { ...last, status: "complete" }];
+        } else {
+          // SSE missed it, add manually
+          return [...prev, { role: "assistant", content: data.response, status: "complete" }];
+        }
+      });
+      
+      // Save session ID for continuation
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
+    } catch (error: any) {
+      console.error("Failed to send message:", error);
+      
+      let errorMessage = "Sorry, I couldn't process that message.";
+      if (error?.message?.includes('timeout') || error?.message?.includes('504')) {
+        errorMessage = "⏱️ Request timed out. The agent might be processing a complex task or MCP is slow. Try again or simplify your request.";
+      }
+      
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "I'm your agent assistant. (API integration coming soon)",
-        },
+        { role: "assistant", content: errorMessage, status: "complete" },
       ]);
-    }, 500);
+    } finally {
+      setIsLoading(false);
+      setAgentStatus("");
+    }
   };
 
   return (
@@ -84,26 +192,42 @@ export function AgentChatPage() {
                   Start a conversation with your agent
                 </div>
               ) : (
-                messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
+                <>
+                  {messages.map((msg, idx) => (
                     <div
-                      className={`
-                        max-w-[80%] px-4 py-2 rounded-lg text-sm
-                        ${
-                          msg.role === "user"
-                            ? "bg-accent text-on-accent"
-                            : "bg-tertiary text-primary"
-                        }
-                      `}
+                      key={idx}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      {msg.content}
+                      <div
+                        className={`
+                          max-w-[80%] px-4 py-2 rounded-lg text-sm
+                          ${
+                            msg.role === "user"
+                              ? "bg-accent text-on-accent"
+                              : "bg-tertiary text-primary"
+                          }
+                        `}
+                      >
+                        {msg.content}
+                        {msg.status === "streaming" && (
+                          <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  
+                  {/* Agent status indicator */}
+                  {agentStatus && (
+                    <div className="flex justify-start">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-tertiary rounded-lg text-sm text-secondary">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>{agentStatus}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
+              <div ref={messagesEndRef} />
             </div>
           </div>
         </div>

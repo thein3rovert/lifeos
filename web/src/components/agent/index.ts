@@ -1,1 +1,1 @@
-export { AgentChatPage } from "./AgentChatPage";
+export { default as AgentChatPage } from "./AgentChatPage";
