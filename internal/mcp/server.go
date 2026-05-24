@@ -21,19 +21,11 @@ type DirectoryInfo struct {
 // Each directory has a description to help the agent understand its purpose
 var allowedDirectories = []DirectoryInfo{
 	{
-		Path:        "/home/thein3rovert/Documents/project",
-		Description: "LifeOS project - Contains Go backend, TanStack frontend, skills, and documentation",
-	},
-	{
-		Path:        "/home/thein3rovert/.config/opencode",
-		Description: "OpenCode configuration - Contains agent configs, skills, and MCP settings",
-	},
-	{
-		Path:        "/home/thein3rovert/Documents/meetings",
+		Path:        "/home/thein3rovert/Documents/resources/work_Elanco/meeting",
 		Description: "Meeting notes - All meeting notes and summaries organized by date/topic",
 	},
 	{
-		Path:        "/home/thein3rovert/Documents/journals",
+		Path:        "/home/thein3rovert/Documents/resources/work_Elanco/journal",
 		Description: "Journal entries - Personal journal entries and reflections",
 	},
 }
