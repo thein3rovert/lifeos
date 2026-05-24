@@ -330,68 +330,6 @@ User: ${message}`;
 
 
 
-// Agent chat SSE endpoint - for real-time streaming updates
-app.get("/agent/events", async (req, res) => {
-  console.log("[Agent Events] Client connected for SSE");
-
-  // Set up SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
-
-  // Send initial heartbeat
-  res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
-
-  try {
-    // Subscribe to OpenCode events via raw fetch (SDK might have issues with SSE)
-    console.log("[Agent Events] Connecting to OpenCode event stream...");
-
-    const eventSource = await fetch("http://127.0.0.1:4097/event");
-    const reader = eventSource.body.getReader();
-    const decoder = new TextDecoder();
-
-    console.log("[Agent Events] Successfully connected to event stream");
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.substring(6));
-            console.log(`[Agent Events] Received: ${data.type}`);
-
-            // Filter for agent-relevant events
-            if (
-              data.type === "message.part.updated" ||
-              data.type === "session.status" ||
-              data.type === "message.updated"
-            ) {
-              console.log(`[Agent Events] Forwarding: ${data.type}`);
-              res.write(`data: ${JSON.stringify(data)}\n\n`);
-            }
-          } catch (err) {
-            // Skip parse errors
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error("[Agent Events] Stream error:", err.message);
-    console.error("[Agent Events] Stack:", err.stack);
-  }
-
-  req.on("close", () => {
-    console.log("[Agent Events] Client disconnected");
-    res.end();
-  });
-});
-
 await initOpencode();
 
 app.listen(PORT, "127.0.0.1", () => {
