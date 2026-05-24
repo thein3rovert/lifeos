@@ -106,7 +106,7 @@ func runHTTPServer() {
 	if sidecarURL == "" {
 		sidecarURL = "http://127.0.0.1:3002"
 	}
-	chatService := service.NewChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
 	noteService := service.NewNoteService(noteStore, skillStore)
 
 	// ── Initialize API handlers ─────────────────────────────────────
@@ -116,8 +116,8 @@ func runHTTPServer() {
 	noteAPI := api.NewNoteHandler(noteService)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
-	chatAPI := api.NewChatHandler(chatService)
-	agentAPI := agents.NewAgentHandler(sidecarURL)
+	chatAPI := api.NewAgentChatHandler(agentChatService)
+	agentAPI := agents.NewAgentChatHandler(agentChatService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos
@@ -161,7 +161,7 @@ func runHTTPServer() {
 	mux.HandleFunc("GET /api/skills/{id}/messages", chatAPI.GetChatMessages)
 
 	// Agent chat (general assistant with MCP tools)
-	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChat)
+	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChatMessage)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()

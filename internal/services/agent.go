@@ -15,12 +15,10 @@ import (
 
 // Move struct to a type folder
 type AgentChatService struct {
-
 	// Stores
 	skillStore *skills.SQLSkillStore
 	msgStore   *store.ChatMessageStore
 	noteStore  *notes.NoteStore
-
 	// Sidecar
 	sidecarURL string
 }
@@ -32,6 +30,16 @@ func NewAgentChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatM
 		noteStore:  noteStore,
 		sidecarURL: sidecarURL,
 	}
+}
+
+type AgentChatRequest struct {
+	Message   string  `json:"message"`
+	SessionID *string `json:"sessionId,omitempty"`
+}
+
+type AgentChatResponse struct {
+	Response  string `json:"response"`
+	SessionID string `json:"sessionId"`
 }
 
 // CreateOrResumeSession creates a new OpenCode session or returns existing one
@@ -88,6 +96,45 @@ func (s *AgentChatService) CreateOrResumeSession(skillID string) (string, error)
 	}
 
 	return sessionID, nil
+}
+
+
+func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChatResponse, error) {
+
+	if req.Message == "" {
+		return AgentChatResponse{}, fmt.Errorf("message is required")
+	}
+
+	// Forward request to sidecar
+		body, err := json.Marshal(req)
+		if err != nil {
+			return AgentChatResponse{}, fmt.Errorf("failed to mershal request")
+		}
+		// TODO: Make sure endpoint is usecase focused
+		// ex. /agent/raven (Because we can have more than
+		// one agent using this same func)
+		resp, err := http.Post(
+			fmt.Sprintf("%s/agent/chat", s.sidecarURL),
+			"application/json",
+			bytes.NewReader(body),
+		)
+		if err != nil {
+			return AgentChatResponse{}, fmt.Errorf("sidecar request failed")
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			return AgentChatResponse{}, fmt.Errorf("sidecar error: %s", string(bodyBytes))
+		}
+
+		var chatResp AgentChatResponse
+			if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+
+				return AgentChatResponse{}, fmt.Errorf("failed to decode sidecar response: %w", err)
+			}
+
+			return chatResp, nil
 }
 
 // SendMessage handles sending a chat message and saving it
@@ -151,7 +198,7 @@ func (s *AgentChatService) SendSkillChatMessage(skillID, message string, noteIds
 }
 
 // GetMessages retrieves all messages for a skill's session
-func (s *ChatService) GetSkillChatMessages(skillID string) ([]store.ChatMessage, error) {
+func (s *AgentChatService) GetSkillChatMessages(skillID string) ([]store.ChatMessage, error) {
 	skill, err := s.skillStore.GetSkill(skillID)
 	if err != nil {
 		return nil, fmt.Errorf("skill not found: %w", err)

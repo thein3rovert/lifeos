@@ -9,14 +9,15 @@ import (
 )
 
 // ChatHandler handles persistent chat with OpenCode
-type ChatHandler struct {
-	chatService *service.ChatService
+type AgentHandler struct {
+	agentChatService *service.AgentChatService
 }
 
-// NewChatHandler creates a new chat handler
-func NewChatHandler(chatService *service.ChatService) *ChatHandler {
-	return &ChatHandler{
-		chatService: chatService,
+
+// NewAgentChatHandler creates a new chat handler
+func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandler {
+	return &AgentHandler{
+		agentChatService: agentChatService,
 	}
 }
 
@@ -42,13 +43,13 @@ type GetOrCreateSessionResponse struct {
 
 // GetOrCreateSession gets or creates an OpenCode session for a skill
 // POST /api/skills/{id}/session
-func (h *ChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
+func (h *AgentHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
 	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
 	}
 
-	sessionID, err := h.chatService.CreateOrResumeSession(skillID)
+	sessionID, err := h.agentChatService.CreateOrResumeSession(skillID)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
 		return
@@ -68,7 +69,7 @@ type ChatMessageResponse struct {
 
 // SendChatMessage sends a message to the skill's chat session
 // POST /api/skills/{id}/chat
-func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
+func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	var req ChatMessageRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		RespondError(w, http.StatusBadRequest, "invalid request body")
@@ -86,7 +87,7 @@ func (h *ChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the chat service to handle the businesss logic
-	response, err := h.chatService.SendMessage(skillID, req.Message, req.NoteIds)
+	response, err := h.agentChatService.SendSkillChatMessage(skillID, req.Message, req.NoteIds)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -107,13 +108,13 @@ type GetMessagesResponse struct {
 
 // GetChatMessages gets the chat history for a skill
 // GET /api/skills/{id}/messages
-func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
+func (h *AgentHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 
 	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
 	}
-	messages, err := h.chatService.GetMessages(skillID)
+	messages, err := h.agentChatService.GetSkillChatMessages(skillID)
 
 	if err != nil {
 		fmt.Printf("[GetChatMessages] Error: %v\n", err)
