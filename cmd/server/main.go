@@ -10,6 +10,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/thein3rovert/lifeos/internal/api"
 	agents "github.com/thein3rovert/lifeos/internal/api/agents"
+	chats "github.com/thein3rovert/lifeos/internal/api/chats"
 	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
@@ -116,7 +117,7 @@ func runHTTPServer() {
 	noteAPI := api.NewNoteHandler(noteService)
 	aiAPI := api.NewAIHandler(skillStore, noteStore)
 	tagAPI := api.NewTagHandler(photoStore)
-	chatAPI := api.NewAgentChatHandler(agentChatService)
+	chatAPI := chats.NewAgentChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────

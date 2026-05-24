@@ -1,10 +1,11 @@
-package api
+package chats
 
 import (
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/thein3rovert/lifeos/internal/api"
 	service "github.com/thein3rovert/lifeos/internal/services"
 )
 
@@ -24,7 +25,7 @@ func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandl
 func getSkillID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	skillID := r.PathValue("id")
 	if skillID == "" {
-		RespondError(w, http.StatusBadRequest, "skill ID is required")
+		api.RespondError(w, http.StatusBadRequest, "skill ID is required")
 		return "", false
 	}
 	return skillID, true
@@ -50,11 +51,11 @@ func (h *AgentHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request
 
 	sessionID, err := h.agentChatService.CreateOrResumeSession(skillID)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
+		api.RespondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get session: %v", err))
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
+	api.RespondJSON(w, http.StatusOK, GetOrCreateSessionResponse{SessionID: sessionID})
 }
 
 type ChatMessageRequest struct {
@@ -70,13 +71,13 @@ type ChatMessageResponse struct {
 // POST /api/skills/{id}/chat
 func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	var req ChatMessageRequest
-	if err := DecodeJSON(r, &req); err != nil {
-		RespondError(w, http.StatusBadRequest, "invalid request body")
+	if err := api.DecodeJSON(r, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if req.Message == "" {
-		RespondError(w, http.StatusBadRequest, "message is required")
+		api.RespondError(w, http.StatusBadRequest, "message is required")
 		return
 	}
 
@@ -88,10 +89,10 @@ func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	// Call the chat service to handle the businesss logic
 	response, err := h.agentChatService.SendSkillChatMessage(skillID, req.Message, req.NoteIds)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, err.Error())
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondJSON(w, http.StatusOK, ChatMessageResponse{Response: response})
+	api.RespondJSON(w, http.StatusOK, ChatMessageResponse{Response: response})
 }
 
 type ChatMessage struct {
@@ -117,7 +118,8 @@ func (h *AgentHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Printf("[GetChatMessages] Error: %v\n", err)
-		RespondError(w, http.StatusInternalServerError, "failed to get messages")
+		api.RespondError(w, http.StatusInternalServerError, "failed to get messages")
+
 		return
 	}
 
@@ -132,5 +134,5 @@ func (h *AgentHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	RespondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
+	api.RespondJSON(w, http.StatusOK, GetMessagesResponse{Messages: resp})
 }
