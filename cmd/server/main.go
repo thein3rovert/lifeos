@@ -161,7 +161,7 @@ func runHTTPServer() {
 	mux.HandleFunc("GET /api/skills/{id}/messages", chatAPI.GetChatMessages)
 
 	// Agent chat (general assistant with MCP tools)
-	mux.HandleFunc("POST /api/agent/chat", agentAPI.Chat)
+	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChat)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()

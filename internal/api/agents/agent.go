@@ -34,7 +34,7 @@ type AgentChatResponse struct {
 
 // Chat send/proxies chat messages to the sidecar's /agent/chat endpoint
 // POST /api/agent/chat
-func (h *AgentHandler) Chat(w http.ResponseWriter, r *http.Request) {
+func (h *AgentHandler) AgentChat(w http.ResponseWriter, r *http.Request) {
 
 	// Creater var req of type struct
 	var req AgentChatRequest
@@ -56,6 +56,9 @@ func (h *AgentHandler) Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Make sure endpoint is usecase focused
+	// ex. /agent/raven (Because we can have more than
+	// one agent using this same func)
 	resp, err := http.Post(
 		fmt.Sprintf("%s/agent/chat", h.sidecarURL),
 		"application/json",
