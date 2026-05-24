@@ -26,6 +26,8 @@ func DecodeJSON(r *http.Request, dst interface{}) error {
 	if r.Body == nil {
 		return errBodyRequired
 	}
+	// Defer the body from closing until the
+	// decorder is done decoding
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(dst)
 }

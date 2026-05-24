@@ -34,8 +34,11 @@ type AgentChatResponse struct {
 
 // Chat send/proxies chat messages to the sidecar's /agent/chat endpoint
 // POST /api/agent/chat
-func (h *AgentHandler) AgentChat(w http.ResponseWriter, r *http.Request) {
+func (h *AgentHandler) Chat(w http.ResponseWriter, r *http.Request) {
+
+	// Creater var req of type struct
 	var req AgentChatRequest
+
 	if err := api.DecodeJSON(r, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -49,7 +52,7 @@ func (h *AgentHandler) AgentChat(w http.ResponseWriter, r *http.Request) {
 	// Forward request to sidecar
 	body, err := json.Marshal(req)
 	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "failed to marshal request")
+		api.RespondError(w, http.StatusInternalServerError, "failed to marshal request")
 		return
 	}
 
@@ -59,24 +62,24 @@ func (h *AgentHandler) AgentChat(w http.ResponseWriter, r *http.Request) {
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		RespondError(w, http.StatusBadGateway, fmt.Sprintf("sidecar request failed: %v", err))
+		api.RespondError(w, http.StatusBadGateway, fmt.Sprintf("sidecar request failed: %v", err))
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		RespondError(w, resp.StatusCode, fmt.Sprintf("sidecar error: %s", string(bodyBytes)))
+		api.RespondError(w, resp.StatusCode, fmt.Sprintf("sidecar error: %s", string(bodyBytes)))
 		return
 	}
 
 	var chatResp AgentChatResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		RespondError(w, http.StatusInternalServerError, "failed to decode sidecar response")
+		api.RespondError(w, http.StatusInternalServerError, "failed to decode sidecar response")
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, chatResp)
+	api.RespondJSON(w, http.StatusOK, chatResp)
 }
 
 // Events streams real-time agent events via SSE
