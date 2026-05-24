@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,9 +20,33 @@ import (
 	skillstore "github.com/thein3rovert/lifeos/internal/store/skills"
 )
 
-// go run cmd/server/main.go
-// Every Request: Middleware(customLogger) -> CORS -> Handler
+// go run cmd/server/main.go           -- runs HTTP server
+// go run cmd/server/main.go --mcp     -- runs MCP stdio server
 func main() {
+	// Parse command line flags
+	mcpMode := flag.Bool("mcp", false, "Run as MCP stdio server instead of HTTP server")
+	flag.Parse()
+
+	// If --mcp flag is set, run the MCP stdio server
+	if *mcpMode {
+		runMCPServer()
+		return
+	}
+
+	// Otherwise, run the normal HTTP server
+	runHTTPServer()
+}
+
+// runMCPServer starts the MCP stdio server for OpenCode
+func runMCPServer() {
+	s := mcpServer.NewMCPServer()
+	if err := server.ServeStdio(s); err != nil {
+		log.Fatalf("MCP server error: %v", err)
+	}
+}
+
+// runHTTPServer starts the normal HTTP server for the web app
+func runHTTPServer() {
 
 	// Initialise store (Database store -> photos)
 	db, err := store.NewSQLiteStore("lifeos.db")
@@ -165,8 +190,8 @@ func main() {
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
-	log.Printf("Server starting on %s (HTTPS)", port)
-	if err := http.ListenAndServeTLS(":"+port, "cert.pem", "key.pem", middleware.CORS(middleware.CustomLogger(mux))); err != nil {
+	log.Printf("Server starting on %s", port)
+	if err := http.ListenAndServe(":"+port, middleware.CORS(middleware.CustomLogger(mux))); err != nil {
 		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
 		log.Fatal(err)
 	}

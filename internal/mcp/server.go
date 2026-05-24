@@ -11,10 +11,31 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// allowDirs: This restricts which folders the agents can read
-var allowedDirectories = []string {
-	"/home/thein3rovert/Documents/project",
-	"/home/thein3rovert/.config/opencode",
+// DirectoryInfo holds information about an allowed directory
+type DirectoryInfo struct {
+	Path        string
+	Description string
+}
+
+// allowedDirectories: This restricts which folders the agents can read
+// Each directory has a description to help the agent understand its purpose
+var allowedDirectories = []DirectoryInfo{
+	{
+		Path:        "/home/thein3rovert/Documents/project",
+		Description: "LifeOS project - Contains Go backend, TanStack frontend, skills, and documentation",
+	},
+	{
+		Path:        "/home/thein3rovert/.config/opencode",
+		Description: "OpenCode configuration - Contains agent configs, skills, and MCP settings",
+	},
+	{
+		Path:        "/home/thein3rovert/Documents/meetings",
+		Description: "Meeting notes - All meeting notes and summaries organized by date/topic",
+	},
+	{
+		Path:        "/home/thein3rovert/Documents/journals",
+		Description: "Journal entries - Personal journal entries and reflections",
+	},
 }
 
 // New MCP-Server create the mcp server file-reading tools
@@ -23,7 +44,18 @@ func NewMCPServer() *server.MCPServer {
 		"lifeos-files", // TODO: Change based on file type [meeting, journals and more]
 		"1.0.0",
 			server.WithToolCapabilities(false),
+			server.WithResourceCapabilities(true, false), // list=true, subscribe=false
 	)
+
+	// === Resource: allowed_directories ===
+	// Lets the agent know which directories it can access
+	allowedDirsResource := mcp.NewResource(
+		"lifeos://allowed-directories",
+		"Allowed Directories",
+		mcp.WithResourceDescription("List of directories this MCP server has access to"),
+		mcp.WithMIMEType("text/plain"),
+	)
+	s.AddResource(allowedDirsResource, allowedDirectoriesHandler)
 
 	// === First Tool: list_files ===
 	// Let's the agent ask "what files are in the folder x?
@@ -48,6 +80,32 @@ readTool := mcp.NewTool("read_file",
 )
 s.AddTool(readTool, readFileHandler)
 return s
+}
+
+// allowedDirectoriesHandler returns the list of allowed directories
+func allowedDirectoriesHandler(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	var lines []string
+	lines = append(lines, "This MCP server has access to the following directories:")
+	lines = append(lines, "")
+	for _, dirInfo := range allowedDirectories {
+		lines = append(lines, fmt.Sprintf("📁 %s", dirInfo.Path))
+		lines = append(lines, fmt.Sprintf("   %s", dirInfo.Description))
+		lines = append(lines, "")
+	}
+	lines = append(lines, "All subdirectories within these paths are also accessible.")
+	lines = append(lines, "")
+	lines = append(lines, "Usage tips:")
+	lines = append(lines, "- For meeting notes: check /home/thein3rovert/Documents/meetings")
+	lines = append(lines, "- For journal entries: check /home/thein3rovert/Documents/journals")
+	lines = append(lines, "- For project code: check /home/thein3rovert/Documents/project")
+
+	return []mcp.ResourceContents{
+		mcp.TextResourceContents{
+			URI:      "lifeos://allowed-directories",
+			MIMEType: "text/plain",
+			Text:     strings.Join(lines, "\n"),
+		},
+	}, nil
 }
 
 // Utils MCP File Handlers
@@ -116,8 +174,8 @@ func isAllowedDirectory(path string) bool {
 	if err != nil {
 		return false
 	}
-	for _, dir := range allowedDirectories {
-		if strings.HasPrefix(absolutePath, dir) {
+	for _, dirInfo := range allowedDirectories {
+		if strings.HasPrefix(absolutePath, dirInfo.Path) {
 			return true
 		}
 	}

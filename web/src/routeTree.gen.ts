@@ -14,6 +14,7 @@ import { Route as SkillsIndexRouteImport } from './routes/skills/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as NotesIndexRouteImport } from './routes/notes/index'
 import { Route as GalleryIndexRouteImport } from './routes/gallery/index'
+import { Route as AgentIndexRouteImport } from './routes/agent/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,9 +41,15 @@ const GalleryIndexRoute = GalleryIndexRouteImport.update({
   path: '/gallery/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentIndexRoute = AgentIndexRouteImport.update({
+  id: '/agent/',
+  path: '/agent/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent/': typeof AgentIndexRoute
   '/gallery/': typeof GalleryIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent': typeof AgentIndexRoute
   '/gallery': typeof GalleryIndexRoute
   '/notes': typeof NotesIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent/': typeof AgentIndexRoute
   '/gallery/': typeof GalleryIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -65,14 +74,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gallery/' | '/notes/' | '/settings/' | '/skills/'
+  fullPaths:
+    | '/'
+    | '/agent/'
+    | '/gallery/'
+    | '/notes/'
+    | '/settings/'
+    | '/skills/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gallery' | '/notes' | '/settings' | '/skills'
-  id: '__root__' | '/' | '/gallery/' | '/notes/' | '/settings/' | '/skills/'
+  to: '/' | '/agent' | '/gallery' | '/notes' | '/settings' | '/skills'
+  id:
+    | '__root__'
+    | '/'
+    | '/agent/'
+    | '/gallery/'
+    | '/notes/'
+    | '/settings/'
+    | '/skills/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentIndexRoute: typeof AgentIndexRoute
   GalleryIndexRoute: typeof GalleryIndexRoute
   NotesIndexRoute: typeof NotesIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -116,11 +139,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GalleryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent/': {
+      id: '/agent/'
+      path: '/agent'
+      fullPath: '/agent/'
+      preLoaderRoute: typeof AgentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentIndexRoute: AgentIndexRoute,
   GalleryIndexRoute: GalleryIndexRoute,
   NotesIndexRoute: NotesIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,

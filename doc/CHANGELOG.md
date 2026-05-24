@@ -4,6 +4,42 @@ All notable changes and features will be documented in this file.
 
 ---
 
+## [2026-05-22] - MCP Server Integration for File Access
+
+### Added
+- **MCP Server for File Access** - Built-in Model Context Protocol server for reading local files
+- **stdio Transport** - MCP server communicates via stdin/stdout (no network required)
+- **OpenCode Integration** - Configured as local MCP tool in OpenCode
+- **Security Sandboxing** - Restricted file access to allowed directories only
+- **Dual-Mode Binary** - Single server binary with `--mcp` flag for MCP mode
+
+### Backend
+- `internal/mcp/server.go` - MCP server with `list_files` and `read_file` tools
+- `cmd/server/main.go --mcp` flag - Combined binary for both HTTP and MCP modes
+- `isAllowedDirectory()` - Security check restricting access to approved paths
+- Allowed directories: `/home/thein3rovert/Documents/project/*` and `/home/thein3rovert/.config/opencode/*`
+
+### Tools
+- `list_files` - List files and folders in allowed directories with size info
+- `read_file` - Read file contents from allowed paths
+
+### Configuration
+- OpenCode config: `type: "local"` with command pointing to binary
+- No HTTPS/authentication needed (local stdio transport)
+- Works like other local MCP tools (e.g., Obsidian MCP)
+
+### Changed
+- Server binary now supports dual modes: HTTP server (default) and MCP server (`--mcp` flag)
+- MCP server uses stdio transport instead of HTTP/SSE for simpler local integration
+
+### Technical Details
+- Uses `github.com/mark3labs/mcp-go` v0.54.0
+- SSE transport attempted but OpenCode requires HTTPS for remote MCP
+- stdio transport chosen for localhost compatibility (no cert issues)
+- Combined binary reduces deployment complexity
+
+---
+
 ## [2026-05-16] - UI Refactoring & Design System Fixes
 
 ### Added
@@ -181,4 +217,4 @@ This changelog follows these conventions:
 
 ---
 
-Last Updated: 2026-05-17
+Last Updated: 2026-05-22
