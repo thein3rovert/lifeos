@@ -32,11 +32,11 @@ var allowedDirectories = []DirectoryInfo{
 
 // New MCP-Server create the mcp server file-reading tools
 func NewMCPServer() *server.MCPServer {
-	s := server.NewMCPServer (
+	s := server.NewMCPServer(
 		"lifeos-files", // TODO: Change based on file type [meeting, journals and more]
 		"1.0.0",
-			server.WithToolCapabilities(false),
-			server.WithResourceCapabilities(true, false), // list=true, subscribe=false
+		server.WithToolCapabilities(false),
+		server.WithResourceCapabilities(true, false), // list=true, subscribe=false
 	)
 
 	// === Resource: allowed_directories ===
@@ -54,24 +54,24 @@ func NewMCPServer() *server.MCPServer {
 	listTool := mcp.NewTool("list_files",
 		mcp.WithDescription("List files and folders in a given directory"),
 		mcp.WithString("path",
-		mcp.Required(),
-		mcp.Description("Absolute path to list"),
+			mcp.Required(),
+			mcp.Description("Absolute path to list"),
 		),
 	)
 
 	s.AddTool(listTool, listFilesHandler)
 
-// === Second Tool ===
-// Lets the agents ask "show me the content of files Y"
-readTool := mcp.NewTool("read_file",
-	mcp.WithDescription("Read the content of a file"),
-	mcp.WithString("path",
-	mcp.Required(),
-	mcp.Description("Absolute path to the file to read"),
-	),
-)
-s.AddTool(readTool, readFileHandler)
-return s
+	// === Second Tool ===
+	// Lets the agents ask "show me the content of files Y"
+	readTool := mcp.NewTool("read_file",
+		mcp.WithDescription("Read the content of a file"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Absolute path to the file to read"),
+		),
+	)
+	s.AddTool(readTool, readFileHandler)
+	return s
 }
 
 // allowedDirectoriesHandler returns the list of allowed directories
@@ -159,7 +159,6 @@ func readFileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 
 	return mcp.NewToolResultText(string(data)), nil
 }
-
 
 func isAllowedDirectory(path string) bool {
 	absolutePath, err := filepath.Abs(path)

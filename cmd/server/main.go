@@ -167,7 +167,7 @@ func runHTTPServer() {
 	lifeosMCPServer := mcpServer.NewMCPServer()
 	// Server sent event transport
 	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+port))
-	mux.Handle("/mcp/",middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
+	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 
 	// ── HTML routes (existing, will be removed in Phase 4) ─────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

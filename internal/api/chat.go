@@ -13,7 +13,6 @@ type AgentHandler struct {
 	agentChatService *service.AgentChatService
 }
 
-
 // NewAgentChatHandler creates a new chat handler
 func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandler {
 	return &AgentHandler{

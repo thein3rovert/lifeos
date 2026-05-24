@@ -107,7 +107,6 @@ func (s *SQLSkillStore) GetSkillFiles(skillID string) ([]model.SkillFile, error)
 	return files, rows.Err()
 }
 
-
 func (s *SQLSkillStore) GetModifiedSkillFiles() ([]model.SkillFile, error) {
 	query := `
 		SELECT id, skill_id, path, type, name, content, updated_at
@@ -139,7 +138,6 @@ func (s *SQLSkillStore) GetModifiedSkillFiles() ([]model.SkillFile, error) {
 	}
 	return files, rows.Err()
 }
-
 
 func (s *SQLSkillStore) ClearPendingSync() error {
 	query := `UPDATE skill_files SET pending_sync = FALSE WHERE pending_sync = TRUE`

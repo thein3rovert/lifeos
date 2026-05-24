@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
 )
 
 // This is the stdio version of the MCP server

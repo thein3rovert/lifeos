@@ -49,8 +49,7 @@ func (h *SkillFileHandler) GetFile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(file)
 }
 
-
-func (h *SkillFileHandler)SaveFile(w http.ResponseWriter, r *http.Request) {
+func (h *SkillFileHandler) SaveFile(w http.ResponseWriter, r *http.Request) {
 
 	skillID := r.PathValue("id")
 	path := r.PathValue("path")
@@ -68,21 +67,21 @@ func (h *SkillFileHandler)SaveFile(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(path, "/")
 	name := parts[len(parts)-1]
 
-	file := &model.SkillFile {
-		SkillID: skillID,
-		Path: path,
-		Type: "file",
-		Name: name,
-		Content: body.Content,
+	file := &model.SkillFile{
+		SkillID:   skillID,
+		Path:      path,
+		Type:      "file",
+		Name:      name,
+		Content:   body.Content,
 		GitHubSHA: "", // Empty for local edits
 	}
-	 err := h.skillStore.SaveSkillFile(file)
+	err := h.skillStore.SaveSkillFile(file)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w. WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status":"saved"})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
 }

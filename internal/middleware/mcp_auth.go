@@ -32,12 +32,12 @@ func MCPAuth(next http.Handler) http.Handler {
 
 		// Extract token
 		token := strings.TrimPrefix(authHeader, "Bearer ")
-			if token != authenticationKey {
-				http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
-				return
-			}
+		if token != authenticationKey {
+			http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
+			return
+		}
 
-			// Token is valid -> continue
-			next.ServeHTTP(w, r)
+		// Token is valid -> continue
+		next.ServeHTTP(w, r)
 	})
 }

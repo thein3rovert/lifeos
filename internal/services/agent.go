@@ -98,7 +98,6 @@ func (s *AgentChatService) CreateOrResumeSession(skillID string) (string, error)
 	return sessionID, nil
 }
 
-
 func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChatResponse, error) {
 
 	if req.Message == "" {
@@ -106,35 +105,35 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	}
 
 	// Forward request to sidecar
-		body, err := json.Marshal(req)
-		if err != nil {
-			return AgentChatResponse{}, fmt.Errorf("failed to mershal request")
-		}
-		// TODO: Make sure endpoint is usecase focused
-		// ex. /agent/raven (Because we can have more than
-		// one agent using this same func)
-		resp, err := http.Post(
-			fmt.Sprintf("%s/agent/chat", s.sidecarURL),
-			"application/json",
-			bytes.NewReader(body),
-		)
-		if err != nil {
-			return AgentChatResponse{}, fmt.Errorf("sidecar request failed")
-		}
-		defer resp.Body.Close()
+	body, err := json.Marshal(req)
+	if err != nil {
+		return AgentChatResponse{}, fmt.Errorf("failed to mershal request")
+	}
+	// TODO: Make sure endpoint is usecase focused
+	// ex. /agent/raven (Because we can have more than
+	// one agent using this same func)
+	resp, err := http.Post(
+		fmt.Sprintf("%s/agent/chat", s.sidecarURL),
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return AgentChatResponse{}, fmt.Errorf("sidecar request failed")
+	}
+	defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			return AgentChatResponse{}, fmt.Errorf("sidecar error: %s", string(bodyBytes))
-		}
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return AgentChatResponse{}, fmt.Errorf("sidecar error: %s", string(bodyBytes))
+	}
 
-		var chatResp AgentChatResponse
-			if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+	var chatResp AgentChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
 
-				return AgentChatResponse{}, fmt.Errorf("failed to decode sidecar response: %w", err)
-			}
+		return AgentChatResponse{}, fmt.Errorf("failed to decode sidecar response: %w", err)
+	}
 
-			return chatResp, nil
+	return chatResp, nil
 }
 
 // SendMessage handles sending a chat message and saving it

@@ -17,7 +17,6 @@ type AgentHandler struct {
 	agentChatService *service.AgentChatService
 }
 
-
 // NewAgentChatHandler creates a new chat handler
 func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandler {
 	return &AgentHandler{
@@ -66,11 +65,10 @@ func (h *AgentHandler) AgentChatMessage(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		api.RespondError(w, http.StatusBadGateway, err.Error())
-				return
-			}
-			api.RespondJSON(w, http.StatusOK, chatResp)
+		return
 	}
-
+	api.RespondJSON(w, http.StatusOK, chatResp)
+}
 
 // Events streams real-time agent events via SSE
 // GET /api/agent/events
