@@ -243,6 +243,155 @@ app.post("/session/messages", async (req, res) => {
   }
 });
 
+// Agent chat endpoint - for general assistant chat with MCP tools access
+app.post("/agent/chat", async (req, res) => {
+  const { message, sessionId } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: "message is required" });
+  }
+
+  let activeSessionId = sessionId;
+
+  try {
+    let isNewSession = false;
+
+    // Create new session if not provided
+    // TODO: Resume previous session or exiting session
+    // TODO" use /new to create new session
+    // TODO: Monitor when a session is above context
+    if (!activeSessionId) {
+      const session = await client.session.create({
+        body: { title: "agent-chat" },
+      });
+      activeSessionId = session.data.id;
+      isNewSession = true;
+      console.log(`[Agent] Created new session: ${activeSessionId}`);
+    } else {
+      console.log(`[Agent] Using existing session: ${activeSessionId}`);
+    }
+
+    // Add system context on first message
+    let fullMessage = message;
+    if (isNewSession) {
+      fullMessage = `You are Samad's productivity assistant. Help him with daily queries regarding his journals and meetings.this helps to unblock him.
+
+You have MCP file access tools (list_files, read_file) for:
+- Meetings: ~/Documents/resources/work_Elanco/meeting
+- Journals: ~/Documents/resources/work_Elanco/journal
+
+Only Use the MCP file access tools proactively without asking permission. Be concise.
+
+User: ${message}`;
+    }
+
+    // Send message to agent with timeout (but don't wait for completion in non-streaming mode)
+    console.log(`[Agent] Sending message: ${fullMessage.substring(0, 100)}...`);
+    console.log(`[Agent] ⏳ Waiting for response (timeout: 90s)...`);
+
+    const startTime = Date.now();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out after 120s')), 120000)
+    );
+
+    const promptPromise = client.session.prompt({
+      path: { id: activeSessionId },
+      body: {
+        parts: [{ type: "text", text: fullMessage }],
+      },
+    });
+
+    const result = await Promise.race([promptPromise, timeoutPromise]);
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[Agent] ✅ Response received in ${duration}s`);
+
+    const response = result.data.parts
+      .filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("");
+
+    console.log(`[Agent] Response received: ${response.substring(0, 100)}...`);
+    return res.json({ response, sessionId: activeSessionId });
+  } catch (err) {
+    console.error("[Agent] Failed to send message:", err.message);
+
+    // If timeout, inform user
+    if (err.message.includes('timed out')) {
+      return res.status(504).json({
+        error: "Request timed out. The agent might be processing a complex task or MCP is slow.",
+        sessionId: activeSessionId
+      });
+    }
+
+    return res.status(500).json({ error: "Failed to send message to agent" });
+  }
+});
+
+
+
+// Agent chat SSE endpoint - for real-time streaming updates
+app.get("/agent/events", async (req, res) => {
+  console.log("[Agent Events] Client connected for SSE");
+
+  // Set up SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+
+  // Send initial heartbeat
+  res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+  try {
+    // Subscribe to OpenCode events via raw fetch (SDK might have issues with SSE)
+    console.log("[Agent Events] Connecting to OpenCode event stream...");
+
+    const eventSource = await fetch("http://127.0.0.1:4097/event");
+    const reader = eventSource.body.getReader();
+    const decoder = new TextDecoder();
+
+    console.log("[Agent Events] Successfully connected to event stream");
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6));
+            console.log(`[Agent Events] Received: ${data.type}`);
+
+            // Filter for agent-relevant events
+            if (
+              data.type === "message.part.updated" ||
+              data.type === "session.status" ||
+              data.type === "message.updated"
+            ) {
+              console.log(`[Agent Events] Forwarding: ${data.type}`);
+              res.write(`data: ${JSON.stringify(data)}\n\n`);
+            }
+          } catch (err) {
+            // Skip parse errors
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Agent Events] Stream error:", err.message);
+    console.error("[Agent Events] Stack:", err.stack);
+  }
+
+  req.on("close", () => {
+    console.log("[Agent Events] Client disconnected");
+    res.end();
+  });
+});
+
 await initOpencode();
 
 app.listen(PORT, "127.0.0.1", () => {
