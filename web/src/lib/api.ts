@@ -110,6 +110,14 @@ export const api = {
         body: JSON.stringify({ content }),
       }),
   },
+
+  agent: {
+    chat: (message: string, sessionId?: string | null) =>
+      fetcher<{ response: string; sessionId: string }>('/api/agent/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, sessionId }),
+      }),
+  },
 }
 
 // Re-export types for convenience
