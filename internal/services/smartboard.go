@@ -25,9 +25,10 @@ func NewSmartBoardService(store store.SmartBoardStore, agentChatService *AgentCh
 	}
 }
 
-// RefreshPanel fetches new data from AI and updates cache
+// RefreshPanel fetches new data from AI and updates cache(db)
 func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPanel, error) {
 	// Get AI prompt for this panel type
+	// TODO: Prompt should be handled by sidecar later
 	prompt, err := s.getPromptForPanel(panelType)
 	if err != nil {
 		return nil, err
@@ -189,9 +190,15 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 	case "things-to-remember":
 		var items []model.ThingsToRememberItem
 		if err := json.Unmarshal([]byte(response), &items); err != nil {
+			// TODO: A better way to handle passing of response i case
+			// we dont get the response extact howwe want it from ai
+
+			// INFO: We also need to be able to view the response so it needs to be
+			// saved for review so we can correct the ai on where it made mistake
 			return nil, fmt.Errorf("failed to parse things-to-remember response: %w", err)
 		}
-		// Add IDs to items
+		// Add IDs to items(response)
+		// TODO: Make sure its UUID
 		for i := range items {
 			items[i].ID = generateID()
 		}
