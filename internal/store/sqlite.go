@@ -107,6 +107,21 @@ func (s *SQLiteStore) migrate() error {
 	        FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
 	    );`,
 		`CREATE INDEX IF NOT EXISTS idx_skill_files_skill_id ON skill_files(skill_id);`,
+
+		// Add smartboard_panels table for Smart Board feature
+		`CREATE TABLE IF NOT EXISTS smartboard_panels (
+	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        panel_type TEXT NOT NULL CHECK(panel_type IN (
+	            'things-to-remember',
+	            'suggestions',
+	            'achievements',
+	            'blockers'
+	        )),
+	        data TEXT NOT NULL,
+	        last_refreshed DATETIME NOT NULL,
+	        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+	    );`,
+		`CREATE INDEX IF NOT EXISTS idx_smartboard_panels_type_refresh ON smartboard_panels(panel_type, last_refreshed DESC);`,
 	}
 	for _, q := range queries {
 		if _, err := s.db.Exec(q); err != nil {
