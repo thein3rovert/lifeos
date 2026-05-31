@@ -20,7 +20,7 @@ export function SmartBoardPanel({
   className = '',
 }: SmartBoardPanelProps) {
   return (
-    <div className={`bg-secondary border border-default rounded-lg ${className}`}>
+    <div className={`bg-secondary border border-default rounded-lg flex flex-col h-full ${className}`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-default flex items-center justify-between">
         <h2 className="text-sm font-medium text-primary">{title}</h2>
@@ -40,7 +40,7 @@ export function SmartBoardPanel({
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="flex-1 p-4 overflow-y-auto min-h-0">
         {loading ? <SkeletonCard /> : children}
       </div>
 
@@ -68,10 +68,10 @@ function formatRelativeTime(date: Date): string {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
-  
+
   // Format as date if older than 7 days
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
   })
 }

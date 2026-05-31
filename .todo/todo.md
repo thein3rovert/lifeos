@@ -24,11 +24,11 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] 2.5 Update API client with smartboard methods
 
 #### Phase 3: Layout Integration
-- [ ] 3.1 Rename AgentChatPage.tsx to AgentSmartBoard.tsx
-- [ ] 3.2 Implement grid layout
-- [ ] 3.3 Integrate floating chat (existing)
-- [ ] 3.4 Add loading states and error handling
-- [ ] 3.5 Polish animations and transitions
+- [x] 3.1 Create new AgentSmartBoard page with grid layout
+- [x] 3.2 Wire up all panels with hooks and state management
+- [x] 3.3 Integrate CanvasEditor with edit functionality
+- [x] 3.4 Extract and integrate FloatingChat component
+- [x] 3.5 Update route to use new AgentSmartBoard page
 
 #### Phase 4: AI Integration
 - [ ] 4.1 Test prompts with real Obsidian data
