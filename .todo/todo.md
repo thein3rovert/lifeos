@@ -8,7 +8,7 @@ But this page except for the chat interface is currently blank and has nothing i
 
 ### Implementation Progress
 
-#### Phase 1: Backend Foundation
+#### Phase 1: Backend Foundation ✅ COMMITTED
 - [x] 1.1 Database schema - Add migration to sqlite.go
 - [x] 1.2 Model - Create internal/model/smartboard.go
 - [x] 1.3 Store - Create internal/store/smartboard.go
@@ -17,11 +17,11 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] 1.6 Routes - Wire up in cmd/server/main.go
 
 #### Phase 2: Frontend Components
-- [ ] 2.1 Create reusable SmartBoardPanel component
-- [ ] 2.2 Implement panel-specific components (ThingsToRemember, Suggestions, Achievements, Blockers)
-- [ ] 2.3 Create useSmartBoardPanel hook
-- [ ] 2.4 Build CanvasEditor component
-- [ ] 2.5 Update API client with smartboard methods
+- [x] 2.1 Create reusable SmartBoardPanel component
+- [x] 2.2 Implement panel-specific components (ThingsToRemember, Suggestions, Achievements, Blockers)
+- [x] 2.3 Create useSmartBoardPanel hook
+- [x] 2.4 Build CanvasEditor component
+- [x] 2.5 Update API client with smartboard methods
 
 #### Phase 3: Layout Integration
 - [ ] 3.1 Rename AgentChatPage.tsx to AgentSmartBoard.tsx
