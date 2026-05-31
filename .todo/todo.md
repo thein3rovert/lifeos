@@ -1,0 +1,45 @@
+## Agent Page - Smart Board Feature
+
+The agent page (which will be renamed) have a chat interface that is connected to opencode and the mcp created for it that has access a scope and limited dir in my obsidian vault.
+
+But this page except for the chat interface is currently blank and has nothing in it but i have an idea of what i want it to be..a SMART BOARD..where i can see more ai summary and details about my vault and all.
+
+### Plan: `/doc/smartboard-plan.md`
+
+### Implementation Progress
+
+#### Phase 1: Backend Foundation
+- [x] 1.1 Database schema - Add migration to sqlite.go
+- [x] 1.2 Model - Create internal/model/smartboard.go
+- [x] 1.3 Store - Create internal/store/smartboard.go
+- [x] 1.4 Service - Create internal/services/smartboard.go
+- [x] 1.5 Handlers - Create internal/api/smartboard/smartboard.go
+- [x] 1.6 Routes - Wire up in cmd/server/main.go
+
+#### Phase 2: Frontend Components
+- [ ] 2.1 Create reusable SmartBoardPanel component
+- [ ] 2.2 Implement panel-specific components (ThingsToRemember, Suggestions, Achievements, Blockers)
+- [ ] 2.3 Create useSmartBoardPanel hook
+- [ ] 2.4 Build CanvasEditor component
+- [ ] 2.5 Update API client with smartboard methods
+
+#### Phase 3: Layout Integration
+- [ ] 3.1 Rename AgentChatPage.tsx to AgentSmartBoard.tsx
+- [ ] 3.2 Implement grid layout
+- [ ] 3.3 Integrate floating chat (existing)
+- [ ] 3.4 Add loading states and error handling
+- [ ] 3.5 Polish animations and transitions
+
+#### Phase 4: AI Integration
+- [ ] 4.1 Test prompts with real Obsidian data
+- [ ] 4.2 Refine prompts based on results
+- [ ] 4.3 Handle edge cases (empty data, malformed JSON)
+- [ ] 4.4 Add retry logic for failed AI calls
+
+#### Phase 5: Polish & Features
+- [ ] 5.1 Add item editing via canvas
+- [ ] 5.2 Implement status changes for suggestions
+- [ ] 5.3 Add manual item deletion
+- [ ] 5.4 Implement "Run Daily" and "Run Weekly" automation triggers
+- [ ] 5.5 Add keyboard shortcuts
+- [ ] 5.6 Performance optimization

@@ -11,6 +11,7 @@ import (
 	"github.com/thein3rovert/lifeos/internal/api"
 	agents "github.com/thein3rovert/lifeos/internal/api/agents"
 	chats "github.com/thein3rovert/lifeos/internal/api/chats"
+	smartboardapi "github.com/thein3rovert/lifeos/internal/api/smartboard"
 	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
@@ -110,6 +111,10 @@ func runHTTPServer() {
 	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
 	noteService := service.NewNoteService(noteStore, skillStore)
 
+	// Smart board store and service
+	smartBoardStore := store.NewSmartBoardStore(db.DB())
+	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService)
+
 	// ── Initialize API handlers ─────────────────────────────────────
 	photoAPI := api.NewPhotoHandler(photoStore)
 	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
@@ -119,6 +124,7 @@ func runHTTPServer() {
 	tagAPI := api.NewTagHandler(photoStore)
 	chatAPI := chats.NewAgentChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
+	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Photos
@@ -163,6 +169,11 @@ func runHTTPServer() {
 
 	// Agent chat (general assistant with MCP tools)
 	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChatMessage)
+
+	// Smart Board
+	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
+	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
+	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()

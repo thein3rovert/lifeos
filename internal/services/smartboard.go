@@ -247,7 +247,7 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 
 // cleanJSONResponse removes markdown code blocks from response
 func cleanJSONResponse(response string) string {
-	// Remove ```json and ``` markers
+	// Remove ```json and ``` markers (check regardless if exist)
 	if len(response) > 7 && response[:7] == "```json" {
 		response = response[7:]
 	}
