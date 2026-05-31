@@ -11,6 +11,8 @@ import type {
   ChatMessage,
   ChatSession,
   AIPreviewResponse,
+  PanelType,
+  SmartBoardPanelResponse,
 } from '@/types'
 
 // API Base URL - should match Go server
@@ -118,6 +120,22 @@ export const api = {
         body: JSON.stringify({ message, sessionId }),
       }),
   },
+
+  smartboard: {
+    getPanel: (panelType: PanelType) =>
+      fetcher<SmartBoardPanelResponse>(`/api/smartboard/${panelType}`),
+    
+    refreshPanel: (panelType: PanelType) =>
+      fetcher<SmartBoardPanelResponse>(`/api/smartboard/refresh/${panelType}`, {
+        method: 'POST',
+      }),
+    
+    updateItemStatus: (itemId: string, panelType: PanelType, status: string) =>
+      fetcher<{ message: string }>(`/api/smartboard/item/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ panelType, status }),
+      }),
+  },
 }
 
 // Re-export types for convenience
@@ -129,4 +147,6 @@ export type {
   ChatMessage,
   ChatSession,
   AIPreviewResponse,
+  PanelType,
+  SmartBoardPanelResponse,
 } from '@/types'

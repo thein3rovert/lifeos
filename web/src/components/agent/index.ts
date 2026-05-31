@@ -1,1 +1,7 @@
-export { default as AgentChatPage } from "./AgentChatPage";
+export { default as AgentChatPage } from './AgentChatPage'
+export { SmartBoardPanel } from './SmartBoardPanel'
+export { ThingsToRememberPanel } from './ThingsToRememberPanel'
+export { SuggestionsPanel } from './SuggestionsPanel'
+export { AchievementsPanel } from './AchievementsPanel'
+export { BlockersPanel } from './BlockersPanel'
+export { CanvasEditor } from './CanvasEditor'
