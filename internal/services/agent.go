@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/thein3rovert/lifeos/internal/store"
 	"github.com/thein3rovert/lifeos/internal/store/notes"
@@ -112,7 +113,13 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	// TODO: Make sure endpoint is usecase focused
 	// ex. /agent/raven (Because we can have more than
 	// one agent using this same func)
-	resp, err := http.Post(
+
+	// Create HTTP client with 5-minute timeout for AI requests
+	client := &http.Client{
+		Timeout: 300 * time.Second,
+	}
+
+	resp, err := client.Post(
 		fmt.Sprintf("%s/agent/chat", s.sidecarURL),
 		"application/json",
 		bytes.NewReader(body),

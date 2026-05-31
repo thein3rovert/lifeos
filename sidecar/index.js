@@ -18,6 +18,7 @@ async function initOpencode() {
   try {
     client = createOpencodeClient({
       baseUrl: "http://127.0.0.1:4097",
+      fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(600_000) }), // 10 min timeout
     });
     // Health check via raw fetch instead
     const res = await fetch("http://127.0.0.1:4097/global/health");
@@ -287,11 +288,11 @@ User: ${message}`;
 
     // Send message to agent with timeout (but don't wait for completion in non-streaming mode)
     console.log(`[Agent] Sending message: ${fullMessage.substring(0, 100)}...`);
-    console.log(`[Agent] ⏳ Waiting for response (timeout: 90s)...`);
+    console.log(`[Agent] ⏳ Waiting for response (timeout: 5min)...`);
 
     const startTime = Date.now();
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out after 120s')), 120000)
+      setTimeout(() => reject(new Error('Request timed out after 300s')), 300000)
     );
 
     const promptPromise = client.session.prompt({
@@ -314,17 +315,35 @@ User: ${message}`;
     console.log(`[Agent] Response received: ${response.substring(0, 100)}...`);
     return res.json({ response, sessionId: activeSessionId });
   } catch (err) {
-    console.error("[Agent] Failed to send message:", err.message);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`[Agent] ❌ Failed after ${duration}s:`, err.message);
+    console.error(`[Agent] Error type:`, err.name);
+    console.error(`[Agent] Error code:`, err.code);
+    console.error(`[Agent] Full error:`, err);
 
     // If timeout, inform user
-    if (err.message.includes('timed out')) {
+    if (err.message.includes('timed out') || err.name === 'AbortError') {
       return res.status(504).json({
         error: "Request timed out. The agent might be processing a complex task or MCP is slow.",
-        sessionId: activeSessionId
+        sessionId: activeSessionId,
+        duration: `${duration}s`
       });
     }
 
-    return res.status(500).json({ error: "Failed to send message to agent" });
+    // If connection error
+    if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.message.includes('socket hang up')) {
+      return res.status(502).json({
+        error: "Connection to OpenCode lost. Server may have killed the long-running request.",
+        sessionId: activeSessionId,
+        duration: `${duration}s`
+      });
+    }
+
+    return res.status(500).json({
+      error: "Failed to send message to agent",
+      details: err.message,
+      duration: `${duration}s`
+    });
   }
 });
 
