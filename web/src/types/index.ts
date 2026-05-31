@@ -88,3 +88,62 @@ export interface PhotoTag {
   id: number
   name: string
 }
+
+// -----------------------------------------------------------------------------
+// Smart Board Types
+// -----------------------------------------------------------------------------
+
+export interface ThingsToRememberItem {
+  id: string
+  text: string
+  category: 'urgent' | 'important' | 'not-important'
+  source: string
+  date: string
+}
+
+export interface ThingsToRememberData {
+  items: ThingsToRememberItem[]
+}
+
+export interface SuggestionItem {
+  id: string
+  suggestion: string
+  reasoning: string
+  status: 'active' | 'dismissed' | 'completed'
+  createdAt: string
+}
+
+export interface SuggestionsData {
+  suggestions: SuggestionItem[]
+}
+
+export interface AchievementItem {
+  id: string
+  achievement: string
+  date: string
+  source: string
+}
+
+export interface AchievementsData {
+  achievements: AchievementItem[]
+}
+
+export interface BlockerItem {
+  id: string
+  blocker: string
+  context: string
+  date: string
+  source: string
+}
+
+export interface BlockersData {
+  blockers: BlockerItem[]
+}
+
+export type PanelType = 'things-to-remember' | 'suggestions' | 'achievements' | 'blockers'
+
+export interface SmartBoardPanelResponse {
+  panelType: PanelType
+  data: ThingsToRememberData | SuggestionsData | AchievementsData | BlockersData | null
+  lastRefreshed: string | null
+}
