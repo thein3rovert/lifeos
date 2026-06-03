@@ -86,7 +86,11 @@ func (s *SmartBoardService) getPromptForPanel(panelType string) (string, error) 
 
 	switch panelType {
 	case "things-to-remember":
-		return fmt.Sprintf(`Analyze all meeting notes and journal entries from the last 7 days (from %s to today).
+		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
+
+Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+
+Analyze all meeting notes and journal entries from the last 7 days (from %s to today).
 
 Your task:
 1. Extract action items, TODOs, important decisions, and key takeaways
@@ -114,7 +118,11 @@ Rules:
 - Return valid JSON only, no markdown or explanation`, sevenDaysAgo), nil
 
 	case "suggestions":
-		return fmt.Sprintf(`Review patterns in my meetings and journal entries from the last 7 days (from %s to today).
+		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
+
+Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+
+Review patterns in my meetings and journal entries from the last 7 days (from %s to today).
 
 Your task:
 1. Identify recurring themes, bottlenecks, or missed opportunities
@@ -140,7 +148,11 @@ Focus on:
 Return valid JSON only, no markdown or explanation.`, sevenDaysAgo), nil
 
 	case "achievements":
-		return fmt.Sprintf(`Scan this week's journal entries (from %s to today) for accomplishments, completed tasks, and wins.
+		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
+
+Use list_files on ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+
+Scan this week's journal entries (from %s to today) for accomplishments, completed tasks, and wins.
 
 Your task:
 1. Extract completed work items, project milestones, positive outcomes
@@ -166,7 +178,11 @@ Rules:
 Return valid JSON only, no markdown or explanation.`, weekStart), nil
 
 	case "blockers":
-		return fmt.Sprintf(`Identify current blockers, challenges, or stuck items from the last 3 days (from %s to today).
+		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
+
+Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+
+Identify current blockers, challenges, or stuck items from the last 3 days (from %s to today).
 
 Your task:
 1. Find explicit mentions of blockers, waiting situations, or frustrations

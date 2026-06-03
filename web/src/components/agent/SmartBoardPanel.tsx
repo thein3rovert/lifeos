@@ -1,6 +1,5 @@
-import { ReactNode } from 'react'
-import { RefreshCw } from 'lucide-react'
-import { SkeletonCard } from '@/components/ui/Skeleton'
+import { ReactNode, useEffect, useState } from 'react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 
 type SmartBoardPanelProps = {
   title: string
@@ -41,7 +40,7 @@ export function SmartBoardPanel({
 
       {/* Content */}
       <div className="flex-1 p-4 overflow-y-auto min-h-0">
-        {loading ? <SkeletonCard /> : children}
+        {loading ? <LoadingState /> : children}
       </div>
 
       {/* Footer - Last updated timestamp */}
@@ -52,6 +51,45 @@ export function SmartBoardPanel({
           </span>
         </div>
       )}
+    </div>
+  )
+}
+
+// Loading state with animated message + elapsed time
+function LoadingState() {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Show contextual message based on elapsed time
+  const getMessage = () => {
+    if (elapsed < 10) return 'Analyzing your notes...'
+    if (elapsed < 30) return 'Reading vault files...'
+    if (elapsed < 60) return 'AI is thinking...'
+    if (elapsed < 120) return 'Processing meeting notes...'
+    return 'Still working... AI tasks can take a few minutes'
+  }
+
+  const formatTime = (s: number) => {
+    if (s < 60) return `${s}s`
+    const mins = Math.floor(s / 60)
+    const secs = s % 60
+    return `${mins}m ${secs}s`
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full py-8 gap-3">
+      <div className="relative">
+        <Sparkles
+          className="w-6 h-6 text-accent animate-pulse"
+          strokeWidth={1.5}
+        />
+      </div>
+      <p className="text-sm text-primary font-medium">{getMessage()}</p>
+      <p className="text-xs text-tertiary font-mono">{formatTime(elapsed)} elapsed</p>
     </div>
   )
 }
