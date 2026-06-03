@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/internal/model"
@@ -245,17 +246,50 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 	}
 }
 
-// cleanJSONResponse removes markdown code blocks from response
+// cleanJSONResponse removes markdown code blocks and extracts JSON from response
 func cleanJSONResponse(response string) string {
-	// Remove ```json and ``` markers (check regardless if exist)
-	if len(response) > 7 && response[:7] == "```json" {
-		response = response[7:]
+	// First trim whitespace
+	response = strings.TrimSpace(response)
+
+	// Remove markdown code blocks if present
+	if strings.HasPrefix(response, "```json") {
+		response = strings.TrimPrefix(response, "```json")
 	}
-	if len(response) > 3 && response[len(response)-3:] == "```" {
-		response = response[:len(response)-3]
+	if strings.HasPrefix(response, "```") {
+		response = strings.TrimPrefix(response, "```")
 	}
-	// Trim whitespace
-	return response[0:len(response)]
+	if strings.HasSuffix(response, "```") {
+		response = strings.TrimSuffix(response, "```")
+	}
+
+	// Trim again after removing code blocks
+	response = strings.TrimSpace(response)
+
+	// Find first '[' or '{' (start of JSON)
+	startIdx := -1
+	for i, ch := range response {
+		if ch == '[' || ch == '{' {
+			startIdx = i
+			break
+		}
+	}
+
+	// Find last ']' or '}' (end of JSON)
+	endIdx := -1
+	for i := len(response) - 1; i >= 0; i-- {
+		if response[i] == ']' || response[i] == '}' {
+			endIdx = i + 1
+			break
+		}
+	}
+
+	// Extract JSON if found
+	if startIdx != -1 && endIdx != -1 && startIdx < endIdx {
+		return strings.TrimSpace(response[startIdx:endIdx])
+	}
+
+	// Return original if no JSON markers found
+	return response
 }
 
 // generateID generates a random ID for items

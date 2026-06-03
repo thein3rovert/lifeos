@@ -114,9 +114,9 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	// ex. /agent/raven (Because we can have more than
 	// one agent using this same func)
 
-	// Create HTTP client with 5-minute timeout for AI requests
+	// Create HTTP client with 10-minute timeout for AI requests (matches sidecar)
 	client := &http.Client{
-		Timeout: 300 * time.Second,
+		Timeout: 600 * time.Second,
 	}
 
 	resp, err := client.Post(

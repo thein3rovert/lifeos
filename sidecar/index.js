@@ -253,6 +253,7 @@ app.post("/agent/chat", async (req, res) => {
   }
 
   let activeSessionId = sessionId;
+  let startTime = Date.now(); // Track request start time
 
   try {
     let isNewSession = false;
@@ -288,11 +289,11 @@ User: ${message}`;
 
     // Send message to agent with timeout (but don't wait for completion in non-streaming mode)
     console.log(`[Agent] Sending message: ${fullMessage.substring(0, 100)}...`);
-    console.log(`[Agent] ⏳ Waiting for response (timeout: 5min)...`);
+    console.log(`[Agent] ⏳ Waiting for response (timeout: 10min)...`);
 
-    const startTime = Date.now();
+    startTime = Date.now(); // Reset start time before sending
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out after 300s')), 300000)
+      setTimeout(() => reject(new Error('Request timed out after 600s')), 600000) // 10 minutes
     );
 
     const promptPromise = client.session.prompt({
