@@ -1,6 +1,7 @@
 export { default as AgentChatPage } from './AgentChatPage'
 export { default as AgentSmartBoard } from './AgentSmartBoard'
 export { SmartBoardPanel } from './SmartBoardPanel'
+export { SmartBoardItemCard } from './SmartBoardItemCard'
 export { ThingsToRememberPanel } from './ThingsToRememberPanel'
 export { SuggestionsPanel } from './SuggestionsPanel'
 export { AchievementsPanel } from './AchievementsPanel'

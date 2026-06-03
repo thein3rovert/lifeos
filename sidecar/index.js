@@ -1,5 +1,16 @@
 import { createOpencodeClient } from "@opencode-ai/sdk";
 import express from "express";
+import { Agent, setGlobalDispatcher } from "undici";
+
+// Configure global dispatcher with longer timeouts to prevent
+// HeadersTimeoutError (default is 300s) on long AI requests
+setGlobalDispatcher(
+  new Agent({
+    headersTimeout: 600_000, // 10 minutes
+    bodyTimeout: 600_000,    // 10 minutes
+    connectTimeout: 30_000,  // 30 seconds
+  })
+);
 
 const app = express();
 app.use(express.json());
@@ -258,10 +269,18 @@ app.post("/agent/chat", async (req, res) => {
   try {
     let isNewSession = false;
 
-    // Create new session if not provided
-    // TODO: Resume previous session or exiting session
-    // TODO" use /new to create new session
-    // TODO: Monitor when a session is above context
+    // If sessionId provided, verify it still exists in OpenCode
+    if (activeSessionId) {
+      try {
+        await client.session.get({ path: { id: activeSessionId } });
+        console.log(`[Agent] ✅ Verified existing session: ${activeSessionId}`);
+      } catch (err) {
+        console.log(`[Agent] ⚠️  Session ${activeSessionId} no longer exists, creating new one`);
+        activeSessionId = null;
+      }
+    }
+
+    // Create new session if not provided or if existing one expired
     if (!activeSessionId) {
       const session = await client.session.create({
         body: { title: "agent-chat" },

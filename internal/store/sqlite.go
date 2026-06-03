@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -118,14 +119,20 @@ func (s *SQLiteStore) migrate() error {
 	            'blockers'
 	        )),
 	        data TEXT NOT NULL,
+	        session_id TEXT,
 	        last_refreshed DATETIME NOT NULL,
 	        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	    );`,
+		// Add session_id column to existing tables (idempotent)
+		`ALTER TABLE smartboard_panels ADD COLUMN session_id TEXT;`,
 		`CREATE INDEX IF NOT EXISTS idx_smartboard_panels_type_refresh ON smartboard_panels(panel_type, last_refreshed DESC);`,
 	}
 	for _, q := range queries {
 		if _, err := s.db.Exec(q); err != nil {
-			return err
+			// Ignore "duplicate column" errors from ALTER TABLE (idempotent migration)
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				return err
+			}
 		}
 	}
 	return nil

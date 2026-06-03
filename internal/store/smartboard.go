@@ -10,7 +10,7 @@ import (
 
 // SmartBoardStore defines operations for smart board panels
 type SmartBoardStore interface {
-	SavePanel(panelType string, data interface{}) error
+	SavePanel(panelType string, data interface{}, sessionID string) error
 	GetLatestPanel(panelType string) (*model.SmartBoardPanel, error)
 	UpdateItemStatus(panelType, itemID, status string) error
 }
@@ -26,24 +26,24 @@ func NewSmartBoardStore(db *sql.DB) *SQLSmartBoardStore {
 }
 
 // SavePanel saves panel data to the database
-func (s *SQLSmartBoardStore) SavePanel(panelType string, data interface{}) error {
+func (s *SQLSmartBoardStore) SavePanel(panelType string, data interface{}, sessionID string) error {
 	// Marshal data to JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	query := `INSERT INTO smartboard_panels (panel_type, data, last_refreshed, created_at)
-	          VALUES (?, ?, ?, ?)`
+	query := `INSERT INTO smartboard_panels (panel_type, data, session_id, last_refreshed, created_at)
+	          VALUES (?, ?, ?, ?, ?)`
 
 	now := time.Now()
-	_, err = s.db.Exec(query, panelType, string(jsonData), now, now)
+	_, err = s.db.Exec(query, panelType, string(jsonData), sessionID, now, now)
 	return err
 }
 
 // GetLatestPanel retrieves the most recent panel data for a given type
 func (s *SQLSmartBoardStore) GetLatestPanel(panelType string) (*model.SmartBoardPanel, error) {
-	query := `SELECT id, panel_type, data, last_refreshed, created_at
+	query := `SELECT id, panel_type, data, COALESCE(session_id, ''), last_refreshed, created_at
 	          FROM smartboard_panels
 	          WHERE panel_type = ?
 	          ORDER BY last_refreshed DESC
@@ -54,6 +54,7 @@ func (s *SQLSmartBoardStore) GetLatestPanel(panelType string) (*model.SmartBoard
 		&panel.ID,
 		&panel.PanelType,
 		&panel.Data,
+		&panel.SessionID,
 		&panel.LastRefreshed,
 		&panel.CreatedAt,
 	)
@@ -125,7 +126,7 @@ func (s *SQLSmartBoardStore) UpdateItemStatus(panelType, itemID, status string) 
 	}
 
 	// Update the panel
-	query := `UPDATE smartboard_panels 
+	query := `UPDATE smartboard_panels
 	          SET data = ?
 	          WHERE id = ?`
 

@@ -95,6 +95,7 @@ export interface PhotoTag {
 
 export interface ThingsToRememberItem {
   id: string
+  title: string
   text: string
   category: 'urgent' | 'important' | 'not-important'
   source: string
@@ -107,6 +108,7 @@ export interface ThingsToRememberData {
 
 export interface SuggestionItem {
   id: string
+  title: string
   suggestion: string
   reasoning: string
   status: 'active' | 'dismissed' | 'completed'
@@ -119,6 +121,7 @@ export interface SuggestionsData {
 
 export interface AchievementItem {
   id: string
+  title: string
   achievement: string
   date: string
   source: string
@@ -130,6 +133,7 @@ export interface AchievementsData {
 
 export interface BlockerItem {
   id: string
+  title: string
   blocker: string
   context: string
   date: string

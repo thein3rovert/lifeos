@@ -35,9 +35,17 @@ func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPan
 		return nil, err
 	}
 
-	// Call AI via agent chat service
+	// Try to reuse existing session for this panel type
+	var sessionID *string
+	if existingPanel, err := s.store.GetLatestPanel(panelType); err == nil && existingPanel != nil && existingPanel.SessionID != "" {
+		sid := existingPanel.SessionID
+		sessionID = &sid
+	}
+
+	// Call AI via agent chat service (with existing session if available)
 	chatResp, err := s.agentChatService.SendAgentChatMessage(AgentChatRequest{
-		Message: prompt,
+		Message:   prompt,
+		SessionID: sessionID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call AI: %w", err)
@@ -49,8 +57,8 @@ func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPan
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// Save to database
-	if err := s.store.SavePanel(panelType, data); err != nil {
+	// Save to database with the session ID returned from the AI service
+	if err := s.store.SavePanel(panelType, data, chatResp.SessionID); err != nil {
 		return nil, fmt.Errorf("failed to save panel: %w", err)
 	}
 
@@ -90,7 +98,8 @@ Your task:
 Return ONLY a JSON array with this exact structure:
 [
   {
-    "text": "Brief description of the item",
+    "title": "Short concise title (max 40 chars)",
+    "text": "Full description with context and details (max 200 chars)",
     "category": "urgent" | "important" | "not-important",
     "source": "filename where found",
     "date": "YYYY-MM-DD"
@@ -98,7 +107,8 @@ Return ONLY a JSON array with this exact structure:
 ]
 
 Rules:
-- Be concise (max 80 chars per item)
+- title: Brief, scannable headline (e.g. "Follow up with Nydia")
+- text: Full context/details (e.g. "Follow up with Nydia on business rules/admin access question before June 1 rollout")
 - Only include actionable or decision-critical items
 - Exclude routine/completed tasks
 - Return valid JSON only, no markdown or explanation`, sevenDaysAgo), nil
@@ -114,8 +124,9 @@ Your task:
 Return ONLY a JSON array with this exact structure:
 [
   {
-    "suggestion": "Clear, actionable suggestion (max 100 chars)",
-    "reasoning": "Why this matters and what pattern you observed (max 150 chars)"
+    "title": "Short title (max 40 chars)",
+    "suggestion": "Full actionable suggestion (max 150 chars)",
+    "reasoning": "Why this matters and what pattern you observed (max 200 chars)"
   }
 ]
 
@@ -139,15 +150,17 @@ Your task:
 Return ONLY a JSON array with this exact structure:
 [
   {
-    "achievement": "Brief description (max 120 chars)",
+    "title": "Short title (max 40 chars)",
+    "achievement": "Full achievement description (max 200 chars)",
     "date": "YYYY-MM-DD",
     "source": "filename"
   }
 ]
 
 Rules:
+- title: Brief headline (e.g. "Shipped SSO auth")
+- achievement: Full details (e.g. "Implemented and shipped SSO authentication for the platform")
 - Only include meaningful accomplishments
-- Keep descriptions specific and factual
 - Sort by date (newest first)
 
 Return valid JSON only, no markdown or explanation.`, weekStart), nil
@@ -163,8 +176,9 @@ Your task:
 Return ONLY a JSON array with this exact structure:
 [
   {
-    "blocker": "What is blocked or challenging (max 100 chars)",
-    "context": "Additional details or who/what is involved (max 120 chars)",
+    "title": "Short title (max 40 chars)",
+    "blocker": "Full blocker description (max 150 chars)",
+    "context": "Additional details or who/what is involved (max 200 chars)",
     "date": "YYYY-MM-DD",
     "source": "filename"
   }
