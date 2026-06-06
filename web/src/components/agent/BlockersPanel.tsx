@@ -7,7 +7,7 @@ type BlockersPanelProps = {
   loading: boolean
   lastRefreshed: Date | null
   onRefresh: () => void
-  onEditItem: (itemId: string, blocker: string, context: string) => void
+  onEditItem: (itemId: string, blocker: string, context: string, title?: string) => void
 }
 
 export function BlockersPanel({
@@ -40,7 +40,7 @@ export function BlockersPanel({
               date={item.date}
               description={item.blocker}
               dotColor="red"
-              onClick={() => onEditItem(item.id, item.blocker, item.context)}
+              onClick={() => onEditItem(item.id, item.blocker, item.context, item.title)}
             />
           ))}
         </div>

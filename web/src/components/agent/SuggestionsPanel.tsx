@@ -8,7 +8,7 @@ type SuggestionsPanelProps = {
   loading: boolean
   lastRefreshed: Date | null
   onRefresh: () => void
-  onEditItem: (itemId: string, suggestion: string, reasoning: string) => void
+  onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void
   onChangeStatus: (itemId: string, status: 'active' | 'dismissed' | 'completed') => void
 }
 
@@ -88,7 +88,7 @@ export function SuggestionsPanel({
                     variant: statusToBadgeVariant(item.status),
                   }}
                   dotColor={statusToDotColor(item.status)}
-                  onClick={() => onEditItem(item.id, item.suggestion, item.reasoning)}
+                  onClick={() => onEditItem(item.id, item.suggestion, item.reasoning, item.title)}
                 />
               }
             />

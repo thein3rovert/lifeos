@@ -7,7 +7,7 @@ type AchievementsPanelProps = {
   loading: boolean
   lastRefreshed: Date | null
   onRefresh: () => void
-  onEditItem: (itemId: string, achievement: string) => void
+  onEditItem: (itemId: string, achievement: string, title?: string) => void
 }
 
 export function AchievementsPanel({
@@ -40,7 +40,7 @@ export function AchievementsPanel({
               date={item.date}
               description={item.achievement}
               dotColor="green"
-              onClick={() => onEditItem(item.id, item.achievement)}
+              onClick={() => onEditItem(item.id, item.achievement, item.title)}
             />
           ))}
         </div>

@@ -3,12 +3,14 @@ import { Eye, Edit3, Save, X } from 'lucide-react'
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown'
 
 type InlineCanvasEditorProps = {
+  title?: string
   content: string
   onSave: (newContent: string) => void
   onClose: () => void
 }
 
 export function InlineCanvasEditor({
+  title,
   content: initialContent,
   onSave,
   onClose,
@@ -28,8 +30,8 @@ export function InlineCanvasEditor({
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="px-4 py-2 border-b border-default flex items-center justify-between bg-tertiary">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-2 border-b border-default flex items-center justify-between bg-tertiary gap-4">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Edit/Preview toggle */}
           <button
             onClick={() => setIsPreview(false)}
@@ -55,8 +57,15 @@ export function InlineCanvasEditor({
           </button>
         </div>
 
+        {/* Centered title */}
+        {title && (
+          <h3 className="text-sm font-medium text-primary truncate flex-1 text-center min-w-0">
+            {title}
+          </h3>
+        )}
+
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleSave}
             className="px-3 py-1 bg-accent text-on-accent rounded text-xs font-medium hover:bg-accent-hover transition-colors flex items-center gap-1.5"

@@ -26,32 +26,47 @@ export default function AgentSmartBoard() {
   // Canvas editor state
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorContent, setEditorContent] = useState('')
+  const [editorTitle, setEditorTitle] = useState('')
   const [editorContext, setEditorContext] = useState<{
     panelType: string
     itemId: string
   } | null>(null)
 
   // Edit handlers
-  const handleEditThingsToRemember = (itemId: string, text: string) => {
+  const handleEditThingsToRemember = (itemId: string, text: string, title?: string) => {
     setEditorContent(text)
+    setEditorTitle(title || 'Things to Remember')
     setEditorContext({ panelType: 'things-to-remember', itemId })
     setEditorOpen(true)
   }
 
-  const handleEditSuggestion = (itemId: string, suggestion: string, reasoning: string) => {
+  const handleEditSuggestion = (
+    itemId: string,
+    suggestion: string,
+    reasoning: string,
+    title?: string
+  ) => {
     setEditorContent(`${suggestion}\n\n${reasoning}`)
+    setEditorTitle(title || 'Suggestion')
     setEditorContext({ panelType: 'suggestions', itemId })
     setEditorOpen(true)
   }
 
-  const handleEditAchievement = (itemId: string, achievement: string) => {
+  const handleEditAchievement = (itemId: string, achievement: string, title?: string) => {
     setEditorContent(achievement)
+    setEditorTitle(title || 'Achievement')
     setEditorContext({ panelType: 'achievements', itemId })
     setEditorOpen(true)
   }
 
-  const handleEditBlocker = (itemId: string, blocker: string, context: string) => {
+  const handleEditBlocker = (
+    itemId: string,
+    blocker: string,
+    context: string,
+    title?: string
+  ) => {
     setEditorContent(`${blocker}\n\n${context}`)
+    setEditorTitle(title || 'Blocker')
     setEditorContext({ panelType: 'blockers', itemId })
     setEditorOpen(true)
   }
@@ -171,6 +186,7 @@ export default function AgentSmartBoard() {
               <div className="bg-secondary border border-default rounded-lg h-full">
                 {editorOpen ? (
                   <InlineCanvasEditor
+                    title={editorTitle}
                     content={editorContent}
                     onSave={handleSaveEdit}
                     onClose={() => setEditorOpen(false)}

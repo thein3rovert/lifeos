@@ -8,7 +8,7 @@ type ThingsToRememberPanelProps = {
   loading: boolean
   lastRefreshed: Date | null
   onRefresh: () => void
-  onEditItem: (itemId: string, text: string) => void
+  onEditItem: (itemId: string, text: string, title?: string) => void
   onChangeCategory: (itemId: string, category: 'urgent' | 'important' | 'not-important') => void
 }
 
@@ -88,7 +88,7 @@ export function ThingsToRememberPanel({
                     variant: categoryToBadgeVariant(item.category),
                   }}
                   dotColor={categoryToDotColor(item.category)}
-                  onClick={() => onEditItem(item.id, item.text)}
+                  onClick={() => onEditItem(item.id, item.text, item.title)}
                 />
               }
             />
