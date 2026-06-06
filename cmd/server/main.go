@@ -11,8 +11,8 @@ import (
 	"github.com/thein3rovert/lifeos/internal/api"
 	agents "github.com/thein3rovert/lifeos/internal/api/agents"
 	chats "github.com/thein3rovert/lifeos/internal/api/chats"
-	smartboardapi "github.com/thein3rovert/lifeos/internal/api/smartboard"
 	skillsapi "github.com/thein3rovert/lifeos/internal/api/skills"
+	smartboardapi "github.com/thein3rovert/lifeos/internal/api/smartboard"
 	"github.com/thein3rovert/lifeos/internal/handler"
 	mcpServer "github.com/thein3rovert/lifeos/internal/mcp"
 	"github.com/thein3rovert/lifeos/internal/middleware"
@@ -174,6 +174,7 @@ func runHTTPServer() {
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
 	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
+	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()

@@ -143,3 +143,36 @@ func (h *SmartBoardHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Requ
 		"message": "status updated successfully",
 	})
 }
+
+// UpdateItemContent updates the content fields of a specific item
+// PATCH /api/smartboard/item/{itemId}/content
+func (h *SmartBoardHandler) UpdateItemContent(w http.ResponseWriter, r *http.Request) {
+	itemID := r.PathValue("itemId")
+	if itemID == "" {
+		api.RespondError(w, http.StatusBadRequest, "itemId is required")
+		return
+	}
+
+	var req struct {
+		PanelType string            `json:"panelType"`
+		Fields    map[string]string `json:"fields"`
+	}
+	if err := api.DecodeJSON(r, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.PanelType == "" || len(req.Fields) == 0 {
+		api.RespondError(w, http.StatusBadRequest, "panelType and fields are required")
+		return
+	}
+
+	if err := h.service.UpdateItemContent(req.PanelType, itemID, req.Fields); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "content updated successfully",
+	})
+}
