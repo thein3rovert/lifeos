@@ -59,6 +59,7 @@ export function SuggestionsPanel({
       loading={loading}
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
+      accentColor="blue"
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

@@ -1,5 +1,8 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
+import { AccentStripes } from '../ui/AccentStripes'
+
+type AccentColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray'
 
 type SmartBoardPanelProps = {
   title: string
@@ -8,6 +11,7 @@ type SmartBoardPanelProps = {
   onRefresh: () => void
   children: ReactNode
   className?: string
+  accentColor?: AccentColor
 }
 
 export function SmartBoardPanel({
@@ -17,12 +21,17 @@ export function SmartBoardPanel({
   onRefresh,
   children,
   className = '',
+  accentColor = 'gray',
 }: SmartBoardPanelProps) {
   return (
     <div className={`bg-secondary border border-default rounded-lg flex flex-col h-full ${className}`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-default flex items-center justify-between">
-        <h2 className="text-sm font-medium text-primary">{title}</h2>
+        <div className="flex items-center gap-2.5">
+          {/* Accent stripes indicator */}
+          <AccentStripes color={accentColor} />
+          <h2 className="text-sm font-medium text-primary">{title}</h2>
+        </div>
         <button
           onClick={onRefresh}
           disabled={loading}

@@ -25,6 +25,7 @@ export function BlockersPanel({
       loading={loading}
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
+      accentColor="yellow"
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

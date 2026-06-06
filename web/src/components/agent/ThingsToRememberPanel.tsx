@@ -59,6 +59,7 @@ export function ThingsToRememberPanel({
       loading={loading}
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
+      accentColor="red"
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">
