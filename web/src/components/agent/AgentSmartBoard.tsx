@@ -139,16 +139,6 @@ export default function AgentSmartBoard() {
 
   return (
     <div className="min-h-screen bg-primary relative pb-32">
-      {/* Header */}
-      <div className="border-b border-default bg-secondary sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <h1 className="text-lg font-medium text-primary">Smart Board</h1>
-          <p className="text-xs text-secondary mt-1">
-            AI-powered insights from your journals and meetings
-          </p>
-        </div>
-      </div>
-
       {/* Main content - 2-column layout with vertical divider */}
       <div className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-[1fr_1px_400px] gap-6">
