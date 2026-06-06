@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import type { SkillDetail, SkillReference } from '@/types'
 import { stripFrontmatter } from '@/lib/skills/utils'
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown'
+import { AccentStripes } from '@/components/ui/AccentStripes'
 
 type SkillContentProps = {
   skillDetail: SkillDetail | null
@@ -121,6 +122,7 @@ export function SkillContent({ skillDetail, selectedReference, onSave, saving, o
         <>
           <div className="h-8 flex items-center justify-between px-4 border-b border-default shrink-0">
             <div className="flex items-center gap-3">
+              <AccentStripes color="green" />
               <h1 className="text-base font-semibold text-white">{skillDetail.skill.title}</h1>
               <span className="px-2 py-0.5 text-xxs uppercase tracking-[0.08em] bg-raised border border-default rounded-md text-tertiary">
                 {skillDetail.skill.format}

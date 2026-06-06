@@ -5,6 +5,7 @@ import { SyncConfirmationDialog } from './SyncConfirmationDialog'
 import { CreateSkillDialog } from './CreateSkillDialog'
 import { PushSelectionDialog } from './PushSelectionDialog'
 import { SkillItem } from './SkillItem'
+import { AccentStripes } from '@/components/ui/AccentStripes'
 
 type SkillsSidebarProps = {
   skills: Skill[]
@@ -89,6 +90,7 @@ export function SkillsSidebar({
       {/* Panel Header */}
       <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
         <div className="flex items-center gap-2">
+          <AccentStripes color="blue" />
           <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">
             Skills
           </span>

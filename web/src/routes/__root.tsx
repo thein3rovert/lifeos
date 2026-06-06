@@ -3,7 +3,6 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import {
   LayoutDashboard,
-  ImageIcon,
   BookOpen,
   StickyNote,
   Settings,
@@ -12,8 +11,6 @@ import {
   Search,
   Sparkles,
   Bell,
-  HelpCircle,
-  Box,
 } from 'lucide-react'
 import { useState } from 'react'
 import NotFound from '@/components/ui/NotFound'
@@ -92,11 +89,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
             {/* Tools section */}
             <nav className="py-4 px-3 space-y-1">
+              <NavItem to="/" icon={<LayoutDashboard className="w-4 h-4" strokeWidth={1.5} />}>
+                Dashboard
+              </NavItem>
               <NavItem to="/search" icon={<Search className="w-4 h-4" strokeWidth={1.5} />}>
                 Search
-              </NavItem>
-              <NavItem to="/agent" icon={<Sparkles className="w-4 h-4" strokeWidth={1.5} />}>
-                Smart Board
               </NavItem>
               <NavItem to="/notifications" icon={<Bell className="w-4 h-4" strokeWidth={1.5} />}>
                 Notifications
@@ -108,45 +105,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
             {/* Main navigation section */}
             <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-              <NavItem to="/" icon={<LayoutDashboard className="w-4 h-4" strokeWidth={1.5} />}>
-                Dashboard
-              </NavItem>
-              <NavItem to="/notes" icon={<StickyNote className="w-4 h-4" strokeWidth={1.5} />}>
-                Notes
+              <NavItem to="/agent" icon={<Sparkles className="w-4 h-4" strokeWidth={1.5} />}>
+                Smart Board
               </NavItem>
               <NavItem to="/skills" icon={<BookOpen className="w-4 h-4" strokeWidth={1.5} />}>
                 Skills
               </NavItem>
-              <NavItem to="/gallery" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
-                Gallery
-              </NavItem>
-              <NavItem to="/help" icon={<HelpCircle className="w-4 h-4" strokeWidth={1.5} />}>
-                Help & Center
+              <NavItem to="/notes" icon={<StickyNote className="w-4 h-4" strokeWidth={1.5} />}>
+                Notes
               </NavItem>
               <NavItem to="/settings" icon={<Settings className="w-4 h-4" strokeWidth={1.5} />}>
                 Settings
               </NavItem>
             </nav>
-
-            {/* Bottom promo / info card */}
-            {!sidebarCollapsed && (
-              <div className="p-3">
-                <div className="rounded-lg bg-raised border border-default p-3 relative">
-                  <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center mb-3">
-                    <Box className="w-4 h-4 text-white" strokeWidth={1.5} />
-                  </div>
-                  <h4 className="text-sm font-semibold text-primary mb-1">
-                    LifeOS Pro
-                  </h4>
-                  <p className="text-xs text-tertiary mb-3 leading-snug">
-                    Unlock advanced AI and unlimited insights
-                  </p>
-                  <button className="w-full h-8 bg-white text-black text-xs font-medium rounded-md hover:bg-white/90 transition-colors">
-                    Upgrade
-                  </button>
-                </div>
-              </div>
-            )}
           </aside>
 
           {/* Expand sidebar button (when collapsed) */}

@@ -2,6 +2,7 @@ import { Plus, X, Sparkles, Minimize2, Edit3, Loader2, Pencil } from 'lucide-rea
 import { useState } from 'react'
 import type { SkillDetail } from '@/types'
 import { formatDate } from '@/lib/skills/utils'
+import { AccentStripes } from '@/components/ui/AccentStripes'
 
 type SkillNotesProps = {
   skillDetail: SkillDetail | null
@@ -71,14 +72,17 @@ export function SkillNotes({
       <aside className="w-notes shrink-0 bg-base border border-default rounded-md flex flex-col">
         {/* Panel Header */}
         <div className="h-8 flex items-center justify-between px-3 border-b border-default shrink-0">
-          <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">
-            Skill Notes
-            {noteCount > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black">
-                {noteCount}
-              </span>
-            )}
-          </span>
+          <div className="flex items-center gap-2">
+            <AccentStripes color="yellow" />
+            <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">
+              Skill Notes
+              {noteCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black">
+                  {noteCount}
+                </span>
+              )}
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             {isMinimized && hasDraftNote && (
               <button
