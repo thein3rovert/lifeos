@@ -76,6 +76,11 @@ func (s *SmartBoardService) UpdateItemStatus(panelType, itemID, status string) e
 	return s.store.UpdateItemStatus(panelType, itemID, status)
 }
 
+// UpdateItemContent updates content fields of a specific item
+func (s *SmartBoardService) UpdateItemContent(panelType, itemID string, fields map[string]string) error {
+	return s.store.UpdateItemContent(panelType, itemID, fields)
+}
+
 // getPromptForPanel returns the AI prompt for a specific panel type
 func (s *SmartBoardService) getPromptForPanel(panelType string) (string, error) {
 	// Calculate date ranges
