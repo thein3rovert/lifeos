@@ -34,7 +34,7 @@ export function CategoryMenu({ options, onSelect, trigger }: CategoryMenuProps) 
   }
 
   return (
-    <div className="relative inline-block" ref={menuRef}>
+    <div className="relative" ref={menuRef}>
       <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
 
       {isOpen && (

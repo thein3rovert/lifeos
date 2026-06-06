@@ -40,7 +40,7 @@ export function SmartBoardItemCard({
 
   return (
     <div
-      className={`group py-2 px-2 -mx-2 rounded ${
+      className={`group py-2 px-2 rounded ${
         onClick ? 'cursor-pointer hover:bg-tertiary/30' : ''
       } transition-colors`}
       onClick={onClick}
@@ -71,7 +71,7 @@ export function SmartBoardItemCard({
 
       {/* Second row: description preview (if exists) */}
       {description && (
-        <p className="text-xs text-secondary mt-1 ml-8 line-clamp-2">
+        <p className="text-xs text-secondary mt-1 ml-8 line-clamp-2 break-words">
           {description}
         </p>
       )}
