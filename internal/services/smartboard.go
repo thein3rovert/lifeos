@@ -1,8 +1,6 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -48,9 +46,13 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 
 	fmt.Printf("[smartboard] cache miss for %s (force=%v)\n", panelType, force)
 
-	// Get AI prompt for this panel type
-	// TODO: Prompt should be handled by sidecar later
-	prompt, err := s.getPromptForPanel(panelType)
+	// Build prompt, including existing items so the AI can reuse IDs for
+	// semantic matches (Option-1 merge strategy).
+	var existingCtx string
+	if existingPanel != nil {
+		existingCtx = existingItemsContext(panelType, existingPanel.Data)
+	}
+	prompt, err := s.getPromptForPanel(panelType, existingCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +79,14 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// Rewrite item IDs with deterministic content-hashed IDs.
-	// This makes the same item produce the same ID across refreshes,
-	// enabling future dedupe + merge logic.
-	data = rewriteItemIDs(panelType, data)
+	// Merge with existing panel data: preserves user-curated fields
+	// (category, status) for items the AI re-emits with the same ID, and
+	// assigns stable IDs to brand-new items.
+	var oldJSON string
+	if existingPanel != nil {
+		oldJSON = existingPanel.Data
+	}
+	data = mergePanelData(panelType, oldJSON, data)
 
 	// Save to database. SourceFingerprint kept empty for now — reserved for
 	// future Option-B style cache key (e.g. MCP-listed file digest).
@@ -106,13 +112,34 @@ func (s *SmartBoardService) UpdateItemContent(panelType, itemID string, fields m
 	return s.store.UpdateItemContent(panelType, itemID, fields)
 }
 
-// getPromptForPanel returns the AI prompt for a specific panel type
-func (s *SmartBoardService) getPromptForPanel(panelType string) (string, error) {
+// getPromptForPanel returns the AI prompt for a specific panel type.
+// If existingItemsJSON is non-empty, the AI is asked to reuse existing IDs
+// for items it semantically recognizes (enables merge-on-refresh).
+func (s *SmartBoardService) getPromptForPanel(panelType, existingItemsJSON string) (string, error) {
 	// Calculate date ranges
 	now := time.Now()
 	sevenDaysAgo := now.AddDate(0, 0, -7).Format("2006-01-02")
 	threeDaysAgo := now.AddDate(0, 0, -3).Format("2006-01-02")
 	weekStart := now.AddDate(0, 0, -int(now.Weekday())).Format("2006-01-02")
+
+	// Shared instructions appended when we have prior items. We tell the AI to
+	// reuse existing IDs for semantic matches so the server can merge user
+	// state (category, status) across refreshes.
+	reuseBlock := ""
+	if existingItemsJSON != "" {
+		reuseBlock = fmt.Sprintf(`
+
+ID REUSE INSTRUCTIONS (IMPORTANT):
+These items are currently in the panel:
+%s
+
+For each item you produce:
+- If it represents the SAME underlying idea/task/event as one of the items above
+  (even if you would word it differently), copy that item's exact "id" into your output.
+- If it's brand new, leave "id" as an empty string "" and we will assign one.
+- It's fine to omit items from the list above that no longer apply.
+`, existingItemsJSON)
+	}
 
 	switch panelType {
 	case "things-to-remember":
@@ -145,7 +172,8 @@ Rules:
 - text: Full context/details (e.g. "Follow up with Nydia on business rules/admin access question before June 1 rollout")
 - Only include actionable or decision-critical items
 - Exclude routine/completed tasks
-- Return valid JSON only, no markdown or explanation`, sevenDaysAgo), nil
+- Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
+- Return valid JSON only, no markdown or explanation`, sevenDaysAgo) + reuseBlock, nil
 
 	case "suggestions":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -175,7 +203,9 @@ Focus on:
 - Work-life balance signals
 - Productivity blockers
 
-Return valid JSON only, no markdown or explanation.`, sevenDaysAgo), nil
+Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
+
+Return valid JSON only, no markdown or explanation.`, sevenDaysAgo) + reuseBlock, nil
 
 	case "achievements":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -204,8 +234,9 @@ Rules:
 - achievement: Full details (e.g. "Implemented and shipped SSO authentication for the platform")
 - Only include meaningful accomplishments
 - Sort by date (newest first)
+- Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
 
-Return valid JSON only, no markdown or explanation.`, weekStart), nil
+Return valid JSON only, no markdown or explanation.`, weekStart) + reuseBlock, nil
 
 	case "blockers":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -235,7 +266,9 @@ Look for phrases like:
 - "can't proceed", "need help with"
 - "issue with", "problem with"
 
-Return valid JSON only, no markdown or explanation.`, threeDaysAgo), nil
+Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
+
+Return valid JSON only, no markdown or explanation.`, threeDaysAgo) + reuseBlock, nil
 
 	default:
 		return "", fmt.Errorf("unknown panel type: %s", panelType)
@@ -258,11 +291,8 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 			// saved for review so we can correct the ai on where it made mistake
 			return nil, fmt.Errorf("failed to parse things-to-remember response: %w", err)
 		}
-		// Add IDs to items(response)
-		// TODO: Make sure its UUID
-		for i := range items {
-			items[i].ID = generateID()
-		}
+		// Leave IDs as-is. Merge step will reuse AI-supplied IDs that match
+		// existing items, and assign deterministic IDs to anything blank/unknown.
 		return model.ThingsToRememberData{Items: items}, nil
 
 	case "suggestions":
@@ -270,12 +300,15 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 		if err := json.Unmarshal([]byte(response), &suggestions); err != nil {
 			return nil, fmt.Errorf("failed to parse suggestions response: %w", err)
 		}
-		// Add IDs and default status
 		now := time.Now().Format(time.RFC3339)
 		for i := range suggestions {
-			suggestions[i].ID = generateID()
-			suggestions[i].Status = "active"
-			suggestions[i].CreatedAt = now
+			// Default status for brand-new items only; merge preserves prior status.
+			if suggestions[i].Status == "" {
+				suggestions[i].Status = "active"
+			}
+			if suggestions[i].CreatedAt == "" {
+				suggestions[i].CreatedAt = now
+			}
 		}
 		return model.SuggestionsData{Suggestions: suggestions}, nil
 
@@ -284,20 +317,12 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 		if err := json.Unmarshal([]byte(response), &achievements); err != nil {
 			return nil, fmt.Errorf("failed to parse achievements response: %w", err)
 		}
-		// Add IDs
-		for i := range achievements {
-			achievements[i].ID = generateID()
-		}
 		return model.AchievementsData{Achievements: achievements}, nil
 
 	case "blockers":
 		var blockers []model.BlockerItem
 		if err := json.Unmarshal([]byte(response), &blockers); err != nil {
 			return nil, fmt.Errorf("failed to parse blockers response: %w", err)
-		}
-		// Add IDs
-		for i := range blockers {
-			blockers[i].ID = generateID()
 		}
 		return model.BlockersData{Blockers: blockers}, nil
 
@@ -350,11 +375,4 @@ func cleanJSONResponse(response string) string {
 
 	// Return original if no JSON markers found
 	return response
-}
-
-// generateID generates a random ID for items
-func generateID() string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return hex.EncodeToString(b)
 }
