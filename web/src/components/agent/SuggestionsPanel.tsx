@@ -10,6 +10,8 @@ type SuggestionsPanelProps = {
   onRefresh: () => void
   onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void
   onChangeStatus: (itemId: string, status: 'active' | 'dismissed' | 'completed') => void
+  nextRefresh?: Date | null
+  lastError?: string
 }
 
 export function SuggestionsPanel({
@@ -19,6 +21,8 @@ export function SuggestionsPanel({
   onRefresh,
   onEditItem,
   onChangeStatus,
+  nextRefresh,
+  lastError,
 }: SuggestionsPanelProps) {
   const items = data?.suggestions || []
 
@@ -60,6 +64,8 @@ export function SuggestionsPanel({
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
       accentColor="blue"
+      nextRefresh={nextRefresh}
+      lastError={lastError}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

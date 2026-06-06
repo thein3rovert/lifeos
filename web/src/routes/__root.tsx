@@ -40,6 +40,19 @@ export const Route = createRootRoute({
         rel: 'stylesheet',
         href: appCss,
       },
+      {
+        rel: 'icon',
+        type: 'image/x-icon',
+        href: '/favicon.ico',
+      },
+      {
+        rel: 'apple-touch-icon',
+        href: '/logo192.png',
+      },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
+      },
     ],
   }),
   notFoundComponent: NotFound,
@@ -71,9 +84,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               {!sidebarCollapsed && (
                 <>
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
-                      <Sparkles className="w-3.5 h-3.5 text-white" strokeWidth={1.5} />
-                    </div>
+                    <img
+                      src="/logo-512.png"
+                      alt="LifeOS"
+                      className="w-9 h-9 rounded object-contain"
+                    />
                     <span className="text-sm font-semibold tracking-tight">LifeOS</span>
                   </div>
                   <button

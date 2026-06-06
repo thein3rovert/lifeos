@@ -1,5 +1,6 @@
-import { ReactNode, useEffect, useState } from 'react'
-import { RefreshCw, Sparkles } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import { RefreshCw, Sparkles, AlertCircle, Clock } from 'lucide-react'
 import { AccentStripes } from '../ui/AccentStripes'
 
 type AccentColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray'
@@ -12,6 +13,8 @@ type SmartBoardPanelProps = {
   children: ReactNode
   className?: string
   accentColor?: AccentColor
+  nextRefresh?: Date | null
+  lastError?: string
 }
 
 export function SmartBoardPanel({
@@ -22,6 +25,8 @@ export function SmartBoardPanel({
   children,
   className = '',
   accentColor = 'gray',
+  nextRefresh,
+  lastError,
 }: SmartBoardPanelProps) {
   return (
     <div className={`bg-secondary border border-default rounded-lg flex flex-col h-full ${className}`}>
@@ -52,14 +57,25 @@ export function SmartBoardPanel({
         {loading ? <LoadingState /> : children}
       </div>
 
-      {/* Footer - Last updated timestamp */}
-      {lastRefreshed && !loading && (
-        <div className="px-4 py-2 border-t border-default">
-          <span className="text-xs text-tertiary">
-            Updated {formatRelativeTime(lastRefreshed)}
-          </span>
+      {/* Footer - Last updated + next refresh + error */}
+      <div className="px-4 py-2 border-t border-default flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          {lastRefreshed && !loading && (
+            <span className="text-xs text-tertiary">
+              Updated {formatRelativeTime(lastRefreshed)}
+            </span>
+          )}
+          {lastError && (
+            <span className="flex items-center gap-1 text-xs text-red-400" title={lastError}>
+              <AlertCircle className="w-3 h-3" strokeWidth={1.5} />
+              Refresh failed
+            </span>
+          )}
         </div>
-      )}
+        {nextRefresh && !loading && (
+          <NextRefreshCountdown target={nextRefresh} />
+        )}
+      </div>
     </div>
   )
 }
@@ -100,6 +116,36 @@ function LoadingState() {
       <p className="text-sm text-primary font-medium">{getMessage()}</p>
       <p className="text-xs text-tertiary font-mono">{formatTime(elapsed)} elapsed</p>
     </div>
+  )
+}
+
+// Live countdown to next scheduled refresh
+function NextRefreshCountdown({ target }: { target: Date }) {
+  const [, setTick] = useState(0)
+
+  // Re-render every 60 seconds to update the countdown
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const diffMs = target.getTime() - Date.now()
+  if (diffMs <= 0) return null
+
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  let label: string
+  if (diffMins < 60) label = `${diffMins}m`
+  else if (diffHours < 24) label = `${diffHours}h ${diffMins % 60}m`
+  else label = `${diffDays}d ${diffHours % 24}h`
+
+  return (
+    <span className="flex items-center gap-1 text-xs text-tertiary">
+      <Clock className="w-3 h-3" strokeWidth={1.5} />
+      Next in {label}
+    </span>
   )
 }
 

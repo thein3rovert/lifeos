@@ -8,6 +8,8 @@ type AchievementsPanelProps = {
   lastRefreshed: Date | null
   onRefresh: () => void
   onEditItem: (itemId: string, achievement: string, title?: string) => void
+  nextRefresh?: Date | null
+  lastError?: string
 }
 
 export function AchievementsPanel({
@@ -16,6 +18,8 @@ export function AchievementsPanel({
   lastRefreshed,
   onRefresh,
   onEditItem,
+  nextRefresh,
+  lastError,
 }: AchievementsPanelProps) {
   const items = data?.achievements || []
 
@@ -26,6 +30,8 @@ export function AchievementsPanel({
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
       accentColor="green"
+      nextRefresh={nextRefresh}
+      lastError={lastError}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

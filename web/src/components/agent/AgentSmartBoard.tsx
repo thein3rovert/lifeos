@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSmartBoardPanel } from '@/hooks'
+import { useSmartBoardPanel, useScheduleStatus } from '@/hooks'
 import { api } from '@/lib/api'
 import {
   ThingsToRememberPanel,
@@ -22,6 +22,9 @@ export default function AgentSmartBoard() {
   const suggestions = useSmartBoardPanel<SuggestionsData>('suggestions')
   const achievements = useSmartBoardPanel<AchievementsData>('achievements')
   const blockers = useSmartBoardPanel<BlockersData>('blockers')
+
+  // Scheduler status (next refresh, last error per panel)
+  const schedule = useScheduleStatus()
 
   // Canvas editor state
   const [editorOpen, setEditorOpen] = useState(false)
@@ -155,6 +158,8 @@ export default function AgentSmartBoard() {
                   onRefresh={thingsToRemember.refresh}
                   onEditItem={handleEditThingsToRemember}
                   onChangeCategory={handleChangeCategory}
+                  nextRefresh={schedule?.['things-to-remember']?.nextRefresh ? new Date(schedule['things-to-remember'].nextRefresh) : null}
+                  lastError={schedule?.['things-to-remember']?.lastError}
                 />
               </div>
 
@@ -167,6 +172,8 @@ export default function AgentSmartBoard() {
                   onRefresh={suggestions.refresh}
                   onEditItem={handleEditSuggestion}
                   onChangeStatus={handleChangeSuggestionStatus}
+                  nextRefresh={schedule?.['suggestions']?.nextRefresh ? new Date(schedule['suggestions'].nextRefresh) : null}
+                  lastError={schedule?.['suggestions']?.lastError}
                 />
               </div>
             </div>
@@ -209,6 +216,8 @@ export default function AgentSmartBoard() {
                 lastRefreshed={achievements.lastRefreshed}
                 onRefresh={achievements.refresh}
                 onEditItem={handleEditAchievement}
+                nextRefresh={schedule?.['achievements']?.nextRefresh ? new Date(schedule['achievements'].nextRefresh) : null}
+                lastError={schedule?.['achievements']?.lastError}
               />
             </div>
 
@@ -220,6 +229,8 @@ export default function AgentSmartBoard() {
                 lastRefreshed={blockers.lastRefreshed}
                 onRefresh={blockers.refresh}
                 onEditItem={handleEditBlocker}
+                nextRefresh={schedule?.['blockers']?.nextRefresh ? new Date(schedule['blockers'].nextRefresh) : null}
+                lastError={schedule?.['blockers']?.lastError}
               />
             </div>
           </div>

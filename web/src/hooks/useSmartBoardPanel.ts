@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from '@/components/ui/Toast'
-import type { PanelType, SmartBoardPanelResponse } from '@/types'
+import type { PanelType, SmartBoardPanelResponse, ScheduleStatusMap } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL as string
 
@@ -108,4 +108,31 @@ export function useSmartBoardPanel<T>(
     refresh,
     updateItemStatus,
   }
+}
+
+/**
+ * Fetches scheduler status (next refresh time, last error) for all panels.
+ * Polls every 60 seconds to keep "next refresh" countdown accurate.
+ */
+export function useScheduleStatus() {
+  const [schedule, setSchedule] = useState<ScheduleStatusMap | null>(null)
+
+  const fetchSchedule = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/smartboard/schedule`)
+      if (!response.ok) return
+      const data = await response.json()
+      setSchedule(data as ScheduleStatusMap)
+    } catch {
+      // Silently ignore — schedule is non-critical UI
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSchedule()
+    const interval = setInterval(fetchSchedule, 60_000) // poll every 60s
+    return () => clearInterval(interval)
+  }, [fetchSchedule])
+
+  return schedule
 }

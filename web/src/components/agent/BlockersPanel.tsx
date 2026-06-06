@@ -8,6 +8,8 @@ type BlockersPanelProps = {
   lastRefreshed: Date | null
   onRefresh: () => void
   onEditItem: (itemId: string, blocker: string, context: string, title?: string) => void
+  nextRefresh?: Date | null
+  lastError?: string
 }
 
 export function BlockersPanel({
@@ -16,6 +18,8 @@ export function BlockersPanel({
   lastRefreshed,
   onRefresh,
   onEditItem,
+  nextRefresh,
+  lastError,
 }: BlockersPanelProps) {
   const items = data?.blockers || []
 
@@ -26,6 +30,8 @@ export function BlockersPanel({
       lastRefreshed={lastRefreshed}
       onRefresh={onRefresh}
       accentColor="yellow"
+      nextRefresh={nextRefresh}
+      lastError={lastError}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

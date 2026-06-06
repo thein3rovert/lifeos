@@ -151,3 +151,11 @@ export interface SmartBoardPanelResponse {
   data: ThingsToRememberData | SuggestionsData | AchievementsData | BlockersData | null
   lastRefreshed: string | null
 }
+
+export interface PanelScheduleStatus {
+  nextRefresh: string
+  lastError: string
+  interval: string
+}
+
+export type ScheduleStatusMap = Record<PanelType, PanelScheduleStatus>
