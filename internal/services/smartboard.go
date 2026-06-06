@@ -12,6 +12,10 @@ import (
 	"github.com/thein3rovert/lifeos/internal/store"
 )
 
+// cacheTTL is how long a cached panel is considered "fresh" before refresh()
+// will call the AI again. Users can always bypass with ?force=true.
+const cacheTTL = 10 * time.Minute
+
 // SmartBoardService handles business logic for smart board panels
 type SmartBoardService struct {
 	store            store.SmartBoardStore
@@ -26,8 +30,24 @@ func NewSmartBoardService(store store.SmartBoardStore, agentChatService *AgentCh
 	}
 }
 
-// RefreshPanel fetches new data from AI and updates cache(db)
-func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPanel, error) {
+// RefreshPanel fetches new data from AI and updates cache(db).
+// If force is false and the cached panel is younger than cacheTTL, returns
+// the cached panel without calling AI (instant, no token cost).
+func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.SmartBoardPanel, error) {
+	existingPanel, _ := s.store.GetLatestPanel(panelType)
+
+	// Cache hit: have data, recently refreshed, and not forced → skip AI entirely.
+	if !force && existingPanel != nil {
+		age := time.Since(existingPanel.LastRefreshed)
+		if age < cacheTTL {
+			fmt.Printf("[smartboard] cache hit for %s (age=%s, ttl=%s)\n",
+				panelType, age.Round(time.Second), cacheTTL)
+			return existingPanel, nil
+		}
+	}
+
+	fmt.Printf("[smartboard] cache miss for %s (force=%v)\n", panelType, force)
+
 	// Get AI prompt for this panel type
 	// TODO: Prompt should be handled by sidecar later
 	prompt, err := s.getPromptForPanel(panelType)
@@ -37,7 +57,7 @@ func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPan
 
 	// Try to reuse existing session for this panel type
 	var sessionID *string
-	if existingPanel, err := s.store.GetLatestPanel(panelType); err == nil && existingPanel != nil && existingPanel.SessionID != "" {
+	if existingPanel != nil && existingPanel.SessionID != "" {
 		sid := existingPanel.SessionID
 		sessionID = &sid
 	}
@@ -57,12 +77,17 @@ func (s *SmartBoardService) RefreshPanel(panelType string) (*model.SmartBoardPan
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// Save to database with the session ID returned from the AI service
-	if err := s.store.SavePanel(panelType, data, chatResp.SessionID); err != nil {
+	// Rewrite item IDs with deterministic content-hashed IDs.
+	// This makes the same item produce the same ID across refreshes,
+	// enabling future dedupe + merge logic.
+	data = rewriteItemIDs(panelType, data)
+
+	// Save to database. SourceFingerprint kept empty for now — reserved for
+	// future Option-B style cache key (e.g. MCP-listed file digest).
+	if err := s.store.SavePanel(panelType, data, chatResp.SessionID, ""); err != nil {
 		return nil, fmt.Errorf("failed to save panel: %w", err)
 	}
 
-	// Return the saved panel
 	return s.store.GetLatestPanel(panelType)
 }
 

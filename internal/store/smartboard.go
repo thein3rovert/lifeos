@@ -10,7 +10,7 @@ import (
 
 // SmartBoardStore defines operations for smart board panels
 type SmartBoardStore interface {
-	SavePanel(panelType string, data interface{}, sessionID string) error
+	SavePanel(panelType string, data interface{}, sessionID, sourceFingerprint string) error
 	GetLatestPanel(panelType string) (*model.SmartBoardPanel, error)
 	UpdateItemStatus(panelType, itemID, status string) error
 	UpdateItemContent(panelType, itemID string, fields map[string]string) error
@@ -27,24 +27,24 @@ func NewSmartBoardStore(db *sql.DB) *SQLSmartBoardStore {
 }
 
 // SavePanel saves panel data to the database
-func (s *SQLSmartBoardStore) SavePanel(panelType string, data interface{}, sessionID string) error {
+func (s *SQLSmartBoardStore) SavePanel(panelType string, data interface{}, sessionID, sourceFingerprint string) error {
 	// Marshal data to JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	query := `INSERT INTO smartboard_panels (panel_type, data, session_id, last_refreshed, created_at)
-	          VALUES (?, ?, ?, ?, ?)`
+	query := `INSERT INTO smartboard_panels (panel_type, data, session_id, source_fingerprint, last_refreshed, created_at)
+	          VALUES (?, ?, ?, ?, ?, ?)`
 
 	now := time.Now()
-	_, err = s.db.Exec(query, panelType, string(jsonData), sessionID, now, now)
+	_, err = s.db.Exec(query, panelType, string(jsonData), sessionID, sourceFingerprint, now, now)
 	return err
 }
 
 // GetLatestPanel retrieves the most recent panel data for a given type
 func (s *SQLSmartBoardStore) GetLatestPanel(panelType string) (*model.SmartBoardPanel, error) {
-	query := `SELECT id, panel_type, data, COALESCE(session_id, ''), last_refreshed, created_at
+	query := `SELECT id, panel_type, data, COALESCE(session_id, ''), COALESCE(source_fingerprint, ''), last_refreshed, created_at
 	          FROM smartboard_panels
 	          WHERE panel_type = ?
 	          ORDER BY last_refreshed DESC
@@ -56,6 +56,7 @@ func (s *SQLSmartBoardStore) GetLatestPanel(panelType string) (*model.SmartBoard
 		&panel.PanelType,
 		&panel.Data,
 		&panel.SessionID,
+		&panel.SourceFingerprint,
 		&panel.LastRefreshed,
 		&panel.CreatedAt,
 	)

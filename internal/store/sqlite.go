@@ -125,6 +125,7 @@ func (s *SQLiteStore) migrate() error {
 	    );`,
 		// Add session_id column to existing tables (idempotent)
 		`ALTER TABLE smartboard_panels ADD COLUMN session_id TEXT;`,
+		`ALTER TABLE smartboard_panels ADD COLUMN source_fingerprint TEXT NOT NULL DEFAULT '';`,
 		`CREATE INDEX IF NOT EXISTS idx_smartboard_panels_type_refresh ON smartboard_panels(panel_type, last_refreshed DESC);`,
 	}
 	for _, q := range queries {
