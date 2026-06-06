@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/thein3rovert/lifeos/internal/api"
@@ -114,6 +118,7 @@ func runHTTPServer() {
 	// Smart board store and service
 	smartBoardStore := store.NewSmartBoardStore(db.DB())
 	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService)
+	defer smartBoardService.Stop()
 
 	// ── Initialize API handlers ─────────────────────────────────────
 	photoAPI := api.NewPhotoHandler(photoStore)
@@ -208,9 +213,33 @@ func runHTTPServer() {
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
-	log.Printf("Server starting on %s", port)
-	if err := http.ListenAndServe(":"+port, middleware.CORS(middleware.CustomLogger(mux))); err != nil {
-		fmt.Printf("Failed to listen at port %s: %v\n", port, err)
-		log.Fatal(err)
+	// ── Start HTTP server with graceful shutdown ──────────────────────
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: middleware.CORS(middleware.CustomLogger(mux)),
 	}
+
+	// Channel to capture shutdown signals
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("Server starting on %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Failed to listen at port %s: %v\n", port, err)
+			log.Fatal(err)
+		}
+	}()
+
+	// Block until signal received
+	<-stop
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	log.Println("Server stopped")
 }

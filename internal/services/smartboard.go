@@ -18,13 +18,25 @@ const cacheTTL = 10 * time.Minute
 type SmartBoardService struct {
 	store            store.SmartBoardStore
 	agentChatService *AgentChatService
+	scheduler        *Scheduler
 }
 
-// NewSmartBoardService creates a new smart board service
+// NewSmartBoardService creates a new smart board service and starts the
+// background scheduler that auto-refreshes panels.
 func NewSmartBoardService(store store.SmartBoardStore, agentChatService *AgentChatService) *SmartBoardService {
-	return &SmartBoardService{
+	svc := &SmartBoardService{
 		store:            store,
 		agentChatService: agentChatService,
+	}
+	svc.scheduler = NewScheduler(svc)
+	svc.scheduler.Start()
+	return svc
+}
+
+// Stop shuts down the background scheduler. Call on server shutdown.
+func (s *SmartBoardService) Stop() {
+	if s.scheduler != nil {
+		s.scheduler.Stop()
 	}
 }
 
