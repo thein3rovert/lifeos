@@ -38,6 +38,7 @@ export function BlockersPanel({
               index={idx + 1}
               title={item.title || item.blocker.substring(0, 40)}
               date={item.date}
+              description={item.blocker}
               dotColor="red"
               onClick={() => onEditItem(item.id, item.blocker, item.context)}
             />

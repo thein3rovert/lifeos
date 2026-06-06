@@ -1,5 +1,6 @@
 import { SmartBoardPanel } from './SmartBoardPanel'
 import { SmartBoardItemCard } from './SmartBoardItemCard'
+import { CategoryMenu } from '../ui/CategoryMenu'
 import type { ThingsToRememberData } from '@/types'
 
 type ThingsToRememberPanelProps = {
@@ -21,6 +22,20 @@ export function ThingsToRememberPanel({
 }: ThingsToRememberPanelProps) {
   const items = data?.items || []
 
+  // Map category to badge variant
+  const categoryToBadgeVariant = (
+    category: string
+  ): 'urgent' | 'important' | 'not-important' => {
+    switch (category) {
+      case 'urgent':
+        return 'urgent'
+      case 'important':
+        return 'important'
+      default:
+        return 'not-important'
+    }
+  }
+
   // Map category to dot color
   const categoryToDotColor = (category: string): 'red' | 'yellow' | 'gray' => {
     switch (category) {
@@ -31,6 +46,11 @@ export function ThingsToRememberPanel({
       default:
         return 'gray'
     }
+  }
+
+  // Format category label
+  const formatCategoryLabel = (category: string): string => {
+    return category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')
   }
 
   return (
@@ -47,29 +67,29 @@ export function ThingsToRememberPanel({
       ) : (
         <div className="space-y-1">
           {items.map((item, idx) => (
-            <SmartBoardItemCard
+            <CategoryMenu
               key={item.id}
-              index={idx + 1}
-              title={item.title || item.text.substring(0, 40)}
-              date={item.date}
-              dotColor={categoryToDotColor(item.category)}
-              onClick={() => onEditItem(item.id, item.text)}
-              rightActions={
-                <select
-                  value={item.category}
-                  onChange={(e) =>
-                    onChangeCategory(
-                      item.id,
-                      e.target.value as 'urgent' | 'important' | 'not-important'
-                    )
-                  }
-                  className="text-xs bg-transparent text-secondary hover:text-primary border-none focus:outline-none cursor-pointer"
-                  title="Change category"
-                >
-                  <option value="urgent">Urgent</option>
-                  <option value="important">Important</option>
-                  <option value="not-important">Not Important</option>
-                </select>
+              options={[
+                { value: 'urgent', label: 'Urgent' },
+                { value: 'important', label: 'Important' },
+                { value: 'not-important', label: 'Not Important' },
+              ]}
+              onSelect={(value) =>
+                onChangeCategory(item.id, value as 'urgent' | 'important' | 'not-important')
+              }
+              trigger={
+                <SmartBoardItemCard
+                  index={idx + 1}
+                  title={item.title || item.text.substring(0, 40)}
+                  date={item.date}
+                  description={item.text}
+                  badge={{
+                    label: formatCategoryLabel(item.category),
+                    variant: categoryToBadgeVariant(item.category),
+                  }}
+                  dotColor={categoryToDotColor(item.category)}
+                  onClick={() => onEditItem(item.id, item.text)}
+                />
               }
             />
           ))}

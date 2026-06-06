@@ -38,6 +38,7 @@ export function AchievementsPanel({
               index={idx + 1}
               title={item.title || item.achievement.substring(0, 40)}
               date={item.date}
+              description={item.achievement}
               dotColor="green"
               onClick={() => onEditItem(item.id, item.achievement)}
             />
