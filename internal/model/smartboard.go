@@ -4,12 +4,13 @@ import "time"
 
 // SmartBoardPanel represents a cached panel in the database
 type SmartBoardPanel struct {
-	ID            int       `json:"id"`
-	PanelType     string    `json:"panel_type"`
-	Data          string    `json:"data"` // JSON blob
-	SessionID     string    `json:"session_id"` // OpenCode session ID for reuse
-	LastRefreshed time.Time `json:"last_refreshed"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID                int       `json:"id"`
+	PanelType         string    `json:"panel_type"`
+	Data              string    `json:"data"` // JSON blob
+	SessionID         string    `json:"session_id"` // OpenCode session ID for reuse
+	SourceFingerprint string    `json:"source_fingerprint"` // hash of source files at last refresh
+	LastRefreshed     time.Time `json:"last_refreshed"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // ThingsToRememberItem represents a single item in the Things to Remember panel
