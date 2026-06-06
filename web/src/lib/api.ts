@@ -124,16 +124,26 @@ export const api = {
   smartboard: {
     getPanel: (panelType: PanelType) =>
       fetcher<SmartBoardPanelResponse>(`/api/smartboard/${panelType}`),
-    
+
     refreshPanel: (panelType: PanelType) =>
       fetcher<SmartBoardPanelResponse>(`/api/smartboard/refresh/${panelType}`, {
         method: 'POST',
       }),
-    
+
     updateItemStatus: (itemId: string, panelType: PanelType, status: string) =>
       fetcher<{ message: string }>(`/api/smartboard/item/${itemId}`, {
         method: 'PATCH',
         body: JSON.stringify({ panelType, status }),
+      }),
+
+    updateItemContent: (
+      itemId: string,
+      panelType: PanelType,
+      fields: Record<string, string>
+    ) =>
+      fetcher<{ message: string }>(`/api/smartboard/item/${itemId}/content`, {
+        method: 'PATCH',
+        body: JSON.stringify({ panelType, fields }),
       }),
   },
 }

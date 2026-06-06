@@ -62,27 +62,33 @@ export default function AgentSmartBoard() {
 
     try {
       // Parse content based on panel type
-      let updateData: any = {}
+      let fields: Record<string, string> = {}
 
       switch (editorContext.panelType) {
         case 'things-to-remember':
-          updateData = { text: content }
+          fields = { text: content }
           break
-        case 'suggestions':
+        case 'suggestions': {
           const [suggestion, ...reasoningParts] = content.split('\n\n')
-          updateData = { suggestion, reasoning: reasoningParts.join('\n\n') }
+          fields = { suggestion, reasoning: reasoningParts.join('\n\n') }
           break
+        }
         case 'achievements':
-          updateData = { achievement: content }
+          fields = { achievement: content }
           break
-        case 'blockers':
+        case 'blockers': {
           const [blocker, ...contextParts] = content.split('\n\n')
-          updateData = { blocker, context: contextParts.join('\n\n') }
+          fields = { blocker, context: contextParts.join('\n\n') }
           break
+        }
       }
 
       // Update via API
-      await api.smartboard.updateItemStatus(editorContext.itemId, updateData)
+      await api.smartboard.updateItemContent(
+        editorContext.itemId,
+        editorContext.panelType,
+        fields
+      )
 
       // Refresh the panel data
       switch (editorContext.panelType) {

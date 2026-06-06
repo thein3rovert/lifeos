@@ -14,7 +14,7 @@ export function InlineCanvasEditor({
   onClose,
 }: InlineCanvasEditorProps) {
   const [content, setContent] = useState(initialContent)
-  const [isPreview, setIsPreview] = useState(false)
+  const [isPreview, setIsPreview] = useState(true)
 
   // Update content when prop changes
   useEffect(() => {
