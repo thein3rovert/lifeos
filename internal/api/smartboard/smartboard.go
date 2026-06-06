@@ -144,7 +144,7 @@ func (h *SmartBoardHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// UpdateItemContent updates the content fields of a specific item
+// UpdateItemContent updates the content fields of a specific item in a card preview
 // PATCH /api/smartboard/item/{itemId}/content
 func (h *SmartBoardHandler) UpdateItemContent(w http.ResponseWriter, r *http.Request) {
 	itemID := r.PathValue("itemId")

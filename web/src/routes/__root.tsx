@@ -8,7 +8,12 @@ import {
   StickyNote,
   Settings,
   ChevronLeft,
-  Menu
+  Menu,
+  Search,
+  Sparkles,
+  Bell,
+  HelpCircle,
+  Box,
 } from 'lucide-react'
 import { useState } from 'react'
 import NotFound from '@/components/ui/NotFound'
@@ -57,19 +62,27 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="bg-base text-white font-sans antialiased min-h-screen">
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
-          <aside className={`
-            ${sidebarCollapsed ? 'w-0' : 'w-sidebar'}
-            shrink-0 bg-base border-r border-default
-            flex flex-col overflow-hidden transition-all duration-200
-          `}>
-            {/* Logo area with collapse button */}
-            <div className="h-12 flex items-center justify-between px-4 border-b border-default">
+          <aside
+            className={`
+              ${sidebarCollapsed ? 'w-0' : 'w-[240px]'}
+              shrink-0 bg-base border-r border-default
+              flex flex-col overflow-hidden transition-all duration-200
+            `}
+          >
+            {/* Logo area with avatar/collapse */}
+            <div className="h-14 flex items-center justify-between px-4 border-b border-default">
               {!sidebarCollapsed && (
                 <>
-                  <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
+                      <Sparkles className="w-3.5 h-3.5 text-white" strokeWidth={1.5} />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+                  </div>
                   <button
                     onClick={() => setSidebarCollapsed(true)}
                     className="p-1.5 hover:bg-hover rounded transition-colors"
+                    aria-label="Collapse sidebar"
                   >
                     <ChevronLeft className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
                   </button>
@@ -77,28 +90,63 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 py-3 px-3 space-y-0.5">
+            {/* Tools section */}
+            <nav className="py-4 px-3 space-y-1">
+              <NavItem to="/search" icon={<Search className="w-4 h-4" strokeWidth={1.5} />}>
+                Search
+              </NavItem>
+              <NavItem to="/agent" icon={<Sparkles className="w-4 h-4" strokeWidth={1.5} />}>
+                Smart Board
+              </NavItem>
+              <NavItem to="/notifications" icon={<Bell className="w-4 h-4" strokeWidth={1.5} />}>
+                Notifications
+              </NavItem>
+            </nav>
+
+            {/* Divider */}
+            <div className="mx-3 border-t border-default" />
+
+            {/* Main navigation section */}
+            <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
               <NavItem to="/" icon={<LayoutDashboard className="w-4 h-4" strokeWidth={1.5} />}>
                 Dashboard
-              </NavItem>
-              <NavItem to="/gallery" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
-                Gallery
-              </NavItem>
-              <NavItem to="/skills" icon={<BookOpen className="w-4 h-4" strokeWidth={1.5} />}>
-                Skills
               </NavItem>
               <NavItem to="/notes" icon={<StickyNote className="w-4 h-4" strokeWidth={1.5} />}>
                 Notes
               </NavItem>
-            </nav>
-
-            {/* Bottom settings */}
-            <div className="py-3 px-3 border-t border-default">
+              <NavItem to="/skills" icon={<BookOpen className="w-4 h-4" strokeWidth={1.5} />}>
+                Skills
+              </NavItem>
+              <NavItem to="/gallery" icon={<ImageIcon className="w-4 h-4" strokeWidth={1.5} />}>
+                Gallery
+              </NavItem>
+              <NavItem to="/help" icon={<HelpCircle className="w-4 h-4" strokeWidth={1.5} />}>
+                Help & Center
+              </NavItem>
               <NavItem to="/settings" icon={<Settings className="w-4 h-4" strokeWidth={1.5} />}>
                 Settings
               </NavItem>
-            </div>
+            </nav>
+
+            {/* Bottom promo / info card */}
+            {!sidebarCollapsed && (
+              <div className="p-3">
+                <div className="rounded-lg bg-raised border border-default p-3 relative">
+                  <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center mb-3">
+                    <Box className="w-4 h-4 text-white" strokeWidth={1.5} />
+                  </div>
+                  <h4 className="text-sm font-semibold text-primary mb-1">
+                    LifeOS Pro
+                  </h4>
+                  <p className="text-xs text-tertiary mb-3 leading-snug">
+                    Unlock advanced AI and unlimited insights
+                  </p>
+                  <button className="w-full h-8 bg-white text-black text-xs font-medium rounded-md hover:bg-white/90 transition-colors">
+                    Upgrade
+                  </button>
+                </div>
+              </div>
+            )}
           </aside>
 
           {/* Expand sidebar button (when collapsed) */}
@@ -136,7 +184,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 // Navigation item component following Atlas patterns
-function NavItem({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
+function NavItem({
+  to,
+  icon,
+  children,
+}: {
+  to: string
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
   const router = useRouter()
   const isActive = router.state.location.pathname === to
 
@@ -144,15 +200,18 @@ function NavItem({ to, icon, children }: { to: string; icon: React.ReactNode; ch
     <Link
       to={to}
       className={`
-        flex items-center gap-2.5 h-7 px-2 rounded text-base font-medium
-        transition-colors duration-150 ease-out
-        ${isActive
-          ? 'bg-selected text-white'
-          : 'text-secondary hover:bg-hover hover:text-white'
+        group flex items-center gap-3 h-9 px-3 rounded-md text-sm font-medium
+        transition-all duration-150 ease-out
+        ${
+          isActive
+            ? 'bg-raised text-white border border-default'
+            : 'text-secondary hover:text-white border border-transparent'
         }
       `}
     >
-      {icon}
+      <span className={isActive ? 'text-white' : 'text-tertiary group-hover:text-white'}>
+        {icon}
+      </span>
       <span>{children}</span>
     </Link>
   )
