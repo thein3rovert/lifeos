@@ -38,12 +38,18 @@ export function CategoryMenu({ options, onSelect, trigger }: CategoryMenuProps) 
       <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 left-0 bg-[var(--color-surface-secondary)] border border-[var(--color-border-default)] rounded-md shadow-lg py-1 min-w-[140px]">
+        <div
+          className="absolute z-50 mt-1 left-0 border border-default rounded-md py-1 min-w-[140px]"
+          style={{
+            backgroundColor: 'var(--color-bg-raised)',
+            boxShadow: 'var(--shadow-overlay)',
+          }}
+        >
           {options.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
-              className="w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--color-surface-tertiary)] text-[var(--color-text-primary)] transition-colors"
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-hover text-primary transition-colors"
             >
               {option.label}
             </button>
