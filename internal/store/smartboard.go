@@ -13,6 +13,7 @@ type SmartBoardStore interface {
 	SavePanel(panelType string, data interface{}, sessionID string) error
 	GetLatestPanel(panelType string) (*model.SmartBoardPanel, error)
 	UpdateItemStatus(panelType, itemID, status string) error
+	UpdateItemContent(panelType, itemID string, fields map[string]string) error
 }
 
 // SQLSmartBoardStore implements SmartBoardStore using SQLite
@@ -130,6 +131,116 @@ func (s *SQLSmartBoardStore) UpdateItemStatus(panelType, itemID, status string) 
 	          SET data = ?
 	          WHERE id = ?`
 
+	_, err = s.db.Exec(query, string(jsonData), panel.ID)
+	return err
+}
+
+// UpdateItemContent updates content fields of a specific item within a panel.
+// Allowed fields vary per panel type:
+//   - things-to-remember: "text", "title"
+//   - suggestions: "suggestion", "reasoning", "title"
+//   - achievements: "achievement", "title"
+//   - blockers: "blocker", "context", "title"
+func (s *SQLSmartBoardStore) UpdateItemContent(panelType, itemID string, fields map[string]string) error {
+	panel, err := s.GetLatestPanel(panelType)
+	if err != nil {
+		return err
+	}
+	if panel == nil {
+		return sql.ErrNoRows
+	}
+
+	var updatedData interface{}
+
+	switch panelType {
+	case "things-to-remember":
+		var data model.ThingsToRememberData
+		if err := json.Unmarshal([]byte(panel.Data), &data); err != nil {
+			return err
+		}
+		for i := range data.Items {
+			if data.Items[i].ID == itemID {
+				if v, ok := fields["text"]; ok {
+					data.Items[i].Text = v
+				}
+				if v, ok := fields["title"]; ok {
+					data.Items[i].Title = v
+				}
+				break
+			}
+		}
+		updatedData = data
+
+	case "suggestions":
+		var data model.SuggestionsData
+		if err := json.Unmarshal([]byte(panel.Data), &data); err != nil {
+			return err
+		}
+		for i := range data.Suggestions {
+			if data.Suggestions[i].ID == itemID {
+				if v, ok := fields["suggestion"]; ok {
+					data.Suggestions[i].Suggestion = v
+				}
+				if v, ok := fields["reasoning"]; ok {
+					data.Suggestions[i].Reasoning = v
+				}
+				if v, ok := fields["title"]; ok {
+					data.Suggestions[i].Title = v
+				}
+				break
+			}
+		}
+		updatedData = data
+
+	case "achievements":
+		var data model.AchievementsData
+		if err := json.Unmarshal([]byte(panel.Data), &data); err != nil {
+			return err
+		}
+		for i := range data.Achievements {
+			if data.Achievements[i].ID == itemID {
+				if v, ok := fields["achievement"]; ok {
+					data.Achievements[i].Achievement = v
+				}
+				if v, ok := fields["title"]; ok {
+					data.Achievements[i].Title = v
+				}
+				break
+			}
+		}
+		updatedData = data
+
+	case "blockers":
+		var data model.BlockersData
+		if err := json.Unmarshal([]byte(panel.Data), &data); err != nil {
+			return err
+		}
+		for i := range data.Blockers {
+			if data.Blockers[i].ID == itemID {
+				if v, ok := fields["blocker"]; ok {
+					data.Blockers[i].Blocker = v
+				}
+				if v, ok := fields["context"]; ok {
+					data.Blockers[i].Context = v
+				}
+				if v, ok := fields["title"]; ok {
+					data.Blockers[i].Title = v
+				}
+				break
+			}
+		}
+		updatedData = data
+
+	default:
+		return nil
+	}
+
+	jsonData, err := json.Marshal(updatedData)
+	if err != nil {
+		return err
+	}
+
+	query := `UPDATE smartboard_panels SET data = ? WHERE id = ?`
 	_, err = s.db.Exec(query, string(jsonData), panel.ID)
 	return err
 }
