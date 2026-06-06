@@ -40,6 +40,14 @@ func (s *SmartBoardService) Stop() {
 	}
 }
 
+// ScheduleStatus returns the current scheduler status for all panels.
+func (s *SmartBoardService) ScheduleStatus() map[string]PanelScheduleStatus {
+	if s.scheduler == nil {
+		return nil
+	}
+	return s.scheduler.Status()
+}
+
 // RefreshPanel fetches new data from AI and updates cache(db).
 // If force is false and the cached panel is younger than cacheTTL, returns
 // the cached panel without calling AI (instant, no token cost).

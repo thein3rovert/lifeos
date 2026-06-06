@@ -179,3 +179,14 @@ func (h *SmartBoardHandler) UpdateItemContent(w http.ResponseWriter, r *http.Req
 		"message": "content updated successfully",
 	})
 }
+
+// GetScheduleStatus returns the scheduler status (next refresh, last error) for all panels.
+// GET /api/smartboard/schedule
+func (h *SmartBoardHandler) GetScheduleStatus(w http.ResponseWriter, r *http.Request) {
+	status := h.service.ScheduleStatus()
+	if status == nil {
+		api.RespondJSON(w, http.StatusOK, map[string]interface{}{})
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, status)
+}

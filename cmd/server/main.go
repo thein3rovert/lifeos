@@ -177,6 +177,7 @@ func runHTTPServer() {
 
 	// Smart Board
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
+	mux.HandleFunc("GET /api/smartboard/schedule", smartBoardAPI.GetScheduleStatus)
 	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)

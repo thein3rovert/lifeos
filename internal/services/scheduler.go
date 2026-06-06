@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -17,21 +18,34 @@ type panelSchedule struct {
 	weeklyHr  int
 }
 
+// PanelScheduleStatus holds the current schedule info for a single panel.
+type PanelScheduleStatus struct {
+	NextRefresh time.Time `json:"nextRefresh"`
+	LastError   string    `json:"lastError,omitempty"`
+	Interval    string    `json:"interval"` // human-readable schedule description
+}
+
 // Scheduler auto-refreshes smart board panels on a schedule.
 type Scheduler struct {
-	svc     *SmartBoardService
-	ctx     context.Context
-	cancel  context.CancelFunc
+	svc       *SmartBoardService
+	ctx       context.Context
+	cancel    context.CancelFunc
 	schedules []panelSchedule
+
+	mu         sync.RWMutex
+	nextTimes  map[string]time.Time // next scheduled refresh per panel
+	lastErrors map[string]string    // last error message per panel (empty = ok)
 }
 
 // NewScheduler creates a scheduler with the default panel schedules.
 func NewScheduler(svc *SmartBoardService) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		svc:    svc,
-		ctx:    ctx,
-		cancel: cancel,
+		svc:        svc,
+		ctx:        ctx,
+		cancel:     cancel,
+		nextTimes:  make(map[string]time.Time),
+		lastErrors: make(map[string]string),
 		schedules: []panelSchedule{
 			{panelType: "blockers", interval: 5 * time.Hour},
 			{panelType: "things-to-remember", interval: 6 * time.Hour},
@@ -59,11 +73,33 @@ func (s *Scheduler) Stop() {
 	s.cancel()
 }
 
+// Status returns the current schedule status for all panels.
+func (s *Scheduler) Status() map[string]PanelScheduleStatus {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make(map[string]PanelScheduleStatus, len(s.schedules))
+	for _, sched := range s.schedules {
+		desc := sched.interval.String()
+		if sched.weekly {
+			desc = fmt.Sprintf("weekly %s %02d:00", sched.weeklyDay, sched.weeklyHr)
+		}
+		result[sched.panelType] = PanelScheduleStatus{
+			NextRefresh: s.nextTimes[sched.panelType],
+			LastError:   s.lastErrors[sched.panelType],
+			Interval:    desc,
+		}
+	}
+	return result
+}
+
 // runInterval refreshes a panel on a fixed interval using a ticker.
 func (s *Scheduler) runInterval(sched panelSchedule) {
 	ticker := time.NewTicker(sched.interval)
 	defer ticker.Stop()
 
+	// Set initial next-refresh time
+	s.setNextTime(sched.panelType, time.Now().Add(sched.interval))
 	fmt.Printf("[scheduler] %s: refreshing every %s\n", sched.panelType, sched.interval)
 
 	for {
@@ -73,6 +109,7 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 			return
 		case <-ticker.C:
 			s.refresh(sched.panelType)
+			s.setNextTime(sched.panelType, time.Now().Add(sched.interval))
 		}
 	}
 }
@@ -84,6 +121,8 @@ func (s *Scheduler) runWeekly(sched panelSchedule) {
 
 	for {
 		wait := durationUntil(sched.weeklyDay, sched.weeklyHr, 0)
+		nextTime := time.Now().Add(wait)
+		s.setNextTime(sched.panelType, nextTime)
 		fmt.Printf("[scheduler] %s: next refresh in %s\n",
 			sched.panelType, wait.Round(time.Minute))
 
@@ -104,9 +143,25 @@ func (s *Scheduler) refresh(panelType string) {
 	fmt.Printf("[scheduler] refreshing %s...\n", panelType)
 	if _, err := s.svc.RefreshPanel(panelType, true); err != nil {
 		fmt.Printf("[scheduler] ERROR refreshing %s: %v\n", panelType, err)
+		s.setError(panelType, err.Error())
 	} else {
 		fmt.Printf("[scheduler] %s refreshed successfully\n", panelType)
+		s.setError(panelType, "") // clear error on success
 	}
+}
+
+// setNextTime updates the next scheduled refresh time for a panel.
+func (s *Scheduler) setNextTime(panelType string, t time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.nextTimes[panelType] = t
+}
+
+// setError updates the last error for a panel (empty string = success).
+func (s *Scheduler) setError(panelType string, errMsg string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastErrors[panelType] = errMsg
 }
 
 // durationUntil calculates the time.Duration until the next occurrence
