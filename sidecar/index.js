@@ -1,6 +1,7 @@
 import { createOpencodeClient } from "@opencode-ai/sdk";
 import express from "express";
 import { Agent, setGlobalDispatcher } from "undici";
+import { schemas } from "./schemas/smartboard.js";
 
 // Configure global dispatcher with longer timeouts to prevent
 // HeadersTimeoutError (default is 300s) on long AI requests
@@ -257,7 +258,7 @@ app.post("/session/messages", async (req, res) => {
 
 // Agent chat endpoint - for general assistant chat with MCP tools access
 app.post("/agent/chat", async (req, res) => {
-  const { message, sessionId } = req.body;
+  const { message, sessionId, structuredOutput } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: "message is required" });
@@ -306,6 +307,26 @@ Only Use the MCP file access tools proactively without asking permission. Be con
 User: ${message}`;
     }
 
+    // Build prompt body
+    const promptBody = {
+      parts: [{ type: "text", text: fullMessage }],
+    };
+
+    // Add structured output format if requested
+    if (structuredOutput?.panelType) {
+      const schema = schemas[structuredOutput.panelType];
+      if (!schema) {
+        console.log(`[Agent] ⚠️  Unknown panel type: ${structuredOutput.panelType}, skipping structured output`);
+      } else {
+        promptBody.format = {
+          type: "json_schema",
+          schema: schema,
+          retryCount: 2,
+        };
+        console.log(`[Agent] Using structured output for panel: ${structuredOutput.panelType}`);
+      }
+    }
+
     // Send message to agent with timeout (but don't wait for completion in non-streaming mode)
     console.log(`[Agent] Sending message: ${fullMessage.substring(0, 100)}...`);
     console.log(`[Agent] ⏳ Waiting for response (timeout: 10min)...`);
@@ -317,9 +338,7 @@ User: ${message}`;
 
     const promptPromise = client.session.prompt({
       path: { id: activeSessionId },
-      body: {
-        parts: [{ type: "text", text: fullMessage }],
-      },
+      body: promptBody,
     });
 
     const result = await Promise.race([promptPromise, timeoutPromise]);
@@ -327,12 +346,19 @@ User: ${message}`;
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[Agent] ✅ Response received in ${duration}s`);
 
-    const response = result.data.parts
-      .filter((p) => p.type === "text")
-      .map((p) => p.text)
-      .join("");
+    // Extract response - structured output or text
+    let response;
+    if (structuredOutput?.panelType && result.data.info?.structured_output) {
+      response = JSON.stringify(result.data.info.structured_output);
+      console.log(`[Agent] Structured output: ${response.substring(0, 100)}...`);
+    } else {
+      response = result.data.parts
+        .filter((p) => p.type === "text")
+        .map((p) => p.text)
+        .join("");
+      console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
+    }
 
-    console.log(`[Agent] Response received: ${response.substring(0, 100)}...`);
     return res.json({ response, sessionId: activeSessionId });
   } catch (err) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);

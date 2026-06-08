@@ -88,6 +88,9 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 	chatResp, err := s.agentChatService.SendAgentChatMessage(AgentChatRequest{
 		Message:   prompt,
 		SessionID: sessionID,
+		StructuredOutput: &StructuredOutputSpec{
+			PanelType: panelType,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call AI: %w", err)

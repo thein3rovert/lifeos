@@ -34,8 +34,14 @@ func NewAgentChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatM
 }
 
 type AgentChatRequest struct {
-	Message   string  `json:"message"`
-	SessionID *string `json:"sessionId,omitempty"`
+	Message          string                `json:"message"`
+	SessionID        *string               `json:"sessionId,omitempty"`
+	StructuredOutput *StructuredOutputSpec `json:"structuredOutput,omitempty"`
+}
+
+// StructuredOutputSpec specifies structured output configuration for the sidecar
+type StructuredOutputSpec struct {
+	PanelType string `json:"panelType"`
 }
 
 type AgentChatResponse struct {
