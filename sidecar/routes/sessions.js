@@ -90,37 +90,34 @@ router.post('/messages', async (req, res) => {
   try {
     console.log(`[Messages] Fetching messages for session: ${sessionId}`);
 
-    const chatHistory = await client.chat.list({
-      path: { sessionId },
+    // Use correct SDK method: client.session.messages()
+    const messages = await client.session.messages({
+      path: { id: sessionId },
     });
 
-    console.log(`[Messages] Chat history:`, JSON.stringify(chatHistory.data, null, 2));
+    console.log(`[Messages] Found ${messages.data.length} messages`);
 
-    const messages = chatHistory.data || [];
-    console.log(`[Messages] Raw messages count: ${messages.length}`);
+    // Format for frontend
+    const formattedMessages = messages.data.map((msg) => ({
+      id: msg.info.id,
+      role: msg.info.role,
+      content: msg.parts
+        .filter((p) => p.type === 'text')
+        .map((p) => p.text)
+        .join(''),
+      created: msg.info.created,
+    }));
 
-    const formattedMessages = messages.map((msg, idx) => {
-      console.log(`[Messages] Message ${idx}:`, {
-        id: msg.id,
-        role: msg.role,
-        content: msg.content?.substring(0, 100),
-      });
-
-      return {
-        id: msg.id || `msg-${Date.now()}-${idx}`,
-        role: msg.role || 'assistant',
-        content: msg.content || msg.text || '',
-        created: msg.createdAt || msg.timestamp || new Date().toISOString(),
-      };
-    });
-
-    console.log(`[Messages] Returning ${formattedMessages.length} formatted messages`);
     return res.json({ messages: formattedMessages });
   } catch (err) {
-    console.error('[Messages] Failed with chat.list, trying fallback:', err.message);
-    console.log('[Messages] OpenCode sessions may not persist message history.');
-    console.log('[Messages] Messages are only available during active session.');
-    return res.json({ messages: [] });
+    console.error('[Messages] Failed:', err.message);
+
+    // Session might not exist or have no messages
+    if (err.message.includes('not found')) {
+      return res.json({ messages: [] });
+    }
+
+    return res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 
