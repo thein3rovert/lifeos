@@ -4,9 +4,12 @@ import { schemas } from '../schemas/smartboard.js';
 
 const router = Router();
 
+// Track active opencode requests for cancellation
+const activeRequests = new Map();
+
 // POST /agent/chat - Agent chat endpoint with MCP tools access
 router.post('/chat', async (req, res) => {
-  const { message, sessionId, structuredOutput, context } = req.body;
+  const { message, sessionId, structuredOutput, context, requestId } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: 'message is required' });
@@ -15,6 +18,18 @@ router.post('/chat', async (req, res) => {
   let activeSessionId = sessionId;
   let startTime = Date.now();
   const client = getClient();
+
+  // Create abort controller for this request
+  const abortController = new AbortController();
+
+  // Track this request if requestId provided
+  if (requestId) {
+    activeRequests.set(requestId, {
+      abortController,
+      startTime: Date.now(),
+    });
+    console.log(`[Agent] Tracking request ${requestId}`);
+  }
 
   try {
     let isNewSession = false;
@@ -82,6 +97,7 @@ router.post('/chat', async (req, res) => {
     const promptPromise = client.session.prompt({
       path: { id: activeSessionId },
       body: promptBody,
+      signal: abortController.signal,
     });
 
     const result = await Promise.race([promptPromise, timeoutPromise]);
@@ -101,9 +117,32 @@ router.post('/chat', async (req, res) => {
       console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
     }
 
+    // Clean up tracking
+    if (requestId) {
+      activeRequests.delete(requestId);
+      console.log(`[Agent] Cleaned up tracking for ${requestId}`);
+    }
+
     return res.json({ response, sessionId: activeSessionId });
   } catch (err) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    // Clean up tracking on error
+    if (requestId) {
+      activeRequests.delete(requestId);
+      console.log(`[Agent] Cleaned up tracking for ${requestId} (error)`);
+    }
+
+    // Check if this was an abort
+    if (err.name === 'AbortError' || abortController.signal.aborted) {
+      console.log(`[Agent] ⚠️  Request aborted after ${duration}s`);
+      return res.status(499).json({
+        error: 'Request was aborted',
+        sessionId: activeSessionId,
+        duration: `${duration}s`
+      });
+    }
+
     console.error(`[Agent] ❌ Failed after ${duration}s:`, err.message);
     console.error(`[Agent] Error type:`, err.name);
     console.error(`[Agent] Error code:`, err.code);
@@ -131,6 +170,38 @@ router.post('/chat', async (req, res) => {
       duration: `${duration}s`
     });
   }
+});
+
+// POST /agent/abort - Abort a running request
+router.post('/abort', async (req, res) => {
+  const { requestId } = req.body;
+
+  if (!requestId) {
+    return res.status(400).json({ error: 'requestId is required' });
+  }
+
+  const request = activeRequests.get(requestId);
+  if (!request) {
+    console.log(`[Agent] ⚠️  No active request found for ${requestId}`);
+    return res.json({ aborted: false, reason: 'Request not found or already completed' });
+  }
+
+  console.log(`[Agent] 🛑 Aborting request ${requestId}`);
+  request.abortController.abort();
+
+  // Clean up tracking
+  activeRequests.delete(requestId);
+
+  return res.json({ aborted: true, requestId });
+});
+
+// GET /agent/active - List active requests (for debugging)
+router.get('/active', (req, res) => {
+  const active = Array.from(activeRequests.entries()).map(([id, data]) => ({
+    requestId: id,
+    duration: Date.now() - data.startTime,
+  }));
+  res.json({ active });
 });
 
 export default router;

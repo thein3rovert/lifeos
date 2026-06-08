@@ -38,6 +38,7 @@ type AgentChatRequest struct {
 	SessionID        *string               `json:"sessionId,omitempty"`
 	StructuredOutput *StructuredOutputSpec `json:"structuredOutput,omitempty"`
 	Context          string                `json:"context,omitempty"`
+	RequestID        string                `json:"requestId,omitempty"`
 }
 
 // StructuredOutputSpec specifies structured output configuration for the sidecar
@@ -148,6 +149,43 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	}
 
 	return chatResp, nil
+}
+
+// AbortAgentRequest aborts a running agent request via sidecar
+func (s *AgentChatService) AbortAgentRequest(requestID string) error {
+	if requestID == "" {
+		return fmt.Errorf("requestId is required")
+	}
+
+	// Forward abort request to sidecar
+	reqBody := map[string]string{
+		"requestId": requestID,
+	}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal abort request: %w", err)
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Post(
+		fmt.Sprintf("%s/agent/abort", s.sidecarURL),
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return fmt.Errorf("sidecar abort request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("sidecar abort error: %s", string(bodyBytes))
+	}
+
+	return nil
 }
 
 // SendMessage handles sending a chat message and saving it

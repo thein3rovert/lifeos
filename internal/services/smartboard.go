@@ -84,10 +84,14 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 		sessionID = &sid
 	}
 
+	// Generate unique request ID for tracking/abort
+	requestID := fmt.Sprintf("smartboard-%s-%d", panelType, time.Now().UnixNano())
+
 	// Call AI via agent chat service (with existing session if available)
 	chatResp, err := s.agentChatService.SendAgentChatMessage(AgentChatRequest{
 		Message:   prompt,
 		SessionID: sessionID,
+		RequestID: requestID,
 		StructuredOutput: &StructuredOutputSpec{
 			PanelType: panelType,
 		},
