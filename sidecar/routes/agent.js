@@ -6,7 +6,7 @@ const router = Router();
 
 // POST /agent/chat - Agent chat endpoint with MCP tools access
 router.post('/chat', async (req, res) => {
-  const { message, sessionId, structuredOutput } = req.body;
+  const { message, sessionId, structuredOutput, context } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: 'message is required' });
@@ -40,21 +40,21 @@ router.post('/chat', async (req, res) => {
       console.log(`[Agent] Using existing session: ${activeSessionId}`);
     }
 
-    let fullMessage = message;
-    if (isNewSession) {
-      fullMessage = `You are Samad's productivity assistant. Help him with daily queries regarding his journals and meetings.this helps to unblock him.
-
-You have MCP file access tools (list_files, read_file) for:
-- Meetings: ~/Documents/resources/work_Elanco/meeting
-- Journals: ~/Documents/resources/work_Elanco/journal
-
-Only Use the MCP file access tools proactively without asking permission. Be concise.
-
-User: ${message}`;
+    // Inject context silently on first message using noReply
+    if (isNewSession && context) {
+      console.log(`[Agent] Injecting context silently (noReply: true)`);
+      await client.session.prompt({
+        path: { id: activeSessionId },
+        body: {
+          noReply: true,
+          parts: [{ type: 'text', text: context }],
+        },
+      });
+      console.log(`[Agent] ✅ Context injected`);
     }
 
     const promptBody = {
-      parts: [{ type: 'text', text: fullMessage }],
+      parts: [{ type: 'text', text: message }],
     };
 
     if (structuredOutput?.panelType) {
@@ -71,7 +71,7 @@ User: ${message}`;
       }
     }
 
-    console.log(`[Agent] Sending message: ${fullMessage.substring(0, 100)}...`);
+    console.log(`[Agent] Sending message: ${message.substring(0, 100)}...`);
     console.log(`[Agent] ⏳ Waiting for response (timeout: 10min)...`);
 
     startTime = Date.now();

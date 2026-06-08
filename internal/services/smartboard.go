@@ -91,6 +91,13 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 		StructuredOutput: &StructuredOutputSpec{
 			PanelType: panelType,
 		},
+		Context: `You are Samad's productivity assistant. Help him with daily queries regarding his journals and meetings. This helps to unblock him.
+
+You have MCP file access tools (list_files, read_file) for:
+- Meetings: ~/Documents/resources/work_Elanco/meeting
+- Journals: ~/Documents/resources/work_Elanco/journal
+
+Use the MCP file access tools proactively without asking permission. Be concise.`,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call AI: %w", err)
