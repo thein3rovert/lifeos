@@ -43,7 +43,7 @@ export function useSmartBoardPanel<T>(
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/smartboard/refresh/${panelType}`, {
+      const response = await fetch(`${API_BASE_URL}/api/smartboard/refresh/${panelType}?force=true`, {
         method: 'POST',
       })
       

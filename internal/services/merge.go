@@ -169,21 +169,34 @@ func mergeAchievements(oldJSON string, newData interface{}) interface{} {
 		return newData
 	}
 
+	// Build map of existing achievements by ID
 	oldByID := map[string]model.AchievementItem{}
+	var oldOrder []string // preserve insertion order
 	if oldJSON != "" {
 		var oldD model.AchievementsData
 		if err := json.Unmarshal([]byte(oldJSON), &oldD); err == nil {
 			for _, it := range oldD.Achievements {
 				oldByID[it.ID] = it
+				oldOrder = append(oldOrder, it.ID)
 			}
 		}
 	}
 
+	// Assign IDs to new items and collect genuinely new ones
+	seenIDs := map[string]bool{}
 	for i, item := range newD.Achievements {
 		if item.ID == "" || !isKnownAchievementID(item.ID, oldByID) {
 			item.ID = computeItemID(item.Title, item.Source, item.Date)
 		}
 		newD.Achievements[i] = item
+		seenIDs[item.ID] = true
+	}
+
+	// Preserve existing achievements the AI didn't re-emit (append-only)
+	for _, id := range oldOrder {
+		if !seenIDs[id] {
+			newD.Achievements = append(newD.Achievements, oldByID[id])
+		}
 	}
 
 	return newD
