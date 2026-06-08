@@ -70,6 +70,35 @@ func (h *AgentHandler) AgentChatMessage(w http.ResponseWriter, r *http.Request) 
 	api.RespondJSON(w, http.StatusOK, chatResp)
 }
 
+// AbortRequest aborts a running agent request
+// POST /api/agent/abort
+func (h *AgentHandler) AbortRequest(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		RequestID string `json:"requestId"`
+	}
+
+	if err := api.DecodeJSON(r, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.RequestID == "" {
+		api.RespondError(w, http.StatusBadRequest, "requestId is required")
+		return
+	}
+
+	err := h.agentChatService.AbortAgentRequest(req.RequestID)
+	if err != nil {
+		api.RespondError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]interface{}{
+		"aborted":   true,
+		"requestId": req.RequestID,
+	})
+}
+
 // Events streams real-time agent events via SSE
 // GET /api/agent/events
 // func (h *AgentHandler) Events(w http.ResponseWriter, r *http.Request) {

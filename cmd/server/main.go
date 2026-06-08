@@ -174,6 +174,7 @@ func runHTTPServer() {
 
 	// Agent chat (general assistant with MCP tools)
 	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChatMessage)
+	mux.HandleFunc("POST /api/agent/abort", agentAPI.AbortRequest)
 
 	// Smart Board
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
