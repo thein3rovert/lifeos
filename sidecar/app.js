@@ -8,6 +8,7 @@ export function createApp() {
   app.use(express.json());
 
   // Logging middleware
+  // TODO: Move logging to dedicated modules
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();

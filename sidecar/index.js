@@ -13,23 +13,26 @@ setGlobalDispatcher(
   })
 );
 
+// TODO: This should be in env
 const PORT = 3002;
 
 async function initOpencode() {
   try {
     const client = createOpencodeClient({
+
+    // TODO: Move base url to env
       baseUrl: 'http://127.0.0.1:4097',
       fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(600_000) }), // 10 min timeout
     });
 
     // Health check
-    const res = await fetch('http://127.0.0.1:4097/global/health');
-    const res2 = await fetch('http://127.0.0.1:4097/config');
-    const config = await res2.json();
+    const checkHealthRequest = await fetch('http://127.0.0.1:4097/global/health');
+    const opencodeConfigRequest = await fetch('http://127.0.0.1:4097/config');
+    const config = await opencodeConfigRequest.json();
     console.log('Model:', JSON.stringify(config.model, null, 2));
 
-    if (!res.ok) throw new Error('OpenCode not healthy');
-    const data = await res.json();
+    if (!checkHealthRequest.ok) throw new Error('OpenCode not healthy');
+    const data = await checkHealthRequest.json();
     console.log('Connected to OpenCode, version:', data.version);
 
     // Set the shared client instance
