@@ -1,0 +1,22 @@
+name: Build Sidecar
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'sidecar/**'
+      - '.github/workflows/build-sidecar.yml'
+      - '.github/workflows/_build-docker.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-docker.yml
+    with:
+      image: lifeos-sidecar
+      context: ./sidecar
+      dockerfile: ./sidecar/Dockerfile
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

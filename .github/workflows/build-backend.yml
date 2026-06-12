@@ -1,0 +1,27 @@
+name: Build Backend
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/build-backend.yml'
+      - '.github/workflows/_build-docker.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-docker.yml
+    with:
+      image: lifeos-backend
+      context: .
+      dockerfile: ./Dockerfile
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
