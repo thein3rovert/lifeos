@@ -33,7 +33,6 @@ WORKDIR /app
 
 # Copy any static files the backend might need (templates, etc.)
 COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
 
 EXPOSE 6060
 

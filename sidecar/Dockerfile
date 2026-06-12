@@ -8,7 +8,7 @@ COPY package*.json ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production
+    npm install --omit=dev
 
 # Copy source code
 COPY . .
