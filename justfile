@@ -93,3 +93,42 @@ open:
 
 # Restart all services
 restart: stop dev
+
+# === Docker Commands ===
+
+# Start all services with Podman
+docker-up:
+    @echo "🐳 Starting all services with Podman..."
+    @podman compose up -d --build
+
+# Start specific service(s) with Podman (e.g., just docker-start backend frontend)
+docker-start *services:
+    @echo "🐳 Starting Podman service(s): {{services}}..."
+    @podman compose up -d --build {{services}}
+
+# Stop all Podman services
+docker-down:
+    @echo "🐳 Stopping all Podman services..."
+    @podman compose down
+
+# Stop specific Podman service(s)
+docker-stop *services:
+    @echo "🐳 Stopping Podman service(s): {{services}}..."
+    @podman compose stop {{services}}
+
+# View Podman logs for all services
+docker-logs:
+    @podman compose logs -f
+
+# View Podman logs for specific service
+docker-log service:
+    @podman compose logs -f {{service}}
+
+# Restart specific Podman service(s)
+docker-restart *services:
+    @echo "🐳 Restarting Podman service(s): {{services}}..."
+    @podman compose restart {{services}}
+
+# Check Podman service status
+docker-status:
+    @podman compose ps
