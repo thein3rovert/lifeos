@@ -20,10 +20,12 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates sqlite
 
-WORKDIR /root/
+# Copy binary to /usr/local/bin
+COPY --from=builder /app/lifeos /usr/local/bin/lifeos
+RUN chmod +x /usr/local/bin/lifeos
 
-# Copy binary from builder
-COPY --from=builder /app/lifeos .
+# Set working directory for data
+WORKDIR /app
 
 # Copy any static files the backend might need (templates, etc.)
 COPY --from=builder /app/templates ./templates
@@ -31,4 +33,4 @@ COPY --from=builder /app/static ./static
 
 EXPOSE 6060
 
-CMD ["./lifeos"]
+CMD ["lifeos"]
