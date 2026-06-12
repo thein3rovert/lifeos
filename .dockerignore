@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Build artifacts
+bin/
+dist/
+.next/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+logs/
+*.log
+
+# Dev files
+.env
+.envrc
+.direnv/
+.todo/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (will be installed in container)
+node_modules/
+web/node_modules/
+sidecar/node_modules/
+
+# Docs
+readme.md
+doc/
+photos/
