@@ -72,7 +72,14 @@ router.post('/chat', async (req, res) => {
       parts: [{ type: 'text', text: message }],
     };
 
-    if (structuredOutput?.panelType) {
+    // Structured output mode (json_schema) is disabled by default because it
+    // doesn't work with thinking/reasoning models (they can't be forced into
+    // a tool call). We rely on prompt instructions + cleanJSONResponse parsing
+    // on the backend instead. Set USE_STRUCTURED_OUTPUT=true to re-enable for
+    // non-thinking models.
+    const useStructuredOutput = process.env.USE_STRUCTURED_OUTPUT === 'true';
+
+    if (useStructuredOutput && structuredOutput?.panelType) {
       const schema = schemas[structuredOutput.panelType];
       if (!schema) {
         console.log(`[Agent] ⚠️  Unknown panel type: ${structuredOutput.panelType}, skipping structured output`);
@@ -84,6 +91,8 @@ router.post('/chat', async (req, res) => {
         };
         console.log(`[Agent] Using structured output for panel: ${structuredOutput.panelType}`);
       }
+    } else if (structuredOutput?.panelType) {
+      console.log(`[Agent] Panel: ${structuredOutput.panelType} (prompt-only mode)`);
     }
 
     console.log(`[Agent] Sending message: ${message.substring(0, 100)}...`);
@@ -107,14 +116,25 @@ router.post('/chat', async (req, res) => {
 
     let response;
     if (structuredOutput?.panelType && result.data.info?.structured_output) {
-      response = JSON.stringify(result.data.info.structured_output);
+      // Unwrap the `{ items: [...] }` wrapper we added for DeepSeek compatibility
+      const output = result.data.info.structured_output;
+      const unwrapped = output && typeof output === 'object' && Array.isArray(output.items) ? output.items : output;
+      response = JSON.stringify(unwrapped);
       console.log(`[Agent] Structured output: ${response.substring(0, 100)}...`);
     } else {
       response = result.data.parts
         .filter((p) => p.type === 'text')
         .map((p) => p.text)
         .join('');
-      console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
+
+      // Debug: if empty, log what parts we actually got
+      if (!response) {
+        const partTypes = result.data.parts.map((p) => p.type);
+        console.log(`[Agent] ⚠️  Empty text response. Parts received: ${JSON.stringify(partTypes)}`);
+        console.log(`[Agent] Full result.data:`, JSON.stringify(result.data, null, 2).substring(0, 1000));
+      } else {
+        console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
+      }
     }
 
     // Clean up tracking
