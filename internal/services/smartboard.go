@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -312,7 +313,15 @@ Return valid JSON only, no markdown or explanation.`, threeDaysAgo) + reuseBlock
 // parseAIResponse parses the AI response into the appropriate data structure
 func (s *SmartBoardService) parseAIResponse(panelType, response string) (interface{}, error) {
 	// Clean markdown code blocks if present
-	response = cleanJSONResponse(response)
+	cleaned := cleanJSONResponse(response)
+
+	// Log raw response if cleaning produced empty result (AI didn't return JSON)
+	if cleaned == "" {
+		log.Printf("[smartboard] %s: AI returned non-JSON response (len=%d): %q", panelType, len(response), response)
+		return nil, fmt.Errorf("AI returned non-JSON response for %s panel", panelType)
+	}
+
+	response = cleaned
 
 	switch panelType {
 	case "things-to-remember":
