@@ -132,3 +132,47 @@ docker-restart *services:
 # Check Podman service status
 docker-status:
     @podman compose ps
+
+# === Production (Registry Images) ===
+
+# Pull latest images from registry
+prod-pull:
+    @echo "📥 Pulling latest images from registry..."
+    @podman compose -f docker-compose.prod.yml pull
+
+# Start all services using registry images
+prod-up:
+    @echo "🚀 Starting production services (registry images)..."
+    @podman compose -f docker-compose.prod.yml up -d
+
+# Start specific service(s) using registry images
+prod-start *services:
+    @echo "🚀 Starting production service(s): {{services}}..."
+    @podman compose -f docker-compose.prod.yml up -d {{services}}
+
+# Stop all production services
+prod-down:
+    @echo "🛑 Stopping production services..."
+    @podman compose -f docker-compose.prod.yml down
+
+# Restart production service(s)
+prod-restart *services:
+    @echo "🔄 Restarting production service(s): {{services}}..."
+    @podman compose -f docker-compose.prod.yml restart {{services}}
+
+# View production logs
+prod-logs:
+    @podman compose -f docker-compose.prod.yml logs -f
+
+# View production logs for specific service
+prod-log service:
+    @podman compose -f docker-compose.prod.yml logs -f {{service}}
+
+# Check production service status
+prod-status:
+    @podman compose -f docker-compose.prod.yml ps
+
+# Pull latest and restart everything (full update)
+prod-update: prod-pull
+    @echo "🔄 Restarting with new images..."
+    @podman compose -f docker-compose.prod.yml up -d --force-recreate

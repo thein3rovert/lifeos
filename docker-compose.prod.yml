@@ -1,10 +1,12 @@
-version: '3.8'
+# Production compose: pulls pre-built images from Docker Hub
+# Usage: podman-compose -f docker-compose.prod.yml up -d
+#
+# Uses the same volume name (lifeos-data) as docker-compose.yml so the
+# SQLite database persists when switching between dev and prod modes.
 
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: docker.io/theintrovert/lifeos-backend:latest
     container_name: lifeos-backend
     ports:
       - "6060:6060"
@@ -17,17 +19,13 @@ services:
       - MCP_API_KEY=${MCP_API_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
     volumes:
-      - lifeos-data:/app  # Persist SQLite database
+      - lifeos-data:/app
     restart: unless-stopped
     networks:
       - lifeos-network
 
   frontend:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:6060}
+    image: docker.io/theintrovert/lifeos-frontend:latest
     container_name: lifeos-frontend
     ports:
       - "3001:3000"
@@ -36,9 +34,7 @@ services:
       - lifeos-network
 
   sidecar:
-    build:
-      context: ./sidecar
-      dockerfile: Dockerfile
+    image: docker.io/theintrovert/lifeos-sidecar:latest
     container_name: lifeos-sidecar
     ports:
       - "3002:3002"
