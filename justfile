@@ -135,10 +135,16 @@ docker-status:
 
 # === Production (Registry Images) ===
 
-# Pull latest images from registry
+# Pull latest images from registry (sequentially to avoid TLS timeouts
+# from parallel pulls saturating the connection)
 prod-pull:
-    @echo "📥 Pulling latest images from registry..."
-    @podman compose -f docker-compose.prod.yml pull
+    @echo "📥 Pulling backend..."
+    @podman pull docker.io/theintrovert/lifeos-backend:latest
+    @echo "📥 Pulling frontend..."
+    @podman pull docker.io/theintrovert/lifeos-frontend:latest
+    @echo "📥 Pulling sidecar..."
+    @podman pull docker.io/theintrovert/lifeos-sidecar:latest
+    @echo "✓ All images pulled"
 
 # Start all services using registry images
 prod-up:
