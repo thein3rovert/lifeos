@@ -8,6 +8,9 @@ But this page except for the chat interface is currently blank and has nothing i
 - [ ] If the recent output is [] just show the cache output in the db and have a way to show its not the latest output
 - [x] I need to convert the catagory on the card to tags instead and have them below like linear
 - [x] I need to preview card below to show the preview mode first instead of edit mode and i need the save to work.
+- [ ] Add the ability to pause/disable the timer on each panel
+  - [ ] Maybe also add it in settings
+- [ ] Add notification (discord/telegram)
 - [ ] i need a better way to integrate the agent chat below with each of these days
   - [ ] It need to have context of each card and also knowledge base in case it wants to go deeper into what the context board gives.
 
