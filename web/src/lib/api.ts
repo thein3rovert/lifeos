@@ -14,14 +14,10 @@ import type {
   PanelType,
   SmartBoardPanelResponse,
 } from '@/types'
-
-// API Base URL - should match Go server
-const API_BASE_URL = import.meta.env.VITE_API_URL as string
+import { apiUrl } from './apiUrl'
 
 async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`
-
-  const response = await fetch(url, {
+  const response = await fetch(apiUrl(endpoint), {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from '@/components/ui/Toast'
+import { apiUrl } from '@/lib/apiUrl'
 import type { PanelType, SmartBoardPanelResponse, ScheduleStatusMap } from '@/types'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL as string
 
 type UseSmartBoardPanelReturn<T> = {
   data: T | null
@@ -24,7 +23,7 @@ export function useSmartBoardPanel<T>(
   // Fetch cached data on mount
   const fetchCachedData = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/smartboard/${panelType}`)
+      const response = await fetch(apiUrl(`/api/smartboard/${panelType}`))
       if (!response.ok) {
         throw new Error(`Failed to fetch panel: ${response.statusText}`)
       }
@@ -43,7 +42,7 @@ export function useSmartBoardPanel<T>(
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/smartboard/refresh/${panelType}?force=true`, {
+      const response = await fetch(apiUrl(`/api/smartboard/refresh/${panelType}?force=true`), {
         method: 'POST',
       })
       
@@ -69,7 +68,7 @@ export function useSmartBoardPanel<T>(
   const updateItemStatus = useCallback(
     async (itemId: string, status: string) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/smartboard/item/${itemId}`, {
+        const response = await fetch(apiUrl(`/api/smartboard/item/${itemId}`), {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -119,7 +118,7 @@ export function useScheduleStatus() {
 
   const fetchSchedule = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/smartboard/schedule`)
+      const response = await fetch(apiUrl(`/api/smartboard/schedule`))
       if (!response.ok) return
       const data = await response.json()
       setSchedule(data as ScheduleStatusMap)

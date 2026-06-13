@@ -8,6 +8,7 @@ import {
   Plus
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { apiUrl } from '@/lib/apiUrl'
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton'
 import type { Note, Skill } from '@/types'
 
@@ -15,12 +16,10 @@ export const Route = createFileRoute('/')({
   component: DashboardPage,
 })
 
-const API_URL = 'http://100.105.217.77:6060'
-
 async function fetchStats() {
   const [skills, photos] = await Promise.all([
     api.skills.list(),
-    fetch(`${API_URL}/api/photos`).then(r => r.json())
+    fetch(apiUrl(`/api/photos`)).then(r => r.json())
   ])
 
   return {

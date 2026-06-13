@@ -15,9 +15,9 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY . .
 
 # Build for production
-ARG VITE_API_URL=http://localhost:6060
-ENV VITE_API_URL=$VITE_API_URL
-
+# Note: app uses same-origin relative URLs (/api/*), so no VITE_API_URL needed.
+# A reverse proxy routes /api/* to the backend in production; vite dev server
+# proxies it in local dev (see vite.config.ts).
 RUN npm run build
 
 # Production stage
