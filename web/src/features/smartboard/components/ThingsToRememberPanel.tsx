@@ -1,5 +1,5 @@
+import { CategoryMenu } from '@/components/ui/CategoryMenu';
 import type { ThingsToRememberData } from '@/types';
-import { CategoryMenu } from '../ui/CategoryMenu';
 import { SmartBoardItemCard } from './SmartBoardItemCard';
 import { SmartBoardPanel } from './SmartBoardPanel';
 

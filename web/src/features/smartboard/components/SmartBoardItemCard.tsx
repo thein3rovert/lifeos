@@ -1,4 +1,4 @@
-import { Badge } from '../ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 
 type BadgeVariant = 'urgent' | 'important' | 'not-important' | 'active' | 'completed' | 'dismissed';
 

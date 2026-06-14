@@ -1,7 +1,7 @@
 import { AlertCircle, Clock, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { AccentStripes } from '../ui/AccentStripes';
+import { AccentStripes } from '@/components/ui/AccentStripes';
 
 type AccentColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray';
 

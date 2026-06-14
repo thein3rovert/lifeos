@@ -384,7 +384,7 @@ src/components/ui/markdown/
 | Split `__root.tsx` layout | ✅ Completed | `RootDocument.tsx`, `Sidebar.tsx` extracted |
 | Skills dialog orchestrator | ✅ Completed | `useSkillDialogs.ts`, `SkillDialogs.tsx` |
 | API domain split | ✅ Completed | `src/lib/api/` domain modules |
-| Smartboard feature folder | Low-Medium | Group existing code |
+| Smartboard feature folder | ✅ Completed | `src/features/smartboard/` |
 | Skills feature folder | Low-Medium | Group existing code |
 | Markdown element split | Low | Nice-to-have for testing |
 | Barrel files everywhere | Low | Polish pass |
@@ -393,4 +393,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Continue modularization with **Smartboard feature folder** (`src/features/smartboard/`) or return to **Step 4 — Fix `package.json` Hygiene**.
+Continue modularization with **Skills feature folder** (`src/features/skills/`) or return to **Step 4 — Fix `package.json` Hygiene**.

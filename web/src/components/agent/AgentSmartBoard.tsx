@@ -1,12 +1,13 @@
 import { useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import {
   AchievementsPanel,
   BlockersPanel,
   SuggestionsPanel,
   ThingsToRememberPanel,
-} from '@/components/agent';
-import { toast } from '@/components/ui/Toast';
-import { useScheduleStatus, useSmartBoardPanel } from '@/hooks';
+  useScheduleStatus,
+  useSmartBoardPanel,
+} from '@/features/smartboard';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
 import type {
