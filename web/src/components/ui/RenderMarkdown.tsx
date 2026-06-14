@@ -1,9 +1,9 @@
-import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface RenderMarkdownProps {
-  children: string
+  children: string;
 }
 
 export function RenderMarkdown({ children }: RenderMarkdownProps) {
@@ -15,27 +15,17 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
       </h1>
     ),
     h2: ({ children }) => (
-      <h2 className="text-white mt-5 mb-3 text-lg font-semibold tracking-tight">
-        {children}
-      </h2>
+      <h2 className="text-white mt-5 mb-3 text-lg font-semibold tracking-tight">{children}</h2>
     ),
     h3: ({ children }) => (
-      <h3 className="text-secondary mt-4 mb-2 text-base font-semibold">
-        {children}
-      </h3>
+      <h3 className="text-secondary mt-4 mb-2 text-base font-semibold">{children}</h3>
     ),
     h4: ({ children }) => (
-      <h4 className="text-secondary mt-3 mb-2 text-sm font-semibold">
-        {children}
-      </h4>
+      <h4 className="text-secondary mt-3 mb-2 text-sm font-semibold">{children}</h4>
     ),
 
     // Paragraphs
-    p: ({ children }) => (
-      <p className="text-secondary mb-3 text-base leading-6">
-        {children}
-      </p>
-    ),
+    p: ({ children }) => <p className="text-secondary mb-3 text-base leading-6">{children}</p>,
 
     // Links - Atlas blue for links
     a: ({ href, children }) => (
@@ -60,9 +50,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
         {children}
       </ol>
     ),
-    li: ({ children }) => (
-      <li className="pl-1 leading-6">{children}</li>
-    ),
+    li: ({ children }) => <li className="pl-1 leading-6">{children}</li>,
 
     // Blockquotes
     blockquote: ({ children }) => (
@@ -73,7 +61,7 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
 
     // Code - inline and block
     code: ({ children, className }) => {
-      const isInline = !className || !String(className).includes('language-')
+      const isInline = !className || !String(className).includes('language-');
       return isInline ? (
         <code className="bg-raised text-primary-accent rounded px-1.5 py-0.5 font-mono text-xs border border-default">
           {children}
@@ -82,26 +70,18 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
         <code className="bg-raised text-secondary block overflow-x-auto rounded border border-default p-3 font-mono text-xs leading-relaxed">
           {children}
         </code>
-      )
+      );
     },
-    pre: ({ children }) => (
-      <pre className="mb-3 overflow-x-auto">{children}</pre>
-    ),
+    pre: ({ children }) => <pre className="mb-3 overflow-x-auto">{children}</pre>,
 
     // Horizontal Rule
-    hr: () => (
-      <hr className="border-default my-4 border-t" />
-    ),
+    hr: () => <hr className="border-default my-4 border-t" />,
 
     // Strong/Bold
-    strong: ({ children }) => (
-      <strong className="text-white font-semibold">{children}</strong>
-    ),
+    strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
 
     // Emphasis/Italic
-    em: ({ children }) => (
-      <em className="text-secondary italic">{children}</em>
-    ),
+    em: ({ children }) => <em className="text-secondary italic">{children}</em>,
 
     // Tables
     table: ({ children }) => (
@@ -112,25 +92,17 @@ export function RenderMarkdown({ children }: RenderMarkdownProps) {
       </div>
     ),
     thead: ({ children }) => <thead className="bg-raised">{children}</thead>,
-    tbody: ({ children }) => (
-      <tbody className="divide-y divide-default bg-base">{children}</tbody>
-    ),
+    tbody: ({ children }) => <tbody className="divide-y divide-default bg-base">{children}</tbody>,
     tr: ({ children }) => <tr>{children}</tr>,
     th: ({ children }) => (
-      <th className="text-white px-3 py-2 text-left text-xs font-semibold">
-        {children}
-      </th>
+      <th className="text-white px-3 py-2 text-left text-xs font-semibold">{children}</th>
     ),
-    td: ({ children }) => (
-      <td className="text-secondary px-3 py-2 text-xs">
-        {children}
-      </td>
-    ),
-  }
+    td: ({ children }) => <td className="text-secondary px-3 py-2 text-xs">{children}</td>,
+  };
 
   return (
     <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
       {children}
     </ReactMarkdown>
-  )
+  );
 }

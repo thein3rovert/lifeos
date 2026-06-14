@@ -2,11 +2,9 @@
 // LifeOS - Component Exports
 // =============================================================================
 
-// UI Primitives
-export * from './ui'
-
 // Layout
-export * from './layout'
-
+export * from './layout';
 // Skills feature
-export * from './skills'
+export * from './skills';
+// UI Primitives
+export * from './ui';

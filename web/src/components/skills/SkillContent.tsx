@@ -1,63 +1,73 @@
-import { FileEdit, X, Save, MessageSquare } from 'lucide-react'
-import { useState } from 'react'
-import { api } from '@/lib/api'
-import type { SkillDetail, SkillReference } from '@/types'
-import { stripFrontmatter } from '@/lib/skills/utils'
-import { RenderMarkdown } from '@/components/ui/RenderMarkdown'
-import { AccentStripes } from '@/components/ui/AccentStripes'
+import { FileEdit, MessageSquare, Save, X } from 'lucide-react';
+import { useState } from 'react';
+import { AccentStripes } from '@/components/ui/AccentStripes';
+import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
+import { api } from '@/lib/api';
+import { stripFrontmatter } from '@/lib/skills/utils';
+import type { SkillDetail, SkillReference } from '@/types';
 
 type SkillContentProps = {
-  skillDetail: SkillDetail | null
-  selectedReference?: SkillReference | null
-  onSave?: (content: string) => void
-  saving?: boolean
-  onOpenChat?: () => void
-  onRefetch?: () => void
-}
+  skillDetail: SkillDetail | null;
+  selectedReference?: SkillReference | null;
+  onSave?: (content: string) => void;
+  saving?: boolean;
+  onOpenChat?: () => void;
+  onRefetch?: () => void;
+};
 
-export function SkillContent({ skillDetail, selectedReference, onSave, saving, onOpenChat, onRefetch }: SkillContentProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editContent, setEditContent] = useState('')
-  const [savingRef, setSavingRef] = useState(false)
+export function SkillContent({
+  skillDetail,
+  selectedReference,
+  onSave,
+  saving,
+  onOpenChat,
+  onRefetch,
+}: SkillContentProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const [savingRef, setSavingRef] = useState(false);
 
   // For skills
   const handleEdit = () => {
     if (skillDetail) {
-      setEditContent(skillDetail.skill.content)
-      setIsEditing(true)
+      setEditContent(skillDetail.skill.content);
+      setIsEditing(true);
     }
-  }
+  };
 
   // For references
   const handleEditRef = () => {
     if (selectedReference) {
-      setEditContent(selectedReference.content)
-      setIsEditing(true)
+      setEditContent(selectedReference.content);
+      setIsEditing(true);
     }
-  }
+  };
 
-  const handleCancel = () => { setIsEditing(false); setEditContent('') }
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditContent('');
+  };
 
   const handleSave = () => {
     if (onSave && editContent.trim()) {
-      onSave(editContent)
-      setIsEditing(false)
+      onSave(editContent);
+      setIsEditing(false);
     }
-  }
+  };
 
   const handleSaveRef = async () => {
-    if (!selectedReference || !editContent.trim()) return
-    setSavingRef(true)
+    if (!selectedReference || !editContent.trim()) return;
+    setSavingRef(true);
     try {
-      await api.references.save(selectedReference.skill_id, selectedReference.path, editContent)
-      setIsEditing(false)
-      onRefetch?.()
+      await api.references.save(selectedReference.skill_id, selectedReference.path, editContent);
+      setIsEditing(false);
+      onRefetch?.();
     } catch (err) {
-      console.error('Failed to save reference:', err)
+      console.error('Failed to save reference:', err);
     } finally {
-      setSavingRef(false)
+      setSavingRef(false);
     }
-  }
+  };
 
   return (
     <main className="flex-1 min-w-0 bg-base border border-default rounded-md flex flex-col">
@@ -110,7 +120,9 @@ export function SkillContent({ skillDetail, selectedReference, onSave, saving, o
               />
             ) : selectedReference.content ? (
               <>
-                <div className="text-xxs text-tertiary mb-2">Content length: {selectedReference.content.length} chars</div>
+                <div className="text-xxs text-tertiary mb-2">
+                  Content length: {selectedReference.content.length} chars
+                </div>
                 <RenderMarkdown>{selectedReference.content}</RenderMarkdown>
               </>
             ) : (
@@ -189,9 +201,7 @@ export function SkillContent({ skillDetail, selectedReference, onSave, saving, o
                 placeholder="Enter markdown content..."
               />
             ) : (
-              <RenderMarkdown>
-                {stripFrontmatter(skillDetail.skill.content)}
-              </RenderMarkdown>
+              <RenderMarkdown>{stripFrontmatter(skillDetail.skill.content)}</RenderMarkdown>
             )}
           </div>
 
@@ -205,5 +215,5 @@ export function SkillContent({ skillDetail, selectedReference, onSave, saving, o
         </div>
       )}
     </main>
-  )
+  );
 }

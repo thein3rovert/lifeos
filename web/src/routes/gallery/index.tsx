@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/gallery/')({
   component: GalleryPage,
-})
+});
 
 function GalleryPage() {
   return (
@@ -12,5 +12,5 @@ function GalleryPage() {
         <p className="text-sm">Photo gallery coming soon...</p>
       </div>
     </div>
-  )
+  );
 }

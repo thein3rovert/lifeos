@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/notes/')({
   component: NotesPage,
-})
+});
 
 function NotesPage() {
   return (
@@ -12,5 +12,5 @@ function NotesPage() {
         <p className="text-sm">Notes page coming soon...</p>
       </div>
     </div>
-  )
+  );
 }

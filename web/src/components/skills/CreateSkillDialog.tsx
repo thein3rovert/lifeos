@@ -1,18 +1,18 @@
-import { useState } from 'react'
-import { X, Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
 
 type CreateSkillDialogProps = {
-  isOpen: boolean
-  onCancel: () => void
-  onCreate: (title: string, format: string, content: string) => void
-  isLoading?: boolean
-}
+  isOpen: boolean;
+  onCancel: () => void;
+  onCreate: (title: string, format: string, content: string) => void;
+  isLoading?: boolean;
+};
 
 const SKILL_FORMATS = [
   { value: 'opencode', label: 'OpenCode' },
   { value: 'claude', label: 'Claude' },
   { value: 'copilot', label: 'Copilot' },
-]
+];
 
 export function CreateSkillDialog({
   isOpen,
@@ -20,8 +20,8 @@ export function CreateSkillDialog({
   onCreate,
   isLoading,
 }: CreateSkillDialogProps) {
-  const [title, setTitle] = useState('')
-  const [format, setFormat] = useState('opencode')
+  const [title, setTitle] = useState('');
+  const [format, setFormat] = useState('opencode');
   const [content, setContent] = useState(`---
 name:
 description:
@@ -33,11 +33,11 @@ format: opencode
 ## Instructions
 
 ## Examples
-`)
+`);
 
   const handleClose = () => {
-    setTitle('')
-    setFormat('opencode')
+    setTitle('');
+    setFormat('opencode');
     setContent(`---
 name:
 description:
@@ -49,36 +49,35 @@ format: opencode
 ## Instructions
 
 ## Examples
-`)
-    onCancel()
-  }
+`);
+    onCancel();
+  };
 
   const handleSubmit = () => {
     if (title.trim() && content.trim()) {
-      onCreate(title.trim(), format, content)
+      onCreate(title.trim(), format, content);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleSubmit()
+      handleSubmit();
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-dialog-lg h-dialog bg-raised border border-default rounded-lg flex flex-col"
+      <div
+        className="w-full max-w-dialog-lg h-dialog bg-raised border border-default rounded-lg flex flex-col"
         style={{ boxShadow: 'var(--shadow-overlay)' }}
       >
         {/* Header */}
         <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
             <Plus className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
-            <span className="text-base font-medium text-white">
-              Create New Skill
-            </span>
+            <span className="text-base font-medium text-white">Create New Skill</span>
           </div>
           <button
             onClick={handleClose}
@@ -92,24 +91,19 @@ format: opencode
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* Title Input */}
           <div>
-            <label className="block text-xs text-secondary mb-2">
-              Skill Title
-            </label>
+            <label className="block text-xs text-secondary mb-2">Skill Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter skill title..."
               className="w-full h-8 px-3 bg-raised border border-default rounded-md text-base text-white placeholder:text-muted focus:outline-none focus:border-highlight"
-              autoFocus
             />
           </div>
 
           {/* Format Select */}
           <div>
-            <label className="block text-xs text-secondary mb-2">
-              Format
-            </label>
+            <label className="block text-xs text-secondary mb-2">Format</label>
             <div className="flex gap-2">
               {SKILL_FORMATS.map((f) => (
                 <button
@@ -129,9 +123,7 @@ format: opencode
 
           {/* Content Editor */}
           <div className="flex-1 min-h-0">
-            <label className="block text-xs text-secondary mb-2">
-              Content (Markdown)
-            </label>
+            <label className="block text-xs text-secondary mb-2">Content (Markdown)</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -167,5 +159,5 @@ format: opencode
         </div>
       </div>
     </div>
-  )
+  );
 }

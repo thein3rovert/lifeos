@@ -1,18 +1,18 @@
-import { useState, useEffect, memo } from 'react'
-import { ChevronRight, ChevronDown, File, Folder } from 'lucide-react'
-import { api } from '@/lib/api'
-import type { SkillReference } from '@/types'
-import { buildTree, type TreeNode } from '@/lib/utils/tree'
+import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+import { buildTree, type TreeNode } from '@/lib/utils/tree';
+import type { SkillReference } from '@/types';
 
 type SkillItemProps = {
-  skillId: string
-  skillTitle: string
-  isSelected: boolean
-  hasNotes: boolean
-  hasPendingSync: boolean
-  onSelect: () => void
-  onSelectReference?: (reference: SkillReference | null) => void
-}
+  skillId: string;
+  skillTitle: string;
+  isSelected: boolean;
+  hasNotes: boolean;
+  hasPendingSync: boolean;
+  onSelect: () => void;
+  onSelectReference?: (reference: SkillReference | null) => void;
+};
 
 export const SkillItem = memo(function SkillItem({
   skillId,
@@ -23,24 +23,24 @@ export const SkillItem = memo(function SkillItem({
   onSelect,
   onSelectReference,
 }: SkillItemProps) {
-  const [expanded, setExpanded] = useState(false)
-  const [references, setReferences] = useState<SkillReference[]>([])
-  const [tree, setTree] = useState<TreeNode[]>([])
-  const [loading, setLoading] = useState(false)
+  const [expanded, setExpanded] = useState(false);
+  const [references, setReferences] = useState<SkillReference[]>([]);
+  const [tree, setTree] = useState<TreeNode[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (expanded && references.length === 0) {
-      setLoading(true)
+      setLoading(true);
       api.references
         .list(skillId)
         .then((refs) => {
-          setReferences(refs)
-          setTree(buildTree(refs))
+          setReferences(refs);
+          setTree(buildTree(refs));
         })
         .catch((err) => console.error('Failed to load references:', err))
-        .finally(() => setLoading(false))
+        .finally(() => setLoading(false));
     }
-  }, [expanded, skillId, references.length])
+  }, [expanded, skillId, references.length]);
 
   return (
     <div className="my-0.5">
@@ -49,8 +49,8 @@ export const SkillItem = memo(function SkillItem({
         {/* Expand/collapse button */}
         <button
           onClick={(e) => {
-            e.stopPropagation()
-            setExpanded(!expanded)
+            e.stopPropagation();
+            setExpanded(!expanded);
           }}
           className="p-1 hover:bg-hover rounded-md transition-colors shrink-0"
         >
@@ -64,9 +64,9 @@ export const SkillItem = memo(function SkillItem({
         {/* Skill name */}
         <button
           onClick={() => {
-            onSelect()
+            onSelect();
             if (onSelectReference) {
-              onSelectReference(null)
+              onSelectReference(null);
             }
           }}
           className={`
@@ -102,35 +102,51 @@ export const SkillItem = memo(function SkillItem({
         </div>
       )}
     </div>
-  )
-})
+  );
+});
 
 // Recursive tree view component
-function TreeView({ nodes, depth = 0, onSelectFile }: { nodes: TreeNode[]; depth?: number; onSelectFile?: (ref: SkillReference) => void }) {
+function TreeView({
+  nodes,
+  depth = 0,
+  onSelectFile,
+}: {
+  nodes: TreeNode[];
+  depth?: number;
+  onSelectFile?: (ref: SkillReference) => void;
+}) {
   return (
     <div>
       {nodes.map((node) => (
         <TreeNodeItem key={node.path} node={node} depth={depth} onSelectFile={onSelectFile} />
       ))}
     </div>
-  )
+  );
 }
 
-function TreeNodeItem({ node, depth, onSelectFile }: { node: TreeNode; depth: number; onSelectFile?: (ref: SkillReference) => void }) {
-  const [expanded, setExpanded] = useState(false)
-  const hasChildren = node.children && node.children.length > 0
+function TreeNodeItem({
+  node,
+  depth,
+  onSelectFile,
+}: {
+  node: TreeNode;
+  depth: number;
+  onSelectFile?: (ref: SkillReference) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasChildren = node.children && node.children.length > 0;
 
   // Strip file extension for display
-  const displayName = node.name.replace(/\.md$/, '')
+  const displayName = node.name.replace(/\.md$/, '');
 
   return (
     <div>
       <button
         onClick={() => {
           if (hasChildren) {
-            setExpanded(!expanded)
+            setExpanded(!expanded);
           } else if (node.reference && onSelectFile) {
-            onSelectFile(node.reference)
+            onSelectFile(node.reference);
           }
         }}
         className="w-full flex items-center gap-1.5 px-2 py-1 text-xxs text-secondary hover:text-white hover:bg-hover rounded-md transition-colors"
@@ -157,7 +173,9 @@ function TreeNodeItem({ node, depth, onSelectFile }: { node: TreeNode; depth: nu
         <span className="truncate">{displayName}</span>
       </button>
 
-      {expanded && hasChildren && <TreeView nodes={node.children!} depth={depth + 1} onSelectFile={onSelectFile} />}
+      {expanded && hasChildren && (
+        <TreeView nodes={node.children!} depth={depth + 1} onSelectFile={onSelectFile} />
+      )}
     </div>
-  )
+  );
 }

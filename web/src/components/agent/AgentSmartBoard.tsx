@@ -1,47 +1,48 @@
-import { useState } from 'react'
-import { useSmartBoardPanel, useScheduleStatus } from '@/hooks'
-import { api } from '@/lib/api'
+import { useState } from 'react';
 import {
-  ThingsToRememberPanel,
-  SuggestionsPanel,
   AchievementsPanel,
   BlockersPanel,
-} from '@/components/agent'
-import { InlineCanvasEditor } from './InlineCanvasEditor'
-import { FloatingChat } from './FloatingChat'
+  SuggestionsPanel,
+  ThingsToRememberPanel,
+} from '@/components/agent';
+import { useScheduleStatus, useSmartBoardPanel } from '@/hooks';
+import { api } from '@/lib/api';
 import type {
-  ThingsToRememberData,
-  SuggestionsData,
   AchievementsData,
   BlockersData,
-} from '@/types'
+  PanelType,
+  SuggestionsData,
+  ThingsToRememberData,
+} from '@/types';
+import { FloatingChat } from './FloatingChat';
+import { InlineCanvasEditor } from './InlineCanvasEditor';
 
 export default function AgentSmartBoard() {
   // Panel hooks
-  const thingsToRemember = useSmartBoardPanel<ThingsToRememberData>('things-to-remember')
-  const suggestions = useSmartBoardPanel<SuggestionsData>('suggestions')
-  const achievements = useSmartBoardPanel<AchievementsData>('achievements')
-  const blockers = useSmartBoardPanel<BlockersData>('blockers')
+  const thingsToRemember = useSmartBoardPanel<ThingsToRememberData>('things-to-remember');
+  const suggestions = useSmartBoardPanel<SuggestionsData>('suggestions');
+  const achievements = useSmartBoardPanel<AchievementsData>('achievements');
+  const blockers = useSmartBoardPanel<BlockersData>('blockers');
 
   // Scheduler status (next refresh, last error per panel)
-  const schedule = useScheduleStatus()
+  const schedule = useScheduleStatus();
 
   // Canvas editor state
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editorContent, setEditorContent] = useState('')
-  const [editorTitle, setEditorTitle] = useState('')
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorContent, setEditorContent] = useState('');
+  const [editorTitle, setEditorTitle] = useState('');
   const [editorContext, setEditorContext] = useState<{
-    panelType: string
-    itemId: string
-  } | null>(null)
+    panelType: PanelType;
+    itemId: string;
+  } | null>(null);
 
   // Edit handlers
   const handleEditThingsToRemember = (itemId: string, text: string, title?: string) => {
-    setEditorContent(text)
-    setEditorTitle(title || 'Things to Remember')
-    setEditorContext({ panelType: 'things-to-remember', itemId })
-    setEditorOpen(true)
-  }
+    setEditorContent(text);
+    setEditorTitle(title || 'Things to Remember');
+    setEditorContext({ panelType: 'things-to-remember', itemId });
+    setEditorOpen(true);
+  };
 
   const handleEditSuggestion = (
     itemId: string,
@@ -49,96 +50,87 @@ export default function AgentSmartBoard() {
     reasoning: string,
     title?: string
   ) => {
-    setEditorContent(`${suggestion}\n\n${reasoning}`)
-    setEditorTitle(title || 'Suggestion')
-    setEditorContext({ panelType: 'suggestions', itemId })
-    setEditorOpen(true)
-  }
+    setEditorContent(`${suggestion}\n\n${reasoning}`);
+    setEditorTitle(title || 'Suggestion');
+    setEditorContext({ panelType: 'suggestions', itemId });
+    setEditorOpen(true);
+  };
 
   const handleEditAchievement = (itemId: string, achievement: string, title?: string) => {
-    setEditorContent(achievement)
-    setEditorTitle(title || 'Achievement')
-    setEditorContext({ panelType: 'achievements', itemId })
-    setEditorOpen(true)
-  }
+    setEditorContent(achievement);
+    setEditorTitle(title || 'Achievement');
+    setEditorContext({ panelType: 'achievements', itemId });
+    setEditorOpen(true);
+  };
 
-  const handleEditBlocker = (
-    itemId: string,
-    blocker: string,
-    context: string,
-    title?: string
-  ) => {
-    setEditorContent(`${blocker}\n\n${context}`)
-    setEditorTitle(title || 'Blocker')
-    setEditorContext({ panelType: 'blockers', itemId })
-    setEditorOpen(true)
-  }
+  const handleEditBlocker = (itemId: string, blocker: string, context: string, title?: string) => {
+    setEditorContent(`${blocker}\n\n${context}`);
+    setEditorTitle(title || 'Blocker');
+    setEditorContext({ panelType: 'blockers', itemId });
+    setEditorOpen(true);
+  };
 
   // Save handler - updates the item content
   const handleSaveEdit = async (content: string) => {
-    if (!editorContext) return
+    if (!editorContext) return;
 
     try {
       // Parse content based on panel type
-      let fields: Record<string, string> = {}
+      let fields: Record<string, string> = {};
 
       switch (editorContext.panelType) {
         case 'things-to-remember':
-          fields = { text: content }
-          break
+          fields = { text: content };
+          break;
         case 'suggestions': {
-          const [suggestion, ...reasoningParts] = content.split('\n\n')
-          fields = { suggestion, reasoning: reasoningParts.join('\n\n') }
-          break
+          const [suggestion, ...reasoningParts] = content.split('\n\n');
+          fields = { suggestion, reasoning: reasoningParts.join('\n\n') };
+          break;
         }
         case 'achievements':
-          fields = { achievement: content }
-          break
+          fields = { achievement: content };
+          break;
         case 'blockers': {
-          const [blocker, ...contextParts] = content.split('\n\n')
-          fields = { blocker, context: contextParts.join('\n\n') }
-          break
+          const [blocker, ...contextParts] = content.split('\n\n');
+          fields = { blocker, context: contextParts.join('\n\n') };
+          break;
         }
       }
 
       // Update via API
-      await api.smartboard.updateItemContent(
-        editorContext.itemId,
-        editorContext.panelType,
-        fields
-      )
+      await api.smartboard.updateItemContent(editorContext.itemId, editorContext.panelType, fields);
 
       // Refresh the panel data
       switch (editorContext.panelType) {
         case 'things-to-remember':
-          await thingsToRemember.fetchData()
-          break
+          await thingsToRemember.refresh();
+          break;
         case 'suggestions':
-          await suggestions.fetchData()
-          break
+          await suggestions.refresh();
+          break;
         case 'achievements':
-          await achievements.fetchData()
-          break
+          await achievements.refresh();
+          break;
         case 'blockers':
-          await blockers.fetchData()
-          break
+          await blockers.refresh();
+          break;
       }
 
-      setEditorOpen(false)
+      setEditorOpen(false);
     } catch (error) {
-      console.error('Failed to save edit:', error)
+      console.error('Failed to save edit:', error);
       // TODO: Show toast notification
     }
-  }
+  };
 
   // Status change handlers
   const handleChangeCategory = async (itemId: string, category: string) => {
-    await thingsToRemember.updateItemStatus(itemId, category)
-  }
+    await thingsToRemember.updateItemStatus(itemId, category);
+  };
 
   const handleChangeSuggestionStatus = async (itemId: string, status: string) => {
-    await suggestions.updateItemStatus(itemId, status)
-  }
+    await suggestions.updateItemStatus(itemId, status);
+  };
 
   return (
     <div className="min-h-screen bg-primary relative pb-32">
@@ -158,7 +150,11 @@ export default function AgentSmartBoard() {
                   onRefresh={thingsToRemember.refresh}
                   onEditItem={handleEditThingsToRemember}
                   onChangeCategory={handleChangeCategory}
-                  nextRefresh={schedule?.['things-to-remember']?.nextRefresh ? new Date(schedule['things-to-remember'].nextRefresh) : null}
+                  nextRefresh={
+                    schedule?.['things-to-remember']?.nextRefresh
+                      ? new Date(schedule['things-to-remember'].nextRefresh)
+                      : null
+                  }
                   lastError={schedule?.['things-to-remember']?.lastError}
                 />
               </div>
@@ -172,8 +168,12 @@ export default function AgentSmartBoard() {
                   onRefresh={suggestions.refresh}
                   onEditItem={handleEditSuggestion}
                   onChangeStatus={handleChangeSuggestionStatus}
-                  nextRefresh={schedule?.['suggestions']?.nextRefresh ? new Date(schedule['suggestions'].nextRefresh) : null}
-                  lastError={schedule?.['suggestions']?.lastError}
+                  nextRefresh={
+                    schedule?.suggestions?.nextRefresh
+                      ? new Date(schedule.suggestions.nextRefresh)
+                      : null
+                  }
+                  lastError={schedule?.suggestions?.lastError}
                 />
               </div>
             </div>
@@ -216,8 +216,12 @@ export default function AgentSmartBoard() {
                 lastRefreshed={achievements.lastRefreshed}
                 onRefresh={achievements.refresh}
                 onEditItem={handleEditAchievement}
-                nextRefresh={schedule?.['achievements']?.nextRefresh ? new Date(schedule['achievements'].nextRefresh) : null}
-                lastError={schedule?.['achievements']?.lastError}
+                nextRefresh={
+                  schedule?.achievements?.nextRefresh
+                    ? new Date(schedule.achievements.nextRefresh)
+                    : null
+                }
+                lastError={schedule?.achievements?.lastError}
               />
             </div>
 
@@ -229,8 +233,10 @@ export default function AgentSmartBoard() {
                 lastRefreshed={blockers.lastRefreshed}
                 onRefresh={blockers.refresh}
                 onEditItem={handleEditBlocker}
-                nextRefresh={schedule?.['blockers']?.nextRefresh ? new Date(schedule['blockers'].nextRefresh) : null}
-                lastError={schedule?.['blockers']?.lastError}
+                nextRefresh={
+                  schedule?.blockers?.nextRefresh ? new Date(schedule.blockers.nextRefresh) : null
+                }
+                lastError={schedule?.blockers?.lastError}
               />
             </div>
           </div>
@@ -242,5 +248,5 @@ export default function AgentSmartBoard() {
       {/* Floating Chat */}
       <FloatingChat />
     </div>
-  )
+  );
 }

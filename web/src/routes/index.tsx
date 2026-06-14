@@ -1,26 +1,23 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { api } from '@/lib/api'
-import { SkeletonCard } from '@/components/ui/Skeleton'
-import { DataTable, type DataTableColumn } from '@/components/ui/DataTable'
-import type { Note, Skill } from '@/types'
+import { createFileRoute } from '@tanstack/react-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { api } from '@/lib/api';
+import type { Note, Skill } from '@/types';
 
 export const Route = createFileRoute('/')({
   component: DashboardPage,
-})
+});
 
 async function fetchStats() {
-  const [skills, notes] = await Promise.all([
-    api.skills.list(),
-    api.notes.listAll(),
-  ])
+  const [skills, notes] = await Promise.all([api.skills.list(), api.notes.listAll()]);
 
   // Modified in last 7 days
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const modifiedRecently = skills.filter((s) => {
-    const t = new Date(s.updated_at).getTime()
-    return !isNaN(t) && t >= sevenDaysAgo
-  }).length
+    const t = new Date(s.updated_at).getTime();
+    return !Number.isNaN(t) && t >= sevenDaysAgo;
+  }).length;
 
   return {
     totalSkills: skills.length,
@@ -29,11 +26,11 @@ async function fetchStats() {
     skillsTrend: '+0',
     modifiedTrend: '+0',
     notesTrend: '+0',
-  }
+  };
 }
 
 async function fetchNotes() {
-  return api.notes.listAll()
+  return api.notes.listAll();
 }
 
 function DashboardPage() {
@@ -44,100 +41,107 @@ function DashboardPage() {
     skillsTrend: '+0',
     modifiedTrend: '+0',
     notesTrend: '+0',
-  })
-  const [notes, setNotes] = useState<Note[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
+  });
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    Promise.all([
-      fetchStats(),
-      fetchNotes(),
-      api.skills.list()
-    ])
+    Promise.all([fetchStats(), fetchNotes(), api.skills.list()])
       .then(([statsData, notesData, skillsData]) => {
-        setStats(statsData)
-        setNotes(notesData)
-        setSkills(skillsData)
+        setStats(statsData);
+        setNotes(notesData);
+        setSkills(skillsData);
       })
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   // Helper to get skill title by ID
-  const getSkillTitle = useCallback((skillId: string) => {
-    const skill = skills.find(s => s.id === skillId)
-    return skill?.title || skillId
-  }, [skills])
+  const getSkillTitle = useCallback(
+    (skillId: string) => {
+      const skill = skills.find((s) => s.id === skillId);
+      return skill?.title || skillId;
+    },
+    [skills]
+  );
 
   // Filter notes by search query
   const filteredNotes = useMemo(() => {
-    if (!searchQuery) return notes
-    const query = searchQuery.toLowerCase()
-    return notes.filter(note =>
-      (note.title?.toLowerCase().includes(query) ?? false) ||
-      note.content.toLowerCase().includes(query) ||
-      getSkillTitle(note.skill_id).toLowerCase().includes(query)
-    )
-  }, [notes, searchQuery, getSkillTitle])
+    if (!searchQuery) return notes;
+    const query = searchQuery.toLowerCase();
+    return notes.filter(
+      (note) =>
+        (note.title?.toLowerCase().includes(query) ?? false) ||
+        note.content.toLowerCase().includes(query) ||
+        getSkillTitle(note.skill_id).toLowerCase().includes(query)
+    );
+  }, [notes, searchQuery, getSkillTitle]);
 
   // Column config for the notes table
-  const notesColumns = useMemo<DataTableColumn<Note>[]>(() => [
-    {
-      key: 'title',
-      header: 'Note Title',
-      width: '1fr',
-      render: (note) => (
-        <div className="flex items-center gap-2 min-w-0">
-          <img
-            src="/note.png"
-            alt=""
-            aria-hidden="true"
-            className="w-5 h-5 brightness-150 shrink-0 object-contain"
-          />
-          <span className="text-xs text-secondary truncate" title={note.title || note.content}>
-            {note.title || note.content}
+  const notesColumns = useMemo<DataTableColumn<Note>[]>(
+    () => [
+      {
+        key: 'title',
+        header: 'Note Title',
+        width: '1fr',
+        render: (note) => (
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              src="/note.png"
+              alt=""
+              aria-hidden="true"
+              className="w-5 h-5 brightness-150 shrink-0 object-contain"
+            />
+            <span className="text-xs text-secondary truncate" title={note.title || note.content}>
+              {note.title || note.content}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'skill',
+        header: 'Skill',
+        width: '1fr',
+        render: (note) => (
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              src="/folder.png"
+              alt=""
+              aria-hidden="true"
+              className="w-5 h-5 brightness-150 shrink-0 object-contain"
+            />
+            <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
+              {getSkillTitle(note.skill_id)}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        width: '120px',
+        render: (note) => (
+          <span className="text-xs text-tertiary">
+            {(() => {
+              try {
+                const dateStr = note.created_at.split(' ')[0];
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+              } catch {
+                return 'Invalid Date';
+              }
+            })()}
           </span>
-        </div>
-      ),
-    },
-    {
-      key: 'skill',
-      header: 'Skill',
-      width: '1fr',
-      render: (note) => (
-        <div className="flex items-center gap-2 min-w-0">
-          <img
-            src="/folder.png"
-            alt=""
-            aria-hidden="true"
-            className="w-5 h-5 brightness-150 shrink-0 object-contain"
-          />
-          <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
-            {getSkillTitle(note.skill_id)}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'date',
-      header: 'Date',
-      width: '120px',
-      render: (note) => (
-        <span className="text-xs text-tertiary">
-          {(() => {
-            try {
-              const dateStr = note.created_at.split(' ')[0]
-              const date = new Date(dateStr)
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            } catch {
-              return 'Invalid Date'
-            }
-          })()}
-        </span>
-      ),
-    },
-  ], [getSkillTitle])
+        ),
+      },
+    ],
+    [getSkillTitle]
+  );
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
@@ -192,7 +196,9 @@ function DashboardPage() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder="Search here..."
-          onAdd={() => { /* TODO: open new note modal */ }}
+          onAdd={() => {
+            /* TODO: open new note modal */
+          }}
           emptyMessage={searchQuery ? 'No notes match your search' : 'No notes yet'}
           columns={notesColumns}
         />
@@ -208,7 +214,7 @@ function DashboardPage() {
         Empty for now
       </div>
     </div>
-  )
+  );
 }
 
 function StatCard({
@@ -217,12 +223,12 @@ function StatCard({
   trend,
   icon,
 }: {
-  label: string
-  value: number
-  trend: string
-  icon: string
+  label: string;
+  value: number;
+  trend: string;
+  icon: string;
 }) {
-  const isPositive = trend.startsWith('+') && trend !== '+0'
+  const isPositive = trend.startsWith('+') && trend !== '+0';
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-default bg-gradient-to-br from-raised to-input p-4 transition-all duration-200 hover:border-strong hover:shadow-lg group w-72">
@@ -244,5 +250,5 @@ function StatCard({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
-import { Inbox } from 'lucide-react'
+import { Inbox } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface EmptyStateProps {
-  icon?: ReactNode
-  title: string
-  description?: string
-  action?: ReactNode
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  action?: ReactNode;
 }
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
@@ -15,10 +15,8 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
         {icon || <Inbox className="w-5 h-5 text-tertiary" strokeWidth={1.5} />}
       </div>
       <h3 className="text-md font-medium text-primary mb-1">{title}</h3>
-      {description && (
-        <p className="text-xs text-secondary max-w-xs mb-3">{description}</p>
-      )}
+      {description && <p className="text-xs text-secondary max-w-xs mb-3">{description}</p>}
       {action}
     </div>
-  )
+  );
 }

@@ -12,34 +12,34 @@
 //   environment:
 //     - API_URL=http://100.105.217.77:6060
 
-const FRONTEND_DIRECT_PORTS = new Set(['3000', '3001'])
-const BACKEND_PORT = '6060'
+const FRONTEND_DIRECT_PORTS = new Set(['3000', '3001']);
+const BACKEND_PORT = '6060';
 
 declare global {
   interface Window {
-    APP_CONFIG?: { API_URL?: string }
+    APP_CONFIG?: { API_URL?: string };
   }
 }
 
 export function apiUrl(path: string): string {
   // SSR: read env var directly on the server
   if (typeof window === 'undefined') {
-    const base = process.env.API_URL || ''
-    return `${base}${path}`
+    const base = process.env.API_URL || '';
+    return `${base}${path}`;
   }
 
   // Client: prefer injected runtime config
-  const configured = window.APP_CONFIG?.API_URL
+  const configured = window.APP_CONFIG?.API_URL;
   if (configured) {
-    return `${configured}${path}`
+    return `${configured}${path}`;
   }
 
   // Fallback: detect from window.location
-  const { protocol, hostname, port } = window.location
+  const { protocol, hostname, port } = window.location;
   if (FRONTEND_DIRECT_PORTS.has(port)) {
-    return `${protocol}//${hostname}:${BACKEND_PORT}${path}`
+    return `${protocol}//${hostname}:${BACKEND_PORT}${path}`;
   }
 
   // Same-origin (reverse proxy)
-  return path
+  return path;
 }

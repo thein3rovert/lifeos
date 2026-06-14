@@ -1,44 +1,44 @@
-import { Search, Plus } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { SkeletonTableRow } from './Skeleton'
+import { Plus, Search } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { SkeletonTableRow } from './Skeleton';
 
 export type DataTableColumn<T> = {
   /** Unique key for this column (used as React key) */
-  key: string
+  key: string;
   /** Header label */
-  header: string
+  header: string;
   /** CSS grid track size (e.g. '1fr', '120px', 'minmax(0, 2fr)') */
-  width?: string
+  width?: string;
   /** Custom renderer for the cell */
-  render: (row: T) => ReactNode
-}
+  render: (row: T) => ReactNode;
+};
 
 type DataTableProps<T> = {
   /** Card header title */
-  title: string
+  title: string;
   /** Items to render */
-  data: T[]
+  data: T[];
   /** Column configuration */
-  columns: DataTableColumn<T>[]
+  columns: DataTableColumn<T>[];
   /** Stable key for each row */
-  rowKey: (row: T) => string | number
+  rowKey: (row: T) => string | number;
   /** Loading state — shows skeleton rows */
-  loading?: boolean
+  loading?: boolean;
   /** Number of skeleton rows to show while loading (default 3) */
-  skeletonRows?: number
+  skeletonRows?: number;
   /** Message when data is empty */
-  emptyMessage?: string
+  emptyMessage?: string;
   /** Search input value */
-  searchValue?: string
+  searchValue?: string;
   /** Search input handler. If unset, search box is hidden */
-  onSearchChange?: (value: string) => void
+  onSearchChange?: (value: string) => void;
   /** Search placeholder */
-  searchPlaceholder?: string
+  searchPlaceholder?: string;
   /** Add button click handler. If unset, button is hidden */
-  onAdd?: () => void
+  onAdd?: () => void;
   /** Row click handler */
-  onRowClick?: (row: T) => void
-}
+  onRowClick?: (row: T) => void;
+};
 
 export function DataTable<T>({
   title,
@@ -54,7 +54,7 @@ export function DataTable<T>({
   onAdd,
   onRowClick,
 }: DataTableProps<T>) {
-  const gridTemplate = columns.map((c) => c.width ?? '1fr').join(' ')
+  const gridTemplate = columns.map((c) => c.width ?? '1fr').join(' ');
 
   return (
     <div className="flex-1 border border-default rounded-xl bg-input flex flex-col overflow-hidden">
@@ -128,5 +128,5 @@ export function DataTable<T>({
         )}
       </div>
     </div>
-  )
+  );
 }

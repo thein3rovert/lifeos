@@ -1,28 +1,28 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw, Upload, Plus} from 'lucide-react'
-import type { Skill } from '@/types'
-import { SyncConfirmationDialog } from './SyncConfirmationDialog'
-import { CreateSkillDialog } from './CreateSkillDialog'
-import { PushSelectionDialog } from './PushSelectionDialog'
-import { SkillItem } from './SkillItem'
-import { AccentStripes } from '@/components/ui/AccentStripes'
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { AccentStripes } from '@/components/ui/AccentStripes';
+import type { Skill } from '@/types';
+import { CreateSkillDialog } from './CreateSkillDialog';
+import { PushSelectionDialog } from './PushSelectionDialog';
+import { SkillItem } from './SkillItem';
+import { SyncConfirmationDialog } from './SyncConfirmationDialog';
 
 type SkillsSidebarProps = {
-  skills: Skill[]
-  selectedSkillId: string | null
-  onSelectSkill: (id: string) => void
-  onSelectReference?: (reference: any | null) => void
-  loading: boolean
-  syncing: boolean
-  onSync: () => void
-  pushing?: boolean
-  onPush?: () => void
-  onPushSelected?: (skillIds: string[]) => void
-  collapsed: boolean
-  onToggleCollapse: (collapsed: boolean) => void
-  onCreateSkill?: (title: string, format: string, content: string) => void
-  creatingSkill?: boolean
-}
+  skills: Skill[];
+  selectedSkillId: string | null;
+  onSelectSkill: (id: string) => void;
+  onSelectReference?: (reference: any | null) => void;
+  loading: boolean;
+  syncing: boolean;
+  onSync: () => void;
+  pushing?: boolean;
+  onPush?: () => void;
+  onPushSelected?: (skillIds: string[]) => void;
+  collapsed: boolean;
+  onToggleCollapse: (collapsed: boolean) => void;
+  onCreateSkill?: (title: string, format: string, content: string) => void;
+  creatingSkill?: boolean;
+};
 
 export function SkillsSidebar({
   skills,
@@ -40,31 +40,39 @@ export function SkillsSidebar({
   onCreateSkill,
   creatingSkill,
 }: SkillsSidebarProps) {
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [showPushDialog, setShowPushDialog] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPushDialog, setShowPushDialog] = useState(false);
 
-  const pendingCount = skills.filter(s => s.pending_sync).length
-  const skillsWithNotes = skills.filter(s => (s.note_count || 0) > 0).length
-  const hasLocalChanges = pendingCount > 0 || skillsWithNotes > 0
+  const pendingCount = skills.filter((s) => s.pending_sync).length;
+  const skillsWithNotes = skills.filter((s) => (s.note_count || 0) > 0).length;
+  const hasLocalChanges = pendingCount > 0 || skillsWithNotes > 0;
 
-  const lastSynced = skills.length > 0
-    ? skills.filter(s => s.synced_at).sort((a, b) =>
-        new Date(b.synced_at!).getTime() - new Date(a.synced_at!).getTime()
-      )[0]?.synced_at
-    : null
+  const lastSynced =
+    skills.length > 0
+      ? skills
+          .filter((s) => s.synced_at)
+          .sort((a, b) => new Date(b.synced_at!).getTime() - new Date(a.synced_at!).getTime())[0]
+          ?.synced_at
+      : null;
 
   const handleSyncClick = () => {
     if (hasLocalChanges) {
-      setShowConfirmDialog(true)
+      setShowConfirmDialog(true);
     } else {
-      onSync()
+      onSync();
     }
-  }
+  };
 
-  const handleCancel = () => setShowConfirmDialog(false)
-  const handlePushFirst = () => { setShowConfirmDialog(false); onPush?.() }
-  const handlePullAnyway = () => { setShowConfirmDialog(false); onSync() }
+  const handleCancel = () => setShowConfirmDialog(false);
+  const handlePushFirst = () => {
+    setShowConfirmDialog(false);
+    onPush?.();
+  };
+  const handlePullAnyway = () => {
+    setShowConfirmDialog(false);
+    onSync();
+  };
 
   if (collapsed) {
     return (
@@ -79,7 +87,7 @@ export function SkillsSidebar({
           </span>
         )}
       </button>
-    )
+    );
   }
 
   return (
@@ -108,24 +116,24 @@ export function SkillsSidebar({
             </span>
           )}
         </div>
-          <div className="flex items-center gap-1">
-            {onCreateSkill && (
-              <button
-                onClick={() => setShowCreateDialog(true)}
-                className="p-1 hover:bg-hover rounded-md transition-colors"
-                title="Create new skill"
-              >
-                <Plus className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
-              </button>
-            )}
+        <div className="flex items-center gap-1">
+          {onCreateSkill && (
             <button
-              onClick={() => onToggleCollapse(true)}
+              onClick={() => setShowCreateDialog(true)}
               className="p-1 hover:bg-hover rounded-md transition-colors"
+              title="Create new skill"
             >
-              <ChevronLeft className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
+              <Plus className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => onToggleCollapse(true)}
+            className="p-1 hover:bg-hover rounded-md transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
+          </button>
         </div>
+      </div>
 
       {/* Skills list */}
       <div className="flex-1 overflow-auto py-1">
@@ -135,8 +143,8 @@ export function SkillsSidebar({
           <div className="px-3 py-2 text-base text-tertiary">No skills yet</div>
         ) : (
           skills.map((skill) => {
-            const hasNotes = (skill.note_count || 0) > 0
-            const hasPendingSync = skill.pending_sync
+            const hasNotes = (skill.note_count || 0) > 0;
+            const hasPendingSync = skill.pending_sync;
 
             return (
               <SkillItem
@@ -149,7 +157,7 @@ export function SkillsSidebar({
                 onSelect={() => onSelectSkill(skill.id)}
                 onSelectReference={onSelectReference}
               />
-            )
+            );
           })
         )}
       </div>
@@ -174,7 +182,7 @@ export function SkillsSidebar({
 
         {pendingCount > 0 && (onPush || onPushSelected) && (
           <button
-            onClick={() => onPushSelected ? setShowPushDialog(true) : onPush?.()}
+            onClick={() => (onPushSelected ? setShowPushDialog(true) : onPush?.())}
             disabled={pushing}
             className="w-full h-7 flex items-center justify-center gap-2 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-all active:scale-98 bg-highlight"
             style={pushing ? {} : { boxShadow: 'var(--shadow-neuro-raised)' }}
@@ -197,8 +205,8 @@ export function SkillsSidebar({
         isOpen={showCreateDialog}
         onCancel={() => setShowCreateDialog(false)}
         onCreate={(title, format, content) => {
-          onCreateSkill?.(title, format, content)
-          setShowCreateDialog(false)
+          onCreateSkill?.(title, format, content);
+          setShowCreateDialog(false);
         }}
         isLoading={creatingSkill}
       />
@@ -208,11 +216,11 @@ export function SkillsSidebar({
         skills={skills}
         onCancel={() => setShowPushDialog(false)}
         onPush={(skillIds) => {
-          onPushSelected?.(skillIds)
-          setShowPushDialog(false)
+          onPushSelected?.(skillIds);
+          setShowPushDialog(false);
         }}
         isLoading={pushing}
       />
     </aside>
-  )
+  );
 }

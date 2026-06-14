@@ -1,16 +1,16 @@
-import { SmartBoardPanel } from './SmartBoardPanel'
-import { SmartBoardItemCard } from './SmartBoardItemCard'
-import type { BlockersData } from '@/types'
+import type { BlockersData } from '@/types';
+import { SmartBoardItemCard } from './SmartBoardItemCard';
+import { SmartBoardPanel } from './SmartBoardPanel';
 
 type BlockersPanelProps = {
-  data: BlockersData | null
-  loading: boolean
-  lastRefreshed: Date | null
-  onRefresh: () => void
-  onEditItem: (itemId: string, blocker: string, context: string, title?: string) => void
-  nextRefresh?: Date | null
-  lastError?: string
-}
+  data: BlockersData | null;
+  loading: boolean;
+  lastRefreshed: Date | null;
+  onRefresh: () => void;
+  onEditItem: (itemId: string, blocker: string, context: string, title?: string) => void;
+  nextRefresh?: Date | null;
+  lastError?: string;
+};
 
 export function BlockersPanel({
   data,
@@ -21,7 +21,7 @@ export function BlockersPanel({
   nextRefresh,
   lastError,
 }: BlockersPanelProps) {
-  const items = data?.blockers || []
+  const items = data?.blockers || [];
 
   return (
     <SmartBoardPanel
@@ -53,5 +53,5 @@ export function BlockersPanel({
         </div>
       )}
     </SmartBoardPanel>
-  )
+  );
 }

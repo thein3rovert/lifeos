@@ -1,11 +1,11 @@
-export { default as AgentChatPage } from './AgentChatPage'
-export { default as AgentSmartBoard } from './AgentSmartBoard'
-export { SmartBoardPanel } from './SmartBoardPanel'
-export { SmartBoardItemCard } from './SmartBoardItemCard'
-export { ThingsToRememberPanel } from './ThingsToRememberPanel'
-export { SuggestionsPanel } from './SuggestionsPanel'
-export { AchievementsPanel } from './AchievementsPanel'
-export { BlockersPanel } from './BlockersPanel'
-export { CanvasEditor } from './CanvasEditor'
-export { InlineCanvasEditor } from './InlineCanvasEditor'
-export { FloatingChat } from './FloatingChat'
+export { AchievementsPanel } from './AchievementsPanel';
+export { default as AgentChatPage } from './AgentChatPage';
+export { default as AgentSmartBoard } from './AgentSmartBoard';
+export { BlockersPanel } from './BlockersPanel';
+export { CanvasEditor } from './CanvasEditor';
+export { FloatingChat } from './FloatingChat';
+export { InlineCanvasEditor } from './InlineCanvasEditor';
+export { SmartBoardItemCard } from './SmartBoardItemCard';
+export { SmartBoardPanel } from './SmartBoardPanel';
+export { SuggestionsPanel } from './SuggestionsPanel';
+export { ThingsToRememberPanel } from './ThingsToRememberPanel';

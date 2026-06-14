@@ -1,70 +1,70 @@
-import { useState, useRef, useEffect } from 'react'
-import { ChevronUp, Loader2 } from 'lucide-react'
-import { api } from '@/lib/api'
+import { ChevronUp, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
 
 type Message = {
-  role: string
-  content: string
-}
+  role: string;
+  content: string;
+};
 
 export function FloatingChat() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const chatPanelRef = useRef<HTMLDivElement>(null)
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatPanelRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   // Close on click outside
   useEffect(() => {
-    if (!isExpanded) return
+    if (!isExpanded) return;
 
     const handleClickOutside = (e: MouseEvent) => {
       if (chatPanelRef.current && !chatPanelRef.current.contains(e.target as Node)) {
-        setIsExpanded(false)
+        setIsExpanded(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isExpanded])
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isExpanded]);
 
   const handleSend = async () => {
-    if (!message.trim() || isLoading) return
+    if (!message.trim() || isLoading) return;
 
-    const userMessage = message.trim()
-    setMessage('')
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }])
-    setIsLoading(true)
+    const userMessage = message.trim();
+    setMessage('');
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
 
     try {
-      const data = await api.agent.chat(userMessage, sessionId)
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
+      const data = await api.agent.chat(userMessage, sessionId);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
 
       // Save session ID for continuation
       if (data.sessionId) {
-        setSessionId(data.sessionId)
+        setSessionId(data.sessionId);
       }
     } catch (error: any) {
-      console.error('Failed to send message:', error)
+      console.error('Failed to send message:', error);
 
-      let errorMessage = "Sorry, I couldn't process that message."
+      let errorMessage = "Sorry, I couldn't process that message.";
       if (error?.message?.includes('timeout') || error?.message?.includes('504')) {
         errorMessage =
-          '⏱️ Request timed out. The agent might be processing a complex task or MCP is slow. Try again or simplify your request.'
+          '⏱️ Request timed out. The agent might be processing a complex task or MCP is slow. Try again or simplify your request.';
       }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: errorMessage }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: errorMessage }]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div
@@ -175,15 +175,11 @@ export function FloatingChat() {
               viewBox="0 0 24 24"
               strokeWidth={1.5}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 10l7-7m0 0l7 7m-7-7v18"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

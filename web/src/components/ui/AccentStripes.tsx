@@ -1,9 +1,9 @@
-type AccentStripesColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray'
+type AccentStripesColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray';
 
 type AccentStripesProps = {
-  color?: AccentStripesColor | string
-  className?: string
-}
+  color?: AccentStripesColor | string;
+  className?: string;
+};
 
 // Color presets matching Atlas palette
 const colorPresets: Record<AccentStripesColor, string> = {
@@ -12,7 +12,7 @@ const colorPresets: Record<AccentStripesColor, string> = {
   green: '#22c55e',
   blue: '#3b82f6',
   gray: '#6b7280',
-}
+};
 
 /**
  * AccentStripes - decorative 4-stripe indicator used in panel headers.
@@ -24,7 +24,7 @@ export function AccentStripes({ color = 'gray', className }: AccentStripesProps)
   const fill =
     (color as string) in colorPresets
       ? colorPresets[color as AccentStripesColor]
-      : (color as string)
+      : (color as string);
 
   return (
     <svg
@@ -41,5 +41,5 @@ export function AccentStripes({ color = 'gray', className }: AccentStripesProps)
       <rect x="22" y="0" width="7" height="10" transform="skewX(-25)" fill={fill} />
       <rect x="32" y="0" width="26" height="10" transform="skewX(-25)" fill={fill} />
     </svg>
-  )
+  );
 }

@@ -1,37 +1,37 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react';
 
 type CategoryOption = {
-  value: string
-  label: string
-}
+  value: string;
+  label: string;
+};
 
 type CategoryMenuProps = {
-  options: CategoryOption[]
-  onSelect: (value: string) => void
-  trigger: React.ReactNode
-}
+  options: CategoryOption[];
+  onSelect: (value: string) => void;
+  trigger: React.ReactNode;
+};
 
 export function CategoryMenu({ options, onSelect, trigger }: CategoryMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+        setIsOpen(false);
       }
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const handleSelect = (value: string) => {
-    onSelect(value)
-    setIsOpen(false)
-  }
+    onSelect(value);
+    setIsOpen(false);
+  };
 
   return (
     <div className="relative" ref={menuRef}>
@@ -57,5 +57,5 @@ export function CategoryMenu({ options, onSelect, trigger }: CategoryMenuProps) 
         </div>
       )}
     </div>
-  )
+  );
 }

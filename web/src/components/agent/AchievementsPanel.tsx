@@ -1,16 +1,16 @@
-import { SmartBoardPanel } from './SmartBoardPanel'
-import { SmartBoardItemCard } from './SmartBoardItemCard'
-import type { AchievementsData } from '@/types'
+import type { AchievementsData } from '@/types';
+import { SmartBoardItemCard } from './SmartBoardItemCard';
+import { SmartBoardPanel } from './SmartBoardPanel';
 
 type AchievementsPanelProps = {
-  data: AchievementsData | null
-  loading: boolean
-  lastRefreshed: Date | null
-  onRefresh: () => void
-  onEditItem: (itemId: string, achievement: string, title?: string) => void
-  nextRefresh?: Date | null
-  lastError?: string
-}
+  data: AchievementsData | null;
+  loading: boolean;
+  lastRefreshed: Date | null;
+  onRefresh: () => void;
+  onEditItem: (itemId: string, achievement: string, title?: string) => void;
+  nextRefresh?: Date | null;
+  lastError?: string;
+};
 
 export function AchievementsPanel({
   data,
@@ -21,7 +21,7 @@ export function AchievementsPanel({
   nextRefresh,
   lastError,
 }: AchievementsPanelProps) {
-  const items = data?.achievements || []
+  const items = data?.achievements || [];
 
   return (
     <SmartBoardPanel
@@ -53,5 +53,5 @@ export function AchievementsPanel({
         </div>
       )}
     </SmartBoardPanel>
-  )
+  );
 }

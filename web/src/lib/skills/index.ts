@@ -1,3 +1,3 @@
 // Skills feature utilities
 
-export { stripFrontmatter, formatDate } from './utils'
+export { formatDate, stripFrontmatter } from './utils';

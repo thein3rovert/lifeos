@@ -1,21 +1,20 @@
-import { ReactNode } from 'react'
-import { Badge } from '../ui/Badge'
+import { Badge } from '../ui/Badge';
 
-type BadgeVariant = 'urgent' | 'important' | 'not-important' | 'active' | 'completed' | 'dismissed'
+type BadgeVariant = 'urgent' | 'important' | 'not-important' | 'active' | 'completed' | 'dismissed';
 
 type SmartBoardItemCardProps = {
-  index: number
-  title: string
-  date: string
-  description?: string
+  index: number;
+  title: string;
+  date: string;
+  description?: string;
   badge?: {
-    label: string
-    variant: BadgeVariant
-    onClick?: () => void
-  }
-  dotColor?: 'red' | 'yellow' | 'gray' | 'green' | 'blue'
-  onClick?: () => void
-}
+    label: string;
+    variant: BadgeVariant;
+    onClick?: () => void;
+  };
+  dotColor?: 'red' | 'yellow' | 'gray' | 'green' | 'blue';
+  onClick?: () => void;
+};
 
 export function SmartBoardItemCard({
   index,
@@ -27,7 +26,7 @@ export function SmartBoardItemCard({
   onClick,
 }: SmartBoardItemCardProps) {
   // Format index as 01, 02, 03...
-  const formattedIndex = String(index).padStart(2, '0')
+  const formattedIndex = String(index).padStart(2, '0');
 
   // Dot color mapping
   const dotColors = {
@@ -36,7 +35,7 @@ export function SmartBoardItemCard({
     gray: 'bg-gray-500',
     green: 'bg-green-500',
     blue: 'bg-blue-500',
-  }
+  };
 
   return (
     <div
@@ -53,9 +52,7 @@ export function SmartBoardItemCard({
         </span>
 
         {/* Title - takes available space, truncates */}
-        <h3 className="text-sm font-medium text-primary truncate flex-1 min-w-0">
-          {title}
-        </h3>
+        <h3 className="text-sm font-medium text-primary truncate flex-1 min-w-0">{title}</h3>
 
         {/* Colored dot */}
         <span
@@ -64,16 +61,12 @@ export function SmartBoardItemCard({
         />
 
         {/* Date at the end */}
-        <span className="text-xs text-tertiary whitespace-nowrap flex-shrink-0">
-          {date}
-        </span>
+        <span className="text-xs text-tertiary whitespace-nowrap flex-shrink-0">{date}</span>
       </div>
 
       {/* Second row: description preview (if exists) */}
       {description && (
-        <p className="text-xs text-secondary mt-1 ml-8 line-clamp-2 break-words">
-          {description}
-        </p>
+        <p className="text-xs text-secondary mt-1 ml-8 line-clamp-2 break-words">{description}</p>
       )}
 
       {/* Third row: category badge (if exists) */}
@@ -85,5 +78,5 @@ export function SmartBoardItemCard({
         </div>
       )}
     </div>
-  )
+  );
 }

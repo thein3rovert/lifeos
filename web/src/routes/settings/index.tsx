@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/settings/')({
   component: SettingsPage,
-})
+});
 
 function SettingsPage() {
   return (
@@ -12,5 +12,5 @@ function SettingsPage() {
         <p className="text-sm">Settings page coming soon...</p>
       </div>
     </div>
-  )
+  );
 }

@@ -4,17 +4,17 @@
 // =============================================================================
 
 import type {
-  Skill,
-  Note,
-  SkillDetail,
-  SkillReference,
+  AIPreviewResponse,
   ChatMessage,
   ChatSession,
-  AIPreviewResponse,
+  Note,
   PanelType,
+  Skill,
+  SkillDetail,
+  SkillReference,
   SmartBoardPanelResponse,
-} from '@/types'
-import { apiUrl } from './apiUrl'
+} from '@/types';
+import { apiUrl } from './apiUrl';
 
 async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(endpoint), {
@@ -23,14 +23,14 @@ async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`API Error: ${response.status} - ${error}`)
+    const error = await response.text();
+    throw new Error(`API Error: ${response.status} - ${error}`);
   }
 
-  return response.json()
+  return response.json();
 }
 
 export const api = {
@@ -38,7 +38,8 @@ export const api = {
     list: () => fetcher<Skill[]>('/api/skills'),
     get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
     sync: () => fetcher<Skill[]>('/api/skills/sync'),
-    push: () => fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
+    push: () =>
+      fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
 
     save: (id: string, content: string) =>
       fetcher<Skill>('/api/skills/edit', {
@@ -101,7 +102,8 @@ export const api = {
 
   references: {
     list: (skillId: string) => fetcher<SkillReference[]>(`/api/skills/${skillId}/files`),
-    get: (skillId: string, path: string) => fetcher<SkillReference>(`/api/skills/${skillId}/files/${path}`),
+    get: (skillId: string, path: string) =>
+      fetcher<SkillReference>(`/api/skills/${skillId}/files/${path}`),
     save: (skillId: string, path: string, content: string) =>
       fetcher<{ status: string }>(`/api/skills/${skillId}/files/${path}`, {
         method: 'PUT',
@@ -132,27 +134,23 @@ export const api = {
         body: JSON.stringify({ panelType, status }),
       }),
 
-    updateItemContent: (
-      itemId: string,
-      panelType: PanelType,
-      fields: Record<string, string>
-    ) =>
+    updateItemContent: (itemId: string, panelType: PanelType, fields: Record<string, string>) =>
       fetcher<{ message: string }>(`/api/smartboard/item/${itemId}/content`, {
         method: 'PATCH',
         body: JSON.stringify({ panelType, fields }),
       }),
   },
-}
+};
 
 // Re-export types for convenience
 export type {
-  Skill,
-  Note,
-  SkillDetail,
-  SkillReference,
+  AIPreviewResponse,
   ChatMessage,
   ChatSession,
-  AIPreviewResponse,
+  Note,
   PanelType,
+  Skill,
+  SkillDetail,
+  SkillReference,
   SmartBoardPanelResponse,
-} from '@/types'
+} from '@/types';

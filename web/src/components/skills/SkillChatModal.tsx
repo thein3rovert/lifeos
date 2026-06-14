@@ -1,253 +1,263 @@
-import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, X, Minimize2, Maximize2, Send, Loader2, Save, Upload, Plus, File, Folder } from 'lucide-react'
-import { api } from '@/lib/api'
-import type { ChatMessage, Note, SkillReference } from '@/types'
+import {
+  File,
+  Folder,
+  Loader2,
+  Maximize2,
+  MessageSquare,
+  Minimize2,
+  Plus,
+  Save,
+  Send,
+  Upload,
+  X,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
+import type { ChatMessage, Note, SkillReference } from '@/types';
 
 type SkillChatProps = {
-  skillId: string
-  skillTitle: string
-  isOpen: boolean
-  onClose: () => void
-}
+  skillId: string;
+  skillTitle: string;
+  isOpen: boolean;
+  onClose: () => void;
+};
 
 export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [initializing, setInitializing] = useState(true)
-  const [minimized, setMinimized] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [minimized, setMinimized] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Note selection state
-  const [notes, setNotes] = useState<Note[]>([])
-  const [showNoteSelector, setShowNoteSelector] = useState(false)
-  const [selectedNotes, setSelectedNotes] = useState<Note[]>([])
-  const [noteFilter, setNoteFilter] = useState('')
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [showNoteSelector, setShowNoteSelector] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<Note[]>([]);
+  const [noteFilter, setNoteFilter] = useState('');
 
   // Reference selection state
-  const [references, setReferences] = useState<SkillReference[]>([])
-  const [showRefSelector, setShowRefSelector] = useState(false)
-  const [selectedRefs, setSelectedRefs] = useState<SkillReference[]>([])
-  const [refFilter, setRefFilter] = useState('')
+  const [references, setReferences] = useState<SkillReference[]>([]);
+  const [showRefSelector, setShowRefSelector] = useState(false);
+  const [selectedRefs, setSelectedRefs] = useState<SkillReference[]>([]);
+  const [refFilter, setRefFilter] = useState('');
 
   // Save note modal state
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  const [newNoteTitle, setNewNoteTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [contentToSave, setContentToSave] = useState('')
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [contentToSave, setContentToSave] = useState('');
+
+  const initializeChat = useCallback(async () => {
+    setInitializing(true);
+    try {
+      await api.chat.getOrCreateSession(skillId);
+      const { messages: existingMessages } = await api.chat.getMessages(skillId);
+      setMessages(existingMessages);
+      const [skillNotes, skillRefs] = await Promise.all([
+        api.notes.list(skillId),
+        api.references.list(skillId),
+      ]);
+      setNotes(skillNotes);
+      setReferences(skillRefs);
+    } catch (err) {
+      console.error('Failed to initialize chat:', err);
+    } finally {
+      setInitializing(false);
+    }
+  }, [skillId]);
 
   // Initialize session and load messages
   useEffect(() => {
     if (isOpen && skillId) {
-      initializeChat()
+      initializeChat();
     }
-  }, [isOpen, skillId])
+  }, [isOpen, skillId, initializeChat]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  const initializeChat = async () => {
-    setInitializing(true)
-    try {
-      await api.chat.getOrCreateSession(skillId)
-      const { messages: existingMessages } = await api.chat.getMessages(skillId)
-      setMessages(existingMessages)
-      const [skillNotes, skillRefs] = await Promise.all([
-        api.notes.list(skillId),
-        api.references.list(skillId)
-      ])
-      setNotes(skillNotes)
-      setReferences(skillRefs)
-    } catch (err) {
-      console.error('Failed to initialize chat:', err)
-    } finally {
-      setInitializing(false)
-    }
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const handleSendMessage = async () => {
-    if (!input.trim() || loading) return
+    if (!input.trim() || loading) return;
 
-    let userMessage = input.trim()
+    let userMessage = input.trim();
 
     // Include reference content in message
     if (selectedRefs.length > 0) {
-      const refContent = selectedRefs.map(r =>
-        `### ${r.name}\n${r.content}`
-      ).join('\n\n')
-      userMessage = `Context from reference files:\n${refContent}\n\n---\n\nUser question: ${userMessage}`
+      const refContent = selectedRefs.map((r) => `### ${r.name}\n${r.content}`).join('\n\n');
+      userMessage = `Context from reference files:\n${refContent}\n\n---\n\nUser question: ${userMessage}`;
     }
 
-    const noteIdsToSend = selectedNotes.length > 0 ? selectedNotes.map(n => n.id) : undefined
-    setInput('')
+    const noteIdsToSend = selectedNotes.length > 0 ? selectedNotes.map((n) => n.id) : undefined;
+    setInput('');
 
     const tempUserMsg: ChatMessage = {
       id: `temp-${Date.now()}`,
       role: 'user',
       content: userMessage,
       created: new Date().toISOString(),
-    }
-    setMessages(prev => [...(prev || []), tempUserMsg])
+    };
+    setMessages((prev) => [...(prev || []), tempUserMsg]);
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const { response } = await api.chat.sendMessage(skillId, userMessage, noteIdsToSend)
+      const { response } = await api.chat.sendMessage(skillId, userMessage, noteIdsToSend);
       const assistantMsg: ChatMessage = {
         id: `temp-${Date.now()}-assistant`,
         role: 'assistant',
         content: response,
         created: new Date().toISOString(),
-      }
-      setMessages(prev => [...(prev || []), assistantMsg])
+      };
+      setMessages((prev) => [...(prev || []), assistantMsg]);
     } catch (err) {
-      console.error('Failed to send message:', err)
-      setMessages(prev => (prev || []).filter(m => m.id !== tempUserMsg.id))
+      console.error('Failed to send message:', err);
+      setMessages((prev) => (prev || []).filter((m) => m.id !== tempUserMsg.id));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      e.preventDefault();
+      handleSendMessage();
     }
     if (e.key === 'Escape' && showNoteSelector) {
-      setShowNoteSelector(false)
-      setNoteFilter('')
+      setShowNoteSelector(false);
+      setNoteFilter('');
     }
-  }
+  };
 
   const handleInputChange = (value: string) => {
-    setInput(value)
+    setInput(value);
 
     // Check for /ref command first
     if (value === '/ref' || (value.startsWith('/ref') && !value.includes(' '))) {
-      setShowRefSelector(true)
-      setShowNoteSelector(false)
-      setRefFilter(value.startsWith('/ref') ? value.slice(5).toLowerCase() : '')
+      setShowRefSelector(true);
+      setShowNoteSelector(false);
+      setRefFilter(value.startsWith('/ref') ? value.slice(5).toLowerCase() : '');
     }
     // Check for / command (notes)
     else if (value === '/') {
-      setShowNoteSelector(true)
-      setShowRefSelector(false)
-      setNoteFilter('')
+      setShowNoteSelector(true);
+      setShowRefSelector(false);
+      setNoteFilter('');
     } else if (value.startsWith('/') && !value.includes(' ')) {
       // Check if it's /ref... or just /
       if (value.toLowerCase().startsWith('/ref')) {
-        setShowRefSelector(true)
-        setShowNoteSelector(false)
-        setRefFilter(value.slice(5).toLowerCase())
+        setShowRefSelector(true);
+        setShowNoteSelector(false);
+        setRefFilter(value.slice(5).toLowerCase());
       } else {
-        setShowNoteSelector(true)
-        setShowRefSelector(false)
-        setNoteFilter(value.slice(1).toLowerCase())
+        setShowNoteSelector(true);
+        setShowRefSelector(false);
+        setNoteFilter(value.slice(1).toLowerCase());
       }
     } else {
-      setShowNoteSelector(false)
-      setShowRefSelector(false)
-      setNoteFilter('')
-      setRefFilter('')
+      setShowNoteSelector(false);
+      setShowRefSelector(false);
+      setNoteFilter('');
+      setRefFilter('');
     }
-  }
+  };
 
   const handleSelectNote = (note: Note) => {
-    if (!selectedNotes.find(n => n.id === note.id)) {
-      setSelectedNotes(prev => [...prev, note])
+    if (!selectedNotes.find((n) => n.id === note.id)) {
+      setSelectedNotes((prev) => [...prev, note]);
     }
-    setInput('')
-    setShowNoteSelector(false)
-    setShowRefSelector(false)
-    setNoteFilter('')
-    setRefFilter('')
-  }
+    setInput('');
+    setShowNoteSelector(false);
+    setShowRefSelector(false);
+    setNoteFilter('');
+    setRefFilter('');
+  };
 
   const handleSelectRef = (ref: SkillReference) => {
-    if (!selectedRefs.find(r => r.path === ref.path)) {
-      setSelectedRefs(prev => [...prev, ref])
+    if (!selectedRefs.find((r) => r.path === ref.path)) {
+      setSelectedRefs((prev) => [...prev, ref]);
     }
-    setInput('')
-    setShowNoteSelector(false)
-    setShowRefSelector(false)
-    setNoteFilter('')
-    setRefFilter('')
-  }
+    setInput('');
+    setShowNoteSelector(false);
+    setShowRefSelector(false);
+    setNoteFilter('');
+    setRefFilter('');
+  };
 
   const handleRemoveNoteContext = (noteId: number) => {
-    setSelectedNotes(prev => prev.filter(n => n.id !== noteId))
-  }
+    setSelectedNotes((prev) => prev.filter((n) => n.id !== noteId));
+  };
 
   const handleRemoveRefContext = (refPath: string) => {
-    setSelectedRefs(prev => prev.filter(r => r.path !== refPath))
-  }
+    setSelectedRefs((prev) => prev.filter((r) => r.path !== refPath));
+  };
 
-  const filteredNotes = (notes || []).filter(note =>
-    note.title.toLowerCase().includes(noteFilter) &&
-    !selectedNotes.find(n => n.id === note.id)
-  )
+  const filteredNotes = (notes || []).filter(
+    (note) =>
+      note.title.toLowerCase().includes(noteFilter) && !selectedNotes.find((n) => n.id === note.id)
+  );
 
-  const filteredRefs = (references || []).filter(ref =>
-    ref.name.toLowerCase().includes(refFilter) &&
-    !selectedRefs.find(r => r.path === ref.path)
-  )
+  const filteredRefs = (references || []).filter(
+    (ref) =>
+      ref.name.toLowerCase().includes(refFilter) && !selectedRefs.find((r) => r.path === ref.path)
+  );
 
   const handleUpdateExistingNote = async () => {
-    if (!selectedNotes[0] || !contentToSave.trim()) return
+    if (!selectedNotes[0] || !contentToSave.trim()) return;
 
-    setSaving(true)
+    setSaving(true);
     try {
-      await api.notes.update(skillId, selectedNotes[0].id, contentToSave)
-      const updatedNotes = await api.notes.list(skillId)
-      setNotes(updatedNotes)
-      setContentToSave('')
-      setShowSaveModal(false)
-      setSelectedNotes([])
+      await api.notes.update(skillId, selectedNotes[0].id, contentToSave);
+      const updatedNotes = await api.notes.list(skillId);
+      setNotes(updatedNotes);
+      setContentToSave('');
+      setShowSaveModal(false);
+      setSelectedNotes([]);
     } catch (err) {
-      console.error('Failed to update note:', err)
+      console.error('Failed to update note:', err);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleCreateNewNote = async () => {
-    if (!newNoteTitle.trim() || !contentToSave.trim()) return
+    if (!newNoteTitle.trim() || !contentToSave.trim()) return;
 
-    setSaving(true)
+    setSaving(true);
     try {
-      await api.notes.add(skillId, newNoteTitle, contentToSave, 'ai-generated')
-      const updatedNotes = await api.notes.list(skillId)
-      setNotes(updatedNotes)
-      setContentToSave('')
-      setNewNoteTitle('')
-      setShowSaveModal(false)
-      setSelectedNotes([])
+      await api.notes.add(skillId, newNoteTitle, contentToSave, 'ai-generated');
+      const updatedNotes = await api.notes.list(skillId);
+      setNotes(updatedNotes);
+      setContentToSave('');
+      setNewNoteTitle('');
+      setShowSaveModal(false);
+      setSelectedNotes([]);
     } catch (err) {
-      console.error('Failed to create note:', err)
+      console.error('Failed to create note:', err);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   // Size classes based on state
   const sizeClass = fullscreen
     ? 'w-full h-full'
     : minimized
-    ? 'w-[400px] h-[600px]'
-    : 'w-[800px] h-[600px]'
+      ? 'w-[400px] h-[600px]'
+      : 'w-[800px] h-[600px]';
 
-  const positionClass = minimized
-    ? 'items-end justify-end'
-    : 'items-center justify-center'
+  const positionClass = minimized ? 'items-end justify-end' : 'items-center justify-center';
 
   return (
-    <div className={`fixed inset-0 flex z-50 ${minimized ? 'pointer-events-none' : ''} ${positionClass} ${
-      minimized ? 'bg-transparent pr-4 pb-4' : 'bg-black/70 backdrop-blur-sm p-4'
-    }`}>
+    <div
+      className={`fixed inset-0 flex z-50 ${minimized ? 'pointer-events-none' : ''} ${positionClass} ${
+        minimized ? 'bg-transparent pr-4 pb-4' : 'bg-black/70 backdrop-blur-sm p-4'
+      }`}
+    >
       <div
         className={`flex flex-col transition-all duration-200 pointer-events-auto ${sizeClass} ${
           minimized ? 'rounded-l-lg' : 'rounded-lg'
@@ -262,9 +272,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-highlight" strokeWidth={1.5} />
             <div>
-              <p className="text-base font-medium text-white">
-                {skillTitle}
-              </p>
+              <p className="text-base font-medium text-white">{skillTitle}</p>
               <p className="text-xxs text-muted">AI Assistant</p>
             </div>
           </div>
@@ -332,8 +340,8 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 {msg.role === 'assistant' && (
                   <button
                     onClick={() => {
-                      setContentToSave(msg.content)
-                      setShowSaveModal(true)
+                      setContentToSave(msg.content);
+                      setShowSaveModal(true);
                     }}
                     className="h-8 w-8 flex items-center justify-center hover:bg-yellow-600/20 text-yellow-600 rounded shrink-0 transition-all"
                     title="Save to note"
@@ -351,9 +359,18 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
               <div className="flex-1">
                 <p className="text-xxs text-muted uppercase tracking-wide mb-1">AI Assistant</p>
                 <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span
+                    className="w-2 h-2 bg-muted rounded-full animate-bounce"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <span
+                    className="w-2 h-2 bg-muted rounded-full animate-bounce"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <span
+                    className="w-2 h-2 bg-muted rounded-full animate-bounce"
+                    style={{ animationDelay: '300ms' }}
+                  />
                 </div>
               </div>
             </div>
@@ -369,7 +386,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
               {selectedNotes.length > 0 && (
                 <>
                   <span className="text-xs text-secondary">Notes:</span>
-                  {selectedNotes.map(note => (
+                  {selectedNotes.map((note) => (
                     <div
                       key={note.id}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated"
@@ -399,14 +416,16 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
               {selectedRefs.length > 0 && (
                 <>
                   <span className="text-xs text-secondary">Refs:</span>
-                  {selectedRefs.map(ref => (
+                  {selectedRefs.map((ref) => (
                     <div
                       key={ref.path}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated"
                       style={{ boxShadow: 'var(--shadow-neuro-raised)' }}
                     >
                       <File className="w-3 h-3 text-tertiary shrink-0" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-white">{ref.name.replace(/\.md$/, '')}</span>
+                      <span className="text-xs font-medium text-white">
+                        {ref.name.replace(/\.md$/, '')}
+                      </span>
                       <button
                         onClick={() => handleRemoveRefContext(ref.path)}
                         className="p-0.5 hover:bg-hover rounded transition-colors"
@@ -428,7 +447,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
               style={{ boxShadow: 'var(--shadow-neuro-soft)' }}
             >
               <div className="p-2 border-b border-default">
-                <span className="text-xxs text-muted uppercase tracking-wide">Select a note to add as context</span>
+                <span className="text-xxs text-muted uppercase tracking-wide">
+                  Select a note to add as context
+                </span>
               </div>
               {filteredNotes.length === 0 ? (
                 <div className="p-4 text-center text-muted text-xs">No notes found</div>
@@ -464,7 +485,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
               style={{ boxShadow: 'var(--shadow-neuro-soft)' }}
             >
               <div className="p-2 border-b border-default">
-                <span className="text-xxs text-muted uppercase tracking-wide">Select a reference file to add as context</span>
+                <span className="text-xxs text-muted uppercase tracking-wide">
+                  Select a reference file to add as context
+                </span>
               </div>
               {filteredRefs.length === 0 ? (
                 <div className="p-4 text-center text-muted text-xs">No references found</div>
@@ -481,7 +504,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                       ) : (
                         <File className="w-4 h-4 text-tertiary shrink-0" strokeWidth={1.5} />
                       )}
-                      <span className="flex-1 text-sm text-white truncate">{ref.name.replace(/\.md$/, '')}</span>
+                      <span className="flex-1 text-sm text-white truncate">
+                        {ref.name.replace(/\.md$/, '')}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -570,7 +595,10 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
             <div className="p-4 border-t border-default flex justify-end">
               <button
-                onClick={() => { setShowSaveModal(false); setNewNoteTitle('') }}
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setNewNoteTitle('');
+                }}
                 className="px-4 py-2 text-xs text-secondary hover:text-white transition-colors"
               >
                 Cancel
@@ -580,5 +608,5 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,18 +1,18 @@
-import { Plus, X, Sparkles, Minimize2, Edit3, Loader2, Pencil } from 'lucide-react'
-import { useState } from 'react'
-import type { SkillDetail } from '@/types'
-import { formatDate } from '@/lib/skills/utils'
-import { AccentStripes } from '@/components/ui/AccentStripes'
+import { Edit3, Loader2, Minimize2, Pencil, Plus, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
+import { AccentStripes } from '@/components/ui/AccentStripes';
+import { formatDate } from '@/lib/skills/utils';
+import type { SkillDetail } from '@/types';
 
 type SkillNotesProps = {
-  skillDetail: SkillDetail | null
-  onAddNote: (title: string, content: string) => void
-  onDeleteNote: (noteId: number) => void
-  onEditNote: (noteId: number, title: string, content: string) => void
-  addingNote: boolean
-  onAIPreview?: () => void
-  aiLoading?: boolean
-}
+  skillDetail: SkillDetail | null;
+  onAddNote: (title: string, content: string) => void;
+  onDeleteNote: (noteId: number) => void;
+  onEditNote: (noteId: number, title: string, content: string) => void;
+  addingNote: boolean;
+  onAIPreview?: () => void;
+  aiLoading?: boolean;
+};
 
 export function SkillNotes({
   skillDetail,
@@ -23,49 +23,59 @@ export function SkillNotes({
   onAIPreview,
   aiLoading,
 }: SkillNotesProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [newNoteTitle, setNewNoteTitle] = useState('')
-  const [newNote, setNewNote] = useState('')
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [newNote, setNewNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
 
-  const handleOpenModal = () => { setIsModalOpen(true); setIsMinimized(false); setEditingNoteId(null) }
-  const handleMinimizeModal = () => { setIsModalOpen(false); setIsMinimized(true) }
-  const handleResumeModal = () => { setIsModalOpen(true); setIsMinimized(false) }
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    setIsMinimized(false);
+    setEditingNoteId(null);
+  };
+  const handleMinimizeModal = () => {
+    setIsModalOpen(false);
+    setIsMinimized(true);
+  };
+  const handleResumeModal = () => {
+    setIsModalOpen(true);
+    setIsMinimized(false);
+  };
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setIsMinimized(false)
-    setNewNoteTitle('')
-    setNewNote('')
-    setEditingNoteId(null)
-  }
+    setIsModalOpen(false);
+    setIsMinimized(false);
+    setNewNoteTitle('');
+    setNewNote('');
+    setEditingNoteId(null);
+  };
 
   const handleOpenEditModal = (noteId: number, title: string, content: string) => {
-    setEditingNoteId(noteId)
-    setNewNoteTitle(title)
-    setNewNote(content)
-    setIsModalOpen(true)
-    setIsMinimized(false)
-  }
+    setEditingNoteId(noteId);
+    setNewNoteTitle(title);
+    setNewNote(content);
+    setIsModalOpen(true);
+    setIsMinimized(false);
+  };
 
   const handleSubmit = () => {
     if (newNoteTitle.trim() && newNote.trim()) {
       if (editingNoteId) {
-        onEditNote(editingNoteId, newNoteTitle, newNote)
+        onEditNote(editingNoteId, newNoteTitle, newNote);
       } else {
-        onAddNote(newNoteTitle, newNote)
+        onAddNote(newNoteTitle, newNote);
       }
-      handleCloseModal()
+      handleCloseModal();
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit()
-    if (e.key === 'Escape') handleMinimizeModal()
-  }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
+    if (e.key === 'Escape') handleMinimizeModal();
+  };
 
-  const noteCount = skillDetail?.notes?.length || 0
-  const hasDraftNote = newNote.trim().length > 0
+  const noteCount = skillDetail?.notes?.length || 0;
+  const hasDraftNote = newNote.trim().length > 0;
 
   return (
     <>
@@ -124,10 +134,7 @@ export function SkillNotes({
             </div>
           ) : (
             skillDetail.notes.map((note) => (
-              <div
-                key={note.id}
-                className="p-3 bg-raised border border-default rounded-md group"
-              >
+              <div key={note.id} className="p-3 bg-raised border border-default rounded-md group">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">{note.title}</span>
@@ -158,7 +165,9 @@ export function SkillNotes({
                     </button>
                   </div>
                 </div>
-                <span className="text-xxs text-muted block mb-2">{formatDate(note.created_at)}</span>
+                <span className="text-xxs text-muted block mb-2">
+                  {formatDate(note.created_at)}
+                </span>
                 <p className="text-xs text-secondary whitespace-pre-wrap">{note.content}</p>
               </div>
             ))
@@ -190,11 +199,14 @@ export function SkillNotes({
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="min-w-dialog-sm max-w-dialog-xl max-w-dialog-md max-h-dialog bg-raised border border-default rounded-lg flex flex-col resize overflow-auto"
+          <div
+            className="min-w-dialog-sm max-w-dialog-xl max-w-dialog-md max-h-dialog bg-raised border border-default rounded-lg flex flex-col resize overflow-auto"
             style={{ boxShadow: 'var(--shadow-overlay)' }}
           >
             <div className="h-10 flex items-center justify-between px-4 border-b border-default">
-              <span className="text-base font-medium text-white">{editingNoteId ? 'Edit Note' : 'Add Note'}</span>
+              <span className="text-base font-medium text-white">
+                {editingNoteId ? 'Edit Note' : 'Add Note'}
+              </span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={handleMinimizeModal}
@@ -220,7 +232,6 @@ export function SkillNotes({
                 onChange={(e) => setNewNoteTitle(e.target.value)}
                 placeholder="Note title..."
                 className="w-full h-10 px-3 text-base bg-raised border border-default rounded-md text-white placeholder:text-muted focus:outline-none focus:border-highlight"
-                autoFocus
               />
               <textarea
                 value={newNote}
@@ -232,9 +243,7 @@ export function SkillNotes({
             </div>
 
             <div className="px-4 pb-2">
-              <p className="text-xxs text-muted">
-                Press Cmd+Enter to save, Esc to minimize
-              </p>
+              <p className="text-xxs text-muted">Press Cmd+Enter to save, Esc to minimize</p>
             </div>
 
             <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-default">
@@ -249,12 +258,18 @@ export function SkillNotes({
                 disabled={!newNoteTitle.trim() || !newNote.trim() || addingNote}
                 className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
               >
-                {addingNote ? (editingNoteId ? 'Updating...' : 'Adding...') : (editingNoteId ? 'Update Note' : 'Add Note')}
+                {addingNote
+                  ? editingNoteId
+                    ? 'Updating...'
+                    : 'Adding...'
+                  : editingNoteId
+                    ? 'Update Note'
+                    : 'Add Note'}
               </button>
             </div>
           </div>
         </div>
       )}
     </>
-  )
+  );
 }

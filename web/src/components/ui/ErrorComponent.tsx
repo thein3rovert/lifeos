@@ -1,8 +1,8 @@
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface ErrorComponentProps {
-  error: Error
-  onRetry?: () => void
+  error: Error;
+  onRetry?: () => void;
 }
 
 export default function ErrorComponent({ error, onRetry }: ErrorComponentProps) {
@@ -28,5 +28,5 @@ export default function ErrorComponent({ error, onRetry }: ErrorComponentProps) 
         </button>
       )}
     </div>
-  )
+  );
 }

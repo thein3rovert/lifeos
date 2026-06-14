@@ -1,29 +1,24 @@
-import { useState } from 'react'
-import { X, Eye, Edit3 } from 'lucide-react'
-import { RenderMarkdown } from '@/components/ui/RenderMarkdown'
+import { Edit3, Eye, X } from 'lucide-react';
+import { useState } from 'react';
+import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
 
 type CanvasEditorProps = {
-  isOpen: boolean
-  initialContent: string
-  onSave: (content: string) => void
-  onClose: () => void
-}
+  isOpen: boolean;
+  initialContent: string;
+  onSave: (content: string) => void;
+  onClose: () => void;
+};
 
-export function CanvasEditor({
-  isOpen,
-  initialContent,
-  onSave,
-  onClose,
-}: CanvasEditorProps) {
-  const [content, setContent] = useState(initialContent)
-  const [isPreview, setIsPreview] = useState(false)
+export function CanvasEditor({ isOpen, initialContent, onSave, onClose }: CanvasEditorProps) {
+  const [content, setContent] = useState(initialContent);
+  const [isPreview, setIsPreview] = useState(false);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const handleSave = () => {
-    onSave(content)
-    onClose()
-  }
+    onSave(content);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-primary/80 backdrop-blur-sm flex items-center justify-center p-6">
@@ -39,9 +34,7 @@ export function CanvasEditor({
             <button
               onClick={() => setIsPreview(!isPreview)}
               className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
-                isPreview
-                  ? 'bg-tertiary text-primary'
-                  : 'hover:bg-tertiary text-secondary'
+                isPreview ? 'bg-tertiary text-primary' : 'hover:bg-tertiary text-secondary'
               }`}
             >
               <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -73,7 +66,6 @@ export function CanvasEditor({
               onChange={(e) => setContent(e.target.value)}
               className="flex-1 bg-tertiary border-none rounded-none px-6 py-4 text-sm text-primary font-mono resize-none focus:outline-none focus:ring-0"
               placeholder="Edit content in Markdown..."
-              autoFocus
             />
           )}
         </div>
@@ -100,5 +92,5 @@ export function CanvasEditor({
         </div>
       </div>
     </div>
-  )
+  );
 }

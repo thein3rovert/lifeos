@@ -1,21 +1,21 @@
-import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
-import { RefreshCw, Sparkles, AlertCircle, Clock } from 'lucide-react'
-import { AccentStripes } from '../ui/AccentStripes'
+import { AlertCircle, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { AccentStripes } from '../ui/AccentStripes';
 
-type AccentColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray'
+type AccentColor = 'red' | 'yellow' | 'green' | 'blue' | 'gray';
 
 type SmartBoardPanelProps = {
-  title: string
-  loading: boolean
-  lastRefreshed: Date | null
-  onRefresh: () => void
-  children: ReactNode
-  className?: string
-  accentColor?: AccentColor
-  nextRefresh?: Date | null
-  lastError?: string
-}
+  title: string;
+  loading: boolean;
+  lastRefreshed: Date | null;
+  onRefresh: () => void;
+  children: ReactNode;
+  className?: string;
+  accentColor?: AccentColor;
+  nextRefresh?: Date | null;
+  lastError?: string;
+};
 
 export function SmartBoardPanel({
   title,
@@ -29,7 +29,9 @@ export function SmartBoardPanel({
   lastError,
 }: SmartBoardPanelProps) {
   return (
-    <div className={`bg-secondary border border-default rounded-lg flex flex-col h-full ${className}`}>
+    <div
+      className={`bg-secondary border border-default rounded-lg flex flex-col h-full ${className}`}
+    >
       {/* Header */}
       <div className="px-4 py-3 border-b border-default flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -72,99 +74,94 @@ export function SmartBoardPanel({
             </span>
           )}
         </div>
-        {nextRefresh && !loading && (
-          <NextRefreshCountdown target={nextRefresh} />
-        )}
+        {nextRefresh && !loading && <NextRefreshCountdown target={nextRefresh} />}
       </div>
     </div>
-  )
+  );
 }
 
 // Loading state with animated message + elapsed time
 function LoadingState() {
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Show contextual message based on elapsed time
   const getMessage = () => {
-    if (elapsed < 10) return 'Analyzing your notes...'
-    if (elapsed < 30) return 'Reading vault files...'
-    if (elapsed < 60) return 'AI is thinking...'
-    if (elapsed < 120) return 'Processing meeting notes...'
-    return 'Still working... AI tasks can take a few minutes'
-  }
+    if (elapsed < 10) return 'Analyzing your notes...';
+    if (elapsed < 30) return 'Reading vault files...';
+    if (elapsed < 60) return 'AI is thinking...';
+    if (elapsed < 120) return 'Processing meeting notes...';
+    return 'Still working... AI tasks can take a few minutes';
+  };
 
   const formatTime = (s: number) => {
-    if (s < 60) return `${s}s`
-    const mins = Math.floor(s / 60)
-    const secs = s % 60
-    return `${mins}m ${secs}s`
-  }
+    if (s < 60) return `${s}s`;
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}m ${secs}s`;
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-full py-8 gap-3">
       <div className="relative">
-        <Sparkles
-          className="w-6 h-6 text-accent animate-pulse"
-          strokeWidth={1.5}
-        />
+        <Sparkles className="w-6 h-6 text-accent animate-pulse" strokeWidth={1.5} />
       </div>
       <p className="text-sm text-primary font-medium">{getMessage()}</p>
       <p className="text-xs text-tertiary font-mono">{formatTime(elapsed)} elapsed</p>
     </div>
-  )
+  );
 }
 
 // Live countdown to next scheduled refresh
 function NextRefreshCountdown({ target }: { target: Date }) {
-  const [, setTick] = useState(0)
+  const [, setTick] = useState(0);
 
   // Re-render every 60 seconds to update the countdown
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 60_000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const diffMs = target.getTime() - Date.now()
-  if (diffMs <= 0) return null
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs <= 0) return null;
 
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
-  let label: string
-  if (diffMins < 60) label = `${diffMins}m`
-  else if (diffHours < 24) label = `${diffHours}h ${diffMins % 60}m`
-  else label = `${diffDays}d ${diffHours % 24}h`
+  let label: string;
+  if (diffMins < 60) label = `${diffMins}m`;
+  else if (diffHours < 24) label = `${diffHours}h ${diffMins % 60}m`;
+  else label = `${diffDays}d ${diffHours % 24}h`;
 
   return (
     <span className="flex items-center gap-1 text-xs text-tertiary">
       <Clock className="w-3 h-3" strokeWidth={1.5} />
       Next in {label}
     </span>
-  )
+  );
 }
 
 // Helper to format relative time
 function formatRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   // Format as date if older than 7 days
   return date.toLocaleDateString('en-US', {
     month: 'short',
-    day: 'numeric'
-  })
+    day: 'numeric',
+  });
 }

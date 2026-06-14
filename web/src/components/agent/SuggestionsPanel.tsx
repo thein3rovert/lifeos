@@ -1,18 +1,18 @@
-import { SmartBoardPanel } from './SmartBoardPanel'
-import { SmartBoardItemCard } from './SmartBoardItemCard'
-import { CategoryMenu } from '../ui/CategoryMenu'
-import type { SuggestionsData } from '@/types'
+import type { SuggestionsData } from '@/types';
+import { CategoryMenu } from '../ui/CategoryMenu';
+import { SmartBoardItemCard } from './SmartBoardItemCard';
+import { SmartBoardPanel } from './SmartBoardPanel';
 
 type SuggestionsPanelProps = {
-  data: SuggestionsData | null
-  loading: boolean
-  lastRefreshed: Date | null
-  onRefresh: () => void
-  onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void
-  onChangeStatus: (itemId: string, status: 'active' | 'dismissed' | 'completed') => void
-  nextRefresh?: Date | null
-  lastError?: string
-}
+  data: SuggestionsData | null;
+  loading: boolean;
+  lastRefreshed: Date | null;
+  onRefresh: () => void;
+  onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void;
+  onChangeStatus: (itemId: string, status: 'active' | 'dismissed' | 'completed') => void;
+  nextRefresh?: Date | null;
+  lastError?: string;
+};
 
 export function SuggestionsPanel({
   data,
@@ -24,38 +24,36 @@ export function SuggestionsPanel({
   nextRefresh,
   lastError,
 }: SuggestionsPanelProps) {
-  const items = data?.suggestions || []
+  const items = data?.suggestions || [];
 
   // Map status to badge variant
-  const statusToBadgeVariant = (
-    status: string
-  ): 'active' | 'dismissed' | 'completed' => {
+  const statusToBadgeVariant = (status: string): 'active' | 'dismissed' | 'completed' => {
     switch (status) {
       case 'completed':
-        return 'completed'
+        return 'completed';
       case 'dismissed':
-        return 'dismissed'
+        return 'dismissed';
       default:
-        return 'active'
+        return 'active';
     }
-  }
+  };
 
   // Map status to dot color
   const statusToDotColor = (status: string): 'green' | 'gray' | 'blue' => {
     switch (status) {
       case 'completed':
-        return 'green'
+        return 'green';
       case 'dismissed':
-        return 'gray'
+        return 'gray';
       default:
-        return 'blue'
+        return 'blue';
     }
-  }
+  };
 
   // Format status label
   const formatStatusLabel = (status: string): string => {
-    return status.charAt(0).toUpperCase() + status.slice(1)
-  }
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   return (
     <SmartBoardPanel
@@ -103,5 +101,5 @@ export function SuggestionsPanel({
         </div>
       )}
     </SmartBoardPanel>
-  )
+  );
 }

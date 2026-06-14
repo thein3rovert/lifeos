@@ -1,13 +1,20 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
-type BadgeVariant = 'urgent' | 'important' | 'not-important' | 'active' | 'completed' | 'dismissed' | 'default'
+type BadgeVariant =
+  | 'urgent'
+  | 'important'
+  | 'not-important'
+  | 'active'
+  | 'completed'
+  | 'dismissed'
+  | 'default';
 
 type BadgeProps = {
-  children: ReactNode
-  variant?: BadgeVariant
-  onClick?: () => void
-  className?: string
-}
+  children: ReactNode;
+  variant?: BadgeVariant;
+  onClick?: () => void;
+  className?: string;
+};
 
 export function Badge({ children, variant = 'default', onClick, className = '' }: BadgeProps) {
   // Variant styling
@@ -19,10 +26,10 @@ export function Badge({ children, variant = 'default', onClick, className = '' }
     completed: 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30',
     dismissed: 'bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30',
     default: 'bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30',
-  }
+  };
 
-  const baseStyles = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border'
-  const interactiveStyles = onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
+  const baseStyles = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border';
+  const interactiveStyles = onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : '';
 
   return (
     <span
@@ -31,5 +38,5 @@ export function Badge({ children, variant = 'default', onClick, className = '' }
     >
       {children}
     </span>
-  )
+  );
 }

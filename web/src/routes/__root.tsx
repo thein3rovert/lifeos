@@ -1,36 +1,36 @@
-import { HeadContent, Scripts, createRootRoute, Link, useRouter } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools';
+import { createRootRoute, HeadContent, Link, Scripts, useRouter } from '@tanstack/react-router';
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import {
-  LayoutDashboard,
+  Bell,
   BookOpen,
-  StickyNote,
-  Settings,
   ChevronLeft,
+  LayoutDashboard,
   Menu,
   Search,
+  Settings,
   Sparkles,
-  Bell,
-} from 'lucide-react'
-import { useState } from 'react'
-import NotFound from '@/components/ui/NotFound'
-import ErrorComponent from '@/components/ui/ErrorComponent'
-import { Toaster } from '@/components/ui/Toast'
+  StickyNote,
+} from 'lucide-react';
+import { useState } from 'react';
+import ErrorComponent from '@/components/ui/ErrorComponent';
+import NotFound from '@/components/ui/NotFound';
+import { Toaster } from '@/components/ui/Toast';
 
-import appCss from '@/global.css?url'
+import appCss from '@/global.css?url';
 
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
+const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 
 // Inject runtime config from server env vars so the frontend can read them
 // in the browser without a rebuild. Set API_URL on the frontend container to
 // override the default window.location-based detection.
 function getRuntimeConfig() {
-  if (typeof process === 'undefined' || !process.env) return {}
+  if (typeof process === 'undefined' || !process.env) return {};
   return {
     API_URL: process.env.API_URL || '',
-  }
+  };
 }
-const APP_CONFIG_SCRIPT = `window.APP_CONFIG = ${JSON.stringify(getRuntimeConfig())};`
+const APP_CONFIG_SCRIPT = `window.APP_CONFIG = ${JSON.stringify(getRuntimeConfig())};`;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -74,10 +74,10 @@ export const Route = createRootRoute({
   notFoundComponent: NotFound,
   errorComponent: ErrorComponent,
   shellComponent: RootDocument,
-})
+});
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <html lang="en" suppressHydrationWarning className="dark">
@@ -163,9 +163,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Main content area */}
-          <main className="flex-1 min-w-0 bg-base overflow-hidden">
-            {children}
-          </main>
+          <main className="flex-1 min-w-0 bg-base overflow-hidden">{children}</main>
         </div>
 
         <TanStackDevtools
@@ -183,7 +181,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }
 
 // Navigation item component following Atlas patterns
@@ -192,12 +190,12 @@ function NavItem({
   icon,
   children,
 }: {
-  to: string
-  icon: React.ReactNode
-  children: React.ReactNode
+  to: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
 }) {
-  const router = useRouter()
-  const isActive = router.state.location.pathname === to
+  const router = useRouter();
+  const isActive = router.state.location.pathname === to;
 
   return (
     <Link
@@ -217,5 +215,5 @@ function NavItem({
       </span>
       <span>{children}</span>
     </Link>
-  )
+  );
 }

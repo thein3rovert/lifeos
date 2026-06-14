@@ -1,18 +1,18 @@
-import { SmartBoardPanel } from './SmartBoardPanel'
-import { SmartBoardItemCard } from './SmartBoardItemCard'
-import { CategoryMenu } from '../ui/CategoryMenu'
-import type { ThingsToRememberData } from '@/types'
+import type { ThingsToRememberData } from '@/types';
+import { CategoryMenu } from '../ui/CategoryMenu';
+import { SmartBoardItemCard } from './SmartBoardItemCard';
+import { SmartBoardPanel } from './SmartBoardPanel';
 
 type ThingsToRememberPanelProps = {
-  data: ThingsToRememberData | null
-  loading: boolean
-  lastRefreshed: Date | null
-  onRefresh: () => void
-  onEditItem: (itemId: string, text: string, title?: string) => void
-  onChangeCategory: (itemId: string, category: 'urgent' | 'important' | 'not-important') => void
-  nextRefresh?: Date | null
-  lastError?: string
-}
+  data: ThingsToRememberData | null;
+  loading: boolean;
+  lastRefreshed: Date | null;
+  onRefresh: () => void;
+  onEditItem: (itemId: string, text: string, title?: string) => void;
+  onChangeCategory: (itemId: string, category: 'urgent' | 'important' | 'not-important') => void;
+  nextRefresh?: Date | null;
+  lastError?: string;
+};
 
 export function ThingsToRememberPanel({
   data,
@@ -24,38 +24,36 @@ export function ThingsToRememberPanel({
   nextRefresh,
   lastError,
 }: ThingsToRememberPanelProps) {
-  const items = data?.items || []
+  const items = data?.items || [];
 
   // Map category to badge variant
-  const categoryToBadgeVariant = (
-    category: string
-  ): 'urgent' | 'important' | 'not-important' => {
+  const categoryToBadgeVariant = (category: string): 'urgent' | 'important' | 'not-important' => {
     switch (category) {
       case 'urgent':
-        return 'urgent'
+        return 'urgent';
       case 'important':
-        return 'important'
+        return 'important';
       default:
-        return 'not-important'
+        return 'not-important';
     }
-  }
+  };
 
   // Map category to dot color
   const categoryToDotColor = (category: string): 'red' | 'yellow' | 'gray' => {
     switch (category) {
       case 'urgent':
-        return 'red'
+        return 'red';
       case 'important':
-        return 'yellow'
+        return 'yellow';
       default:
-        return 'gray'
+        return 'gray';
     }
-  }
+  };
 
   // Format category label
   const formatCategoryLabel = (category: string): string => {
-    return category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')
-  }
+    return category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ');
+  };
 
   return (
     <SmartBoardPanel
@@ -103,5 +101,5 @@ export function ThingsToRememberPanel({
         </div>
       )}
     </SmartBoardPanel>
-  )
+  );
 }

@@ -1,14 +1,14 @@
-import { X, Sparkles, Check, Loader2 } from 'lucide-react'
-import type { AIPreviewResponse } from '@/types'
+import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import type { AIPreviewResponse } from '@/types';
 
 type SkillAIPreviewDialogProps = {
-  isOpen: boolean
-  preview: AIPreviewResponse | null
-  isLoading: boolean
-  onCancel: () => void
-  onAccept: () => void
-  onReject: () => void
-}
+  isOpen: boolean;
+  preview: AIPreviewResponse | null;
+  isLoading: boolean;
+  onCancel: () => void;
+  onAccept: () => void;
+  onReject: () => void;
+};
 
 export function SkillAIPreviewDialog({
   isOpen,
@@ -18,11 +18,12 @@ export function SkillAIPreviewDialog({
   onAccept,
   onReject,
 }: SkillAIPreviewDialogProps) {
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-dialog-2xl h-dialog bg-raised border border-default rounded-md flex flex-col"
+      <div
+        className="w-full max-w-dialog-2xl h-dialog bg-raised border border-default rounded-md flex flex-col"
         style={{ boxShadow: 'var(--shadow-overlay)' }}
       >
         {/* Header */}
@@ -33,10 +34,7 @@ export function SkillAIPreviewDialog({
               {isLoading ? 'AI is updating...' : 'Review AI Changes'}
             </span>
           </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 hover:bg-hover rounded transition-colors"
-          >
+          <button onClick={onCancel} className="p-1.5 hover:bg-hover rounded transition-colors">
             <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
           </button>
         </div>
@@ -114,5 +112,5 @@ export function SkillAIPreviewDialog({
         )}
       </div>
     </div>
-  )
+  );
 }

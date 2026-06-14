@@ -2,20 +2,20 @@
 // LifeOS - Lib Exports
 // =============================================================================
 
-// API client (includes re-exports of types for convenience)
-export { api } from './api'
 export type {
-  Skill,
-  Note,
-  SkillDetail,
-  SkillReference,
+  AIPreviewResponse,
   ChatMessage,
   ChatSession,
-  AIPreviewResponse,
-} from '@/types'
+  Note,
+  Skill,
+  SkillDetail,
+  SkillReference,
+} from '@/types';
+// API client (includes re-exports of types for convenience)
+export { api } from './api';
 
 // Skills utilities
-export { stripFrontmatter, formatDate } from './skills/utils'
+export { formatDate, stripFrontmatter } from './skills/utils';
 
 // Tree utilities
-export { buildTree, type TreeNode } from './utils/tree'
+export { buildTree, type TreeNode } from './utils/tree';
