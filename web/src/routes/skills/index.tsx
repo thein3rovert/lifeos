@@ -1,14 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
-import { SkillContent } from '@/components/skills/SkillContent';
-import { SkillDialogs } from '@/components/skills/SkillDialogs';
-import { SkillNotes } from '@/components/skills/SkillNotes';
-import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
 import { toast } from '@/components/ui/Toast';
-import { useNotes } from '@/hooks/useNotes';
-import { useSkillDialogs } from '@/hooks/useSkillDialogs';
-import { useSkills } from '@/hooks/useSkills';
-import { useSync } from '@/hooks/useSync';
+import {
+  SkillContent,
+  SkillDialogs,
+  SkillNotes,
+  SkillsSidebar,
+  useNotes,
+  useSkillDialogs,
+  useSkills,
+  useSync,
+} from '@/features/skills';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
 import type { SkillReference } from '@/types';

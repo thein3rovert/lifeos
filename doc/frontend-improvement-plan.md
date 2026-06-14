@@ -370,7 +370,7 @@ src/components/ui/markdown/
 | 5. Error Handling | ✅ Completed | Toasts + error normalization |
 | 6. Type-Safety Leaks | ✅ Completed | Removed any casts and non-null assertions |
 | 7. Split Page Components | ✅ Completed | `__root.tsx` + `SkillsPage` refactored |
-| 8. Accessibility | Not started | |
+| 8. Accessibility | Not started | 81 a11y warnings to address |
 | 9. Design System | Not started | |
 | 10. Environment Config | Not started | |
 | 11. Placeholders | Not started | |
@@ -385,7 +385,7 @@ src/components/ui/markdown/
 | Skills dialog orchestrator | ✅ Completed | `useSkillDialogs.ts`, `SkillDialogs.tsx` |
 | API domain split | ✅ Completed | `src/lib/api/` domain modules |
 | Smartboard feature folder | ✅ Completed | `src/features/smartboard/` |
-| Skills feature folder | Low-Medium | Group existing code |
+| Skills feature folder | ✅ Completed | `src/features/skills/` |
 | Markdown element split | Low | Nice-to-have for testing |
 | Barrel files everywhere | Low | Polish pass |
 
@@ -393,4 +393,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Continue modularization with **Skills feature folder** (`src/features/skills/`) or return to **Step 4 — Fix `package.json` Hygiene**.
+Continue modularization with **Markdown element split** or return to **Step 4 — Fix `package.json` Hygiene**.

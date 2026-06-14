@@ -1,9 +1,9 @@
-import { PullSelectionDialog } from '@/components/skills/PullSelectionDialog';
-import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog';
-import { SkillChatModal } from '@/components/skills/SkillChatModal';
-import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog';
-import type { DialogState } from '@/hooks/useSkillDialogs';
 import type { Skill } from '@/types';
+import type { DialogState } from '../hooks/useSkillDialogs';
+import { PullSelectionDialog } from './PullSelectionDialog';
+import { SkillAIPreviewDialog } from './SkillAIPreviewDialog';
+import { SkillChatModal } from './SkillChatModal';
+import { SyncConfirmationDialog } from './SyncConfirmationDialog';
 
 type SkillDialogsProps = {
   state: DialogState;

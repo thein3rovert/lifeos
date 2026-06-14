@@ -48,7 +48,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/components/skills/SkillAIPreviewDialog.tsx"],
+      "includes": ["src/features/skills/components/SkillAIPreviewDialog.tsx"],
       "linter": {
         "rules": {
           "security": {
