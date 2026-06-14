@@ -13,6 +13,7 @@ But this page except for the chat interface is currently blank and has nothing i
 - [ ] Add notification (discord/telegram)
 - [ ] i need a better way to integrate the agent chat below with each of these days
   - [ ] It need to have context of each card and also knowledge base in case it wants to go deeper into what the context board gives.
+- [ ] Add filtering option to panel types 
 
 
 ### Plan: `/doc/smartboard-plan.md`
