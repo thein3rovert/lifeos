@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
-import { apiUrl } from '@/lib/apiUrl';
-import type { PanelType, ScheduleStatusMap, SmartBoardPanelResponse } from '@/types';
+import { api } from '@/lib/api';
+import type { PanelType, ScheduleStatusMap } from '@/types';
 
 type UseSmartBoardPanelReturn<T> = {
   data: T | null;
@@ -21,12 +21,7 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
   // Fetch cached data on mount
   const fetchCachedData = useCallback(async () => {
     try {
-      const response = await fetch(apiUrl(`/api/smartboard/${panelType}`));
-      if (!response.ok) {
-        throw new Error(`Failed to fetch panel: ${response.statusText}`);
-      }
-
-      const result: SmartBoardPanelResponse = await response.json();
+      const result = await api.smartboard.getPanel(panelType);
       setData(result.data as T);
       setLastRefreshed(result.lastRefreshed ? new Date(result.lastRefreshed) : null);
       setError(null);
@@ -40,15 +35,7 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(apiUrl(`/api/smartboard/refresh/${panelType}?force=true`), {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to refresh panel: ${response.statusText}`);
-      }
-
-      const result: SmartBoardPanelResponse = await response.json();
+      const result = await api.smartboard.refreshPanel(panelType);
       setData(result.data as T);
       setLastRefreshed(new Date());
       setError(null);
@@ -66,26 +53,12 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
   const updateItemStatus = useCallback(
     async (itemId: string, status: string) => {
       try {
-        const response = await fetch(apiUrl(`/api/smartboard/item/${itemId}`), {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            panelType,
-            status,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to update item: ${response.statusText}`);
-        }
-
+        await api.smartboard.updateItemStatus(itemId, panelType, status);
         // Refresh cached data after update
         await fetchCachedData();
         toast('Item updated', 'success');
       } catch (err) {
-        console.error(`Failed to update item status:`, err);
+        console.error('Failed to update item status:', err);
         toast('Failed to update item', 'error');
       }
     },
@@ -116,10 +89,8 @@ export function useScheduleStatus() {
 
   const fetchSchedule = useCallback(async () => {
     try {
-      const response = await fetch(apiUrl(`/api/smartboard/schedule`));
-      if (!response.ok) return;
-      const data = await response.json();
-      setSchedule(data as ScheduleStatusMap);
+      const data = await api.smartboard.getSchedule();
+      setSchedule(data);
     } catch {
       // Silently ignore — schedule is non-critical UI
     }

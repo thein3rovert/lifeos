@@ -91,8 +91,11 @@ format: opencode
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* Title Input */}
           <div>
-            <label className="block text-xs text-secondary mb-2">Skill Title</label>
+            <label htmlFor="skill-title" className="block text-xs text-secondary mb-2">
+              Skill Title
+            </label>
             <input
+              id="skill-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -103,7 +106,7 @@ format: opencode
 
           {/* Format Select */}
           <div>
-            <label className="block text-xs text-secondary mb-2">Format</label>
+            <span className="block text-xs text-secondary mb-2">Format</span>
             <div className="flex gap-2">
               {SKILL_FORMATS.map((f) => (
                 <button
@@ -123,8 +126,11 @@ format: opencode
 
           {/* Content Editor */}
           <div className="flex-1 min-h-0">
-            <label className="block text-xs text-secondary mb-2">Content (Markdown)</label>
+            <label htmlFor="skill-content" className="block text-xs text-secondary mb-2">
+              Content (Markdown)
+            </label>
             <textarea
+              id="skill-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}

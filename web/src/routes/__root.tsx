@@ -82,7 +82,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: controlled inline scripts for runtime config and theme init */}
         <script dangerouslySetInnerHTML={{ __html: APP_CONFIG_SCRIPT }} />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: controlled inline theme initialization script */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>

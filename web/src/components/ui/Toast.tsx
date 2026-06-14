@@ -13,7 +13,9 @@ let toastListeners: ((toasts: Toast[]) => void)[] = [];
 let toasts: Toast[] = [];
 
 function notifyListeners() {
-  toastListeners.forEach((listener) => listener([...toasts]));
+  toastListeners.forEach((listener) => {
+    listener([...toasts]);
+  });
 }
 
 export function toast(message: string, type: ToastType = 'info') {

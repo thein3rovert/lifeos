@@ -33,14 +33,33 @@ The codebase is organized and functional, but has maintainability, consistency, 
 
 ## Improvement Areas (Step-by-Step)
 
-### Step 1 — Add Linting and Formatting
+### Step 1 — Add Linting and Formatting (Biome)
+**Status:** ✅ Completed  
 **Why first:** Automates bug-catching and makes every later step easier.  
-**Files:** root of `web/`  
+**Files:** `web/biome.json`, `web/package.json`, all `web/src/**/*.{ts,tsx}`  
 **Actions:**
-- Add ESLint 9 (flat config) with TypeScript, React, and React Hooks plugins.
-- Add Prettier (or Biome) for formatting.
-- Add `lint`, `lint:fix`, and `format` scripts to `package.json`.
-- Run the first pass and fix all auto-fixable issues.
+- Installed `@biomejs/biome` as a dev dependency.
+- Created `biome.json` with Biome 2.x config:
+  - 2-space indentation, single quotes, semicolons, ES5 trailing commas
+  - Import sorting enabled
+  - CSS parser configured with `tailwindDirectives: true`
+  - Generated `src/routeTree.gen.ts` ignored
+  - `security/noDangerouslySetInnerHtml` disabled for `SkillAIPreviewDialog.tsx` (intentional AI-rendered HTML)
+- Added npm scripts:
+  - `lint` / `lint:fix`
+  - `format`
+  - `check` / `check:fix`
+- Ran first formatting pass across 65 files.
+- Fixed real bugs surfaced by Biome + `tsc --noEmit`:
+  - `AgentSmartBoard.tsx`: typed `editorContext.panelType` as `PanelType`; replaced non-existent `fetchData()` with `refresh()`
+  - `SkillChatModal.tsx`: hoisted `initializeChat` as `useCallback` before the effect that depends on it
+  - `routes/skills/index.tsx`: added optional chaining for `selectedReference?.skill_id`; reordered `performPull` before `handlePullSelected`
+  - `AgentChatPage.tsx`: removed unused `_textareaRef`; added `type="button"` and SVG title to chat controls
+  - `CreateSkillDialog.tsx`: connected labels to inputs via `htmlFor`/`id`
+  - `Toast.tsx`: avoided implicit return in `forEach` listener callback
+  - `__root.tsx`: added biome-ignore comments for controlled inline scripts
+- Result: `npm run check` passes (exit 0), `npx tsc --noEmit` passes, `npm run build` passes.
+- Remaining 99 warnings are mostly a11y/type issues that will be addressed in Steps 6 and 8.
 
 ---
 
@@ -55,12 +74,15 @@ The codebase is organized and functional, but has maintainability, consistency, 
 ---
 
 ### Step 3 — Unify Data-Fetching Patterns
+**Status:** ✅ Completed  
 **Why:** Mixed patterns make the app harder to reason about and test.  
-**Files:** `src/routes/index.tsx`, `src/hooks/useSmartBoardPanel.ts`, `src/components/agent/FloatingChat.tsx`  
+**Files:** `src/routes/index.tsx`, `src/hooks/useSmartBoardPanel.ts`, `src/lib/api.ts`  
 **Actions:**
-- Move route data fetching into TanStack Router **loaders** where possible.
-- Make `useSmartBoardPanel` use `api.smartboard.*` instead of raw `fetch`.
-- Ensure all API calls go through `src/lib/api.ts`.
+- Moved dashboard data fetching into TanStack Router `loader` with a `pendingComponent` skeleton.
+- Replaced all raw `fetch(apiUrl(...))` calls in `useSmartBoardPanel` with `api.smartboard.*` methods.
+- Added missing `api.smartboard.getSchedule` endpoint.
+- Updated `api.smartboard.refreshPanel` to support the `force` query param used by the original raw fetch.
+- Verified only `src/lib/api.ts` contains `fetch` calls now.
 
 ---
 
@@ -333,9 +355,9 @@ src/components/ui/markdown/
 
 | Step | Status | Notes |
 | ---- | ------ | ----- |
-| 1. Linting/Formatting | Not started | |
-| 2. Tests | Not started | |
-| 3. Unified Data Fetching | Not started | |
+| 1. Linting/Formatting (Biome) | ✅ Completed | 65 files formatted; real TS bugs fixed |
+| 2. Tests | ⏭️ Skipped | Deferred to focus on higher-impact items |
+| 3. Unified Data Fetching | ✅ Completed | Loader + centralized API client |
 | 4. package.json Hygiene | Not started | |
 | 5. Error Handling | Not started | |
 | 6. Type-Safety Leaks | Not started | |
@@ -363,4 +385,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Start with **Step 1 — Add Linting and Formatting**.
+Move to **Step 3 — Unified Data Fetching**.

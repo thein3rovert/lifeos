@@ -11,13 +11,20 @@
     "rules": {
       "preset": "recommended",
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "warn"
       },
       "style": {
         "noNonNullAssertion": "warn"
       },
       "correctness": {
         "noUnusedVariables": "warn"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "warn",
+        "noStaticElementInteractions": "warn",
+        "useButtonType": "warn",
+        "useKeyWithClickEvents": "warn"
       }
     }
   },
@@ -29,6 +36,9 @@
     }
   },
   "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
     "formatter": {
       "enabled": false
     },
@@ -36,6 +46,18 @@
       "enabled": false
     }
   },
+  "overrides": [
+    {
+      "includes": ["src/components/skills/SkillAIPreviewDialog.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    }
+  ],
   "files": {
     "includes": [
       "**",
@@ -44,7 +66,7 @@
       "!.output",
       "!.tanstack",
       "!.nitro",
-      "!routeTree.gen.ts"
+      "!src/routeTree.gen.ts"
     ]
   }
 }

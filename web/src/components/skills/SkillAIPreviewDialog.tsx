@@ -58,6 +58,7 @@ export function SkillAIPreviewDialog({
                   <span className="text-xs text-muted uppercase tracking-wide">Original</span>
                 </div>
                 <div className="flex-1 overflow-auto p-4">
+                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: AI-generated preview HTML rendered from sanitized markdown */}
                   <div
                     className="prose prose-invert prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: preview.rendered_html }}
@@ -71,6 +72,7 @@ export function SkillAIPreviewDialog({
                   <span className="text-xs text-highlight uppercase tracking-wide">AI Updated</span>
                 </div>
                 <div className="flex-1 overflow-auto p-4">
+                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: AI-generated preview HTML rendered from sanitized markdown */}
                   <div
                     className="prose prose-invert prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: preview.rendered_html }}

@@ -9,6 +9,7 @@ import type {
   ChatSession,
   Note,
   PanelType,
+  ScheduleStatusMap,
   Skill,
   SkillDetail,
   SkillReference,
@@ -123,8 +124,8 @@ export const api = {
     getPanel: (panelType: PanelType) =>
       fetcher<SmartBoardPanelResponse>(`/api/smartboard/${panelType}`),
 
-    refreshPanel: (panelType: PanelType) =>
-      fetcher<SmartBoardPanelResponse>(`/api/smartboard/refresh/${panelType}`, {
+    refreshPanel: (panelType: PanelType, force = true) =>
+      fetcher<SmartBoardPanelResponse>(`/api/smartboard/refresh/${panelType}?force=${force}`, {
         method: 'POST',
       }),
 
@@ -139,6 +140,8 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ panelType, fields }),
       }),
+
+    getSchedule: () => fetcher<ScheduleStatusMap>('/api/smartboard/schedule'),
   },
 };
 
@@ -149,6 +152,7 @@ export type {
   ChatSession,
   Note,
   PanelType,
+  ScheduleStatusMap,
   Skill,
   SkillDetail,
   SkillReference,
