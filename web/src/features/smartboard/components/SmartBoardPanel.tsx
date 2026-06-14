@@ -68,7 +68,7 @@ export function SmartBoardPanel({
             </span>
           )}
           {lastError && (
-            <span className="flex items-center gap-1 text-xs text-red-400" title={lastError}>
+            <span className="flex items-center gap-1 text-xs text-error" title={lastError}>
               <AlertCircle className="w-3 h-3" strokeWidth={1.5} />
               Refresh failed
             </span>

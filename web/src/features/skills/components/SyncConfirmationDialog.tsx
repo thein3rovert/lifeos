@@ -46,7 +46,7 @@ export function SyncConfirmationDialog({
         {/* Body - Warning details */}
         {totalLocalChanges > 0 && (
           <div className="px-4 py-3">
-            <div className="p-3 bg-gray-900 rounded border border-warning/20">
+            <div className="p-3 bg-raised rounded border border-warning/20">
               <p className="text-sm text-warning font-medium mb-2">
                 You have {totalLocalChanges} local change{totalLocalChanges > 1 ? 's' : ''} that
                 will be lost:
@@ -54,7 +54,7 @@ export function SyncConfirmationDialog({
               <ul className="space-y-1.5">
                 {pendingSyncCount > 0 && (
                   <li className="flex items-center gap-2 text-xs text-secondary">
-                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                    <span className="w-1.5 h-1.5 bg-highlight rounded-full" />
                     {pendingSyncCount} modified skill{pendingSyncCount > 1 ? 's' : ''} not pushed to
                     GitHub
                   </li>
@@ -74,7 +74,7 @@ export function SyncConfirmationDialog({
         <div className="flex items-center justify-end gap-2 p-4 pt-2 border-t border-default bg-input">
           <button
             onClick={onCancel}
-            className="h-7 px-3 bg-gray-900 hover:bg-gray-800 text-secondary text-sm font-medium rounded transition-colors duration-150"
+            className="h-7 px-3 bg-raised hover:bg-hover text-secondary text-sm font-medium rounded transition-colors duration-150"
           >
             Cancel
           </button>
@@ -90,7 +90,7 @@ export function SyncConfirmationDialog({
 
           <button
             onClick={onPullAnyway}
-            className="h-7 px-3 bg-gray-100 hover:bg-white text-black text-sm font-medium rounded transition-colors duration-150"
+            className="h-7 px-3 bg-accent-primary hover:bg-accent-primary-hover text-inverse text-sm font-medium rounded transition-colors duration-150"
           >
             Pull Anyway
           </button>

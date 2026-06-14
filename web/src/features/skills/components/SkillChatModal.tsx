@@ -353,7 +353,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                       setContentToSave(msg.content);
                       setShowSaveModal(true);
                     }}
-                    className="h-8 w-8 flex items-center justify-center hover:bg-yellow-600/20 text-yellow-600 rounded shrink-0 transition-all"
+                    className="h-8 w-8 flex items-center justify-center hover:bg-warning/20 text-warning rounded shrink-0 transition-all"
                     title="Save to note"
                   >
                     <Save className="w-4 h-4" strokeWidth={1.5} />
@@ -575,7 +575,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 className="w-full p-3 rounded-md text-left hover:bg-hover transition-colors disabled:opacity-50 bg-elevated border border-default"
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <Upload className="w-4 h-4 text-yellow-600" strokeWidth={1.5} />
+                  <Upload className="w-4 h-4 text-warning" strokeWidth={1.5} />
                   <span className="text-sm font-medium text-white">Update existing note</span>
                 </div>
                 <p className="text-xxs text-muted">Append to: {selectedNotes[0]?.title}</p>
@@ -583,7 +583,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
 
               <div className="p-3 rounded-md bg-elevated border border-default">
                 <div className="flex items-center gap-2 mb-2">
-                  <Plus className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+                  <Plus className="w-4 h-4 text-highlight" strokeWidth={1.5} />
                   <span className="text-sm font-medium text-white">Create new note</span>
                 </div>
                 <input
@@ -596,7 +596,7 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
                 <button
                   onClick={handleCreateNewNote}
                   disabled={!newNoteTitle.trim() || saving}
-                  className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded transition-colors"
+                  className="w-full px-3 py-1.5 bg-highlight hover:bg-highlight-hover disabled:opacity-50 text-white text-xs font-medium rounded transition-colors"
                 >
                   {saving ? 'Creating...' : 'Create AI Note'}
                 </button>

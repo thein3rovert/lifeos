@@ -30,11 +30,11 @@ export function SmartBoardItemCard({
 
   // Dot color mapping
   const dotColors = {
-    red: 'bg-red-500',
-    yellow: 'bg-yellow-500',
-    gray: 'bg-gray-500',
-    green: 'bg-green-500',
-    blue: 'bg-blue-500',
+    red: 'bg-error',
+    yellow: 'bg-warning',
+    gray: 'bg-muted',
+    green: 'bg-success',
+    blue: 'bg-highlight',
   };
 
   return (

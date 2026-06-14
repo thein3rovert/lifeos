@@ -83,8 +83,8 @@ export const SkillItem = memo(function SkillItem({
           <span className="truncate flex-1">{skillTitle}</span>
 
           <div className="flex items-center gap-1">
-            {hasNotes && <span className="w-2 h-2 bg-yellow-600 rounded-full shrink-0" />}
-            {hasPendingSync && <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0" />}
+            {hasNotes && <span className="w-2 h-2 bg-warning rounded-full shrink-0" />}
+            {hasPendingSync && <span className="w-2 h-2 bg-highlight rounded-full shrink-0" />}
           </div>
         </button>
       </div>

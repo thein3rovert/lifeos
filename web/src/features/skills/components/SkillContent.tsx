@@ -97,7 +97,7 @@ export function SkillContent({
                 <button
                   onClick={handleSaveRef}
                   disabled={savingRef}
-                  className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
+                  className="flex items-center gap-1.5 h-6 px-2.5 bg-highlight hover:bg-highlight-hover disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
                 >
                   <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
                   {savingRef ? 'Saving...' : 'Save'}
@@ -106,7 +106,7 @@ export function SkillContent({
             ) : (
               <button
                 onClick={handleEditRef}
-                className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors duration-150"
+                className="flex items-center gap-1.5 h-6 px-2.5 bg-highlight hover:bg-highlight-hover text-white text-xs font-medium rounded-md transition-colors duration-150"
               >
                 <FileEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Edit
@@ -144,12 +144,12 @@ export function SkillContent({
                 {skillDetail.skill.format}
               </span>
               {skillDetail.skill.pending_sync && (
-                <span className="px-2 py-0.5 text-xxs bg-blue-600 rounded-md text-white">
+                <span className="px-2 py-0.5 text-xxs bg-highlight rounded-md text-white">
                   Modified
                 </span>
               )}
               {(skillDetail.skill.note_count || 0) > 0 && (
-                <span className="px-2 py-0.5 text-xxs bg-yellow-600 rounded-md text-black">
+                <span className="px-2 py-0.5 text-xxs bg-warning rounded-md text-inverse">
                   {skillDetail.skill.note_count} note{skillDetail.skill.note_count !== 1 ? 's' : ''}
                 </span>
               )}
@@ -167,7 +167,7 @@ export function SkillContent({
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
+                  className="flex items-center gap-1.5 h-6 px-2.5 bg-highlight hover:bg-highlight-hover disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
                 >
                   <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
                   {saving ? 'Saving...' : 'Save'}
@@ -187,7 +187,7 @@ export function SkillContent({
                 )}
                 <button
                   onClick={handleEdit}
-                  className="flex items-center gap-1.5 h-6 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors duration-150"
+                  className="flex items-center gap-1.5 h-6 px-2.5 bg-highlight hover:bg-highlight-hover text-white text-xs font-medium rounded-md transition-colors duration-150"
                 >
                   <FileEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Edit

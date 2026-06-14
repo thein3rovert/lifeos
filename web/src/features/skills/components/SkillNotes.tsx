@@ -87,7 +87,7 @@ export function SkillNotes({
             <span className="text-xs font-medium text-secondary uppercase tracking-[0.08em]">
               Skill Notes
               {noteCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black">
+                <span className="ml-2 px-1.5 py-0.5 bg-warning rounded-md text-xxs text-inverse">
                   {noteCount}
                 </span>
               )}
@@ -97,7 +97,7 @@ export function SkillNotes({
             {isMinimized && hasDraftNote && (
               <button
                 onClick={handleResumeModal}
-                className="p-1 hover:bg-hover rounded-md transition-colors text-blue-500"
+                className="p-1 hover:bg-hover rounded-md transition-colors text-highlight"
                 title="Continue editing note"
               >
                 <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -115,10 +115,10 @@ export function SkillNotes({
 
         {/* Continue editing banner */}
         {isMinimized && hasDraftNote && (
-          <div className="px-3 py-2 bg-blue-600/10 border-b border-blue-600/20">
+          <div className="px-3 py-2 bg-highlight/10 border-b border-highlight/20">
             <button
               onClick={handleResumeModal}
-              className="w-full text-left text-xs text-blue-500 hover:underline"
+              className="w-full text-left text-xs text-highlight hover:underline"
             >
               Continue editing note... ({newNote.length} chars)
             </button>
@@ -180,7 +180,7 @@ export function SkillNotes({
             <button
               onClick={onAIPreview}
               disabled={aiLoading}
-              className="w-full h-7 flex items-center justify-center bg-blue-600/10 hover:bg-blue-600/20 disabled:opacity-50 border border-blue-600/30 text-blue-500 text-xs font-medium rounded-md transition-colors duration-150"
+              className="w-full h-7 flex items-center justify-center bg-highlight/10 hover:bg-highlight/20 disabled:opacity-50 border border-highlight/30 text-highlight text-xs font-medium rounded-md transition-colors duration-150"
               title="Send notes to AI for skill update"
             >
               {aiLoading ? (
@@ -256,7 +256,7 @@ export function SkillNotes({
               <button
                 onClick={handleSubmit}
                 disabled={!newNoteTitle.trim() || !newNote.trim() || addingNote}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
+                className="h-8 px-4 bg-highlight hover:bg-highlight-hover disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors duration-150"
               >
                 {addingNote
                   ? editingNoteId

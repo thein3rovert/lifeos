@@ -60,7 +60,7 @@ export function PushSelectionDialog({
         {/* Header */}
         <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
-            <Upload className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+            <Upload className="w-4 h-4 text-highlight" strokeWidth={1.5} />
             <span className="text-base font-medium text-white">Push Changes to GitHub</span>
           </div>
           <button
@@ -80,7 +80,7 @@ export function PushSelectionDialog({
             <div
               className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                 selectedIds.size === pendingSkills.length && pendingSkills.length > 0
-                  ? 'bg-blue-600 border-highlight'
+                  ? 'bg-highlight border-highlight'
                   : 'border-default'
               }`}
             >
@@ -112,7 +112,7 @@ export function PushSelectionDialog({
                   {/* Checkbox */}
                   <div
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? 'bg-blue-600 border-highlight' : 'border-default'
+                      isSelected ? 'bg-highlight border-highlight' : 'border-default'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
@@ -125,7 +125,7 @@ export function PushSelectionDialog({
                   </div>
 
                   {/* Status */}
-                  <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0" />
+                  <span className="w-2 h-2 bg-highlight rounded-full shrink-0" />
                 </button>
               );
             })
@@ -145,7 +145,7 @@ export function PushSelectionDialog({
             <button
               onClick={handlePush}
               disabled={selectedIds.size === 0 || isLoading}
-              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
+              className="h-8 px-4 bg-highlight hover:bg-highlight-hover disabled:opacity-50 text-white text-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
             >
               {isLoading ? (
                 <>Pushing...</>

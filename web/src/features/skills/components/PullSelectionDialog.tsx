@@ -52,7 +52,7 @@ export function PullSelectionDialog({
     <Dialog isOpen={isOpen} onClose={handleClose} className="w-full max-w-dialog-sm max-h-dialog">
       <DialogHeader
         title="Pull from GitHub"
-        icon={<Download className="w-4 h-4 text-blue-500" strokeWidth={1.5} />}
+        icon={<Download className="w-4 h-4 text-highlight" strokeWidth={1.5} />}
         onClose={handleClose}
       />
 
@@ -67,7 +67,7 @@ export function PullSelectionDialog({
             <div
               className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                 selectedIds.size === skills.length && skills.length > 0
-                  ? 'bg-blue-600 border-highlight'
+                  ? 'bg-highlight border-highlight'
                   : 'border-default'
               }`}
             >
@@ -100,7 +100,7 @@ export function PullSelectionDialog({
                   {/* Checkbox */}
                   <div
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? 'bg-blue-600 border-highlight' : 'border-default'
+                      isSelected ? 'bg-highlight border-highlight' : 'border-default'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={2} />}

@@ -7,11 +7,11 @@ type AccentStripesProps = {
 
 // Color presets matching Atlas palette
 const colorPresets: Record<AccentStripesColor, string> = {
-  red: '#ef4444',
-  yellow: '#eab308',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  gray: '#6b7280',
+  red: 'var(--color-error)',
+  yellow: 'var(--color-warning)',
+  green: 'var(--color-success)',
+  blue: 'var(--color-highlight)',
+  gray: 'var(--color-muted)',
 };
 
 /**

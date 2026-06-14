@@ -61,7 +61,7 @@ export function CreateSkillDialog({
     <Dialog isOpen={isOpen} onClose={handleClose} className="w-full max-w-dialog-lg h-dialog">
       <DialogHeader
         title="Create New Skill"
-        icon={<Plus className="w-4 h-4 text-blue-500" strokeWidth={1.5} />}
+        icon={<Plus className="w-4 h-4 text-highlight" strokeWidth={1.5} />}
         onClose={handleClose}
       />
 
@@ -92,7 +92,7 @@ export function CreateSkillDialog({
                 onClick={() => setFormat(f.value)}
                 className={`h-7 px-3 text-xs font-medium rounded-md transition-colors duration-150 ${
                   format === f.value
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-highlight text-white'
                     : 'bg-raised text-secondary hover:bg-hover'
                 }`}
               >

@@ -82,7 +82,7 @@ export function SkillsSidebar({
       >
         <ChevronRight className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
         {pendingCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 rounded-full text-xxs flex items-center justify-center text-white font-medium">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-highlight rounded-full text-xxs flex items-center justify-center text-white font-medium">
             {pendingCount}
           </span>
         )}
@@ -111,7 +111,7 @@ export function SkillsSidebar({
             </span>
           )}
           {skillsWithNotes > 0 && !pendingCount && (
-            <span className="px-1.5 py-0.5 bg-yellow-600 rounded-md text-xxs text-black whitespace-nowrap">
+            <span className="px-1.5 py-0.5 bg-warning rounded-md text-xxs text-inverse whitespace-nowrap">
               {skillsWithNotes} notes
             </span>
           )}

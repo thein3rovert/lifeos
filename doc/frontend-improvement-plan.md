@@ -145,12 +145,16 @@ The codebase is organized and functional, but has maintainability, consistency, 
 ---
 
 ### Step 9 — Tighten the Design System
+**Status:** ✅ Completed  
 **Why:** Hardcoded colors and mixed token styles cause visual drift.  
-**Files:** `src/global.css`, all components  
+**Files:** `src/global.css`, `src/routes/__root.tsx`, `src/components/ui/AccentStripes.tsx`, `src/components/ui/Badge.tsx`, all skill/smartboard components  
 **Actions:**
-- Replace hardcoded Tailwind colors (`bg-blue-600`, `text-red-400`) with Atlas tokens.
-- Remove or consolidate CSS variables that duplicate `@theme` tokens.
-- Load fonts via `link rel="preconnect"` + `preload` to avoid render-blocking.
+- Added semantic Atlas aliases: `highlight`, `highlight-hover`, `warning`, `error`, `success`, `info` and their `-muted` variants.
+- Updated `--color-status-success` from low-contrast gray (`#4d4d4d`) to green (`#22c55e`).
+- Replaced all hardcoded Tailwind colors (`bg-blue-600`, `text-red-400`, `bg-yellow-600`, `bg-gray-900`, etc.) with Atlas tokens.
+- Moved `text-[#585858]` placeholders to `text-muted`.
+- Moved Google Fonts loading from CSS `@import` to `<head>` with `preconnect`, `preload`, and stylesheet links.
+- Replaced stray `#000000` in `global.css` with `var(--color-text-inverse)`.
 
 ---
 
@@ -371,7 +375,7 @@ src/components/ui/markdown/
 | 6. Type-Safety Leaks | ✅ Completed | Removed any casts and non-null assertions |
 | 7. Split Page Components | ✅ Completed | `__root.tsx` + `SkillsPage` refactored |
 | 8. Accessibility | Not started | 81 a11y warnings to address |
-| 9. Design System | Not started | |
+| 9. Design System | ✅ Completed | Hardcoded colors replaced with Atlas tokens |
 | 10. Environment Config | Not started | |
 | 11. Placeholders | Not started | |
 
@@ -393,4 +397,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Continue with **Barrel files everywhere** or return to **Step 4 — Fix `package.json` Hygiene**.
+Return to **Step 4 — Fix `package.json` Hygiene** or continue with **Barrel files everywhere**.

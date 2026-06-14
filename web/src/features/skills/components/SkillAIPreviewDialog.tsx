@@ -85,13 +85,13 @@ export function SkillAIPreviewDialog({
             <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-default bg-input shrink-0">
               <button
                 onClick={onReject}
-                className="h-8 px-4 bg-gray-900 hover:bg-gray-800 text-secondary text-sm font-medium rounded transition-colors duration-150"
+                className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-sm font-medium rounded transition-colors duration-150"
               >
                 Reject
               </button>
               <button
                 onClick={onAccept}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors duration-150"
+                className="h-8 px-4 bg-highlight hover:bg-highlight-hover text-white text-sm font-medium rounded flex items-center gap-2 transition-colors duration-150"
               >
                 <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Accept Changes
@@ -106,7 +106,7 @@ export function SkillAIPreviewDialog({
             <p className="text-base text-warning">Failed to get AI preview</p>
             <button
               onClick={onCancel}
-              className="mt-4 h-8 px-4 bg-gray-900 hover:bg-gray-800 text-secondary text-sm font-medium rounded transition-colors duration-150"
+              className="mt-4 h-8 px-4 bg-raised hover:bg-hover text-secondary text-sm font-medium rounded transition-colors duration-150"
             >
               Close
             </button>
