@@ -386,11 +386,11 @@ src/components/ui/markdown/
 | API domain split | ✅ Completed | `src/lib/api/` domain modules |
 | Smartboard feature folder | ✅ Completed | `src/features/smartboard/` |
 | Skills feature folder | ✅ Completed | `src/features/skills/` |
-| Markdown element split | Low | Nice-to-have for testing |
+| Markdown element split | ✅ Completed | `src/components/ui/markdown/` |
 | Barrel files everywhere | Low | Polish pass |
 
 ---
 
 ## Next Action
 
-Continue modularization with **Markdown element split** or return to **Step 4 — Fix `package.json` Hygiene**.
+Continue with **Barrel files everywhere** or return to **Step 4 — Fix `package.json` Hygiene**.
