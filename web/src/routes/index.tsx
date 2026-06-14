@@ -1,11 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import {
-  Search,
-  Plus
-} from 'lucide-react'
 import { api } from '@/lib/api'
-import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton'
+import { SkeletonCard } from '@/components/ui/Skeleton'
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable'
 import type { Note, Skill } from '@/types'
 
 export const Route = createFileRoute('/')({
@@ -84,6 +81,64 @@ function DashboardPage() {
     )
   }, [notes, searchQuery, getSkillTitle])
 
+  // Column config for the notes table
+  const notesColumns = useMemo<DataTableColumn<Note>[]>(() => [
+    {
+      key: 'title',
+      header: 'Note Title',
+      width: '1fr',
+      render: (note) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="/note.png"
+            alt=""
+            aria-hidden="true"
+            className="w-5 h-5 brightness-150 shrink-0 object-contain"
+          />
+          <span className="text-xs text-secondary truncate" title={note.title || note.content}>
+            {note.title || note.content}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'skill',
+      header: 'Skill',
+      width: '1fr',
+      render: (note) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="/folder.png"
+            alt=""
+            aria-hidden="true"
+            className="w-5 h-5 brightness-150 shrink-0 object-contain"
+          />
+          <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
+            {getSkillTitle(note.skill_id)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      width: '120px',
+      render: (note) => (
+        <span className="text-xs text-tertiary">
+          {(() => {
+            try {
+              const dateStr = note.created_at.split(' ')[0]
+              const date = new Date(dateStr)
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            } catch {
+              return 'Invalid Date'
+            }
+          })()}
+        </span>
+      ),
+    },
+  ], [getSkillTitle])
+
   return (
     <div className="flex flex-col h-full p-4 gap-4">
       {/* Top row - Stats + Empty placeholder */}
@@ -129,95 +184,18 @@ function DashboardPage() {
       {/* Middle row - Notes table + Empty placeholder */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Recent Notes - 2/3 width */}
-        <div className="flex-1 border border-default rounded-xl bg-input flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-default">
-            <span className="text-sm font-semibold text-white">Recent Notes</span>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
-                <input
-                  type="text"
-                  placeholder="Search here..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-7 pl-8 pr-3 text-xs bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-44"
-                />
-              </div>
-              <button className="h-7 px-2 flex items-center justify-center bg-accent-primary hover:brightness-95 text-black rounded-md transition-colors duration-150">
-                <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
-            </div>
-          </div>
-
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_1fr_120px] gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-tertiary">
-            <span>Note Title</span>
-            <span>Skill</span>
-            <span>Date</span>
-          </div>
-
-          {/* Table body */}
-          <div className="flex-1 overflow-auto px-2 pb-2 space-y-1">
-            {loading ? (
-              <>
-                <SkeletonTableRow />
-                <SkeletonTableRow />
-                <SkeletonTableRow />
-              </>
-            ) : filteredNotes.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-muted text-xs">
-                {searchQuery ? 'No notes match your search' : 'No notes yet'}
-              </div>
-            ) : (
-              filteredNotes.map((note) => (
-                <div
-                  key={note.id}
-                  className="grid grid-cols-[1fr_1fr_120px] gap-4 items-center px-3 py-2.5 rounded-lg bg-raised hover:bg-hover transition-colors duration-150 cursor-pointer"
-                >
-                  {/* Title with note icon */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img
-                      src="/note.png"
-                      alt=""
-                      aria-hidden="true"
-                      className="w-5 h-5 brightness-150 shrink-0 object-contain"
-                    />
-                    <span className="text-xs text-secondary truncate" title={note.title || note.content}>
-                      {note.title || note.content}
-                    </span>
-                  </div>
-
-                  {/* Skill with folder icon */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img
-                      src="/folder.png"
-                      alt=""
-                      aria-hidden="true"
-                      className="w-5 h-5 brightness-150 shrink-0 object-contain"
-                    />
-                    <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
-                      {getSkillTitle(note.skill_id)}
-                    </span>
-                  </div>
-
-                  {/* Date */}
-                  <span className="text-xs text-tertiary">
-                    {(() => {
-                      try {
-                        const dateStr = note.created_at.split(' ')[0]
-                        const date = new Date(dateStr)
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      } catch {
-                        return 'Invalid Date'
-                      }
-                    })()}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <DataTable<Note>
+          title="Recent Notes"
+          data={filteredNotes}
+          loading={loading}
+          rowKey={(note) => note.id}
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search here..."
+          onAdd={() => { /* TODO: open new note modal */ }}
+          emptyMessage={searchQuery ? 'No notes match your search' : 'No notes yet'}
+          columns={notesColumns}
+        />
 
         {/* Empty placeholder - 1/3 width */}
         <div className="w-1/3 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
