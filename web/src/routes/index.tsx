@@ -1,9 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
-  TrendingUp,
-  Image as ImageIcon,
-  BookOpen,
   Search,
   Plus
 } from 'lucide-react'
@@ -17,16 +14,25 @@ export const Route = createFileRoute('/')({
 })
 
 async function fetchStats() {
-  const [skills, photos] = await Promise.all([
+  const [skills, notes] = await Promise.all([
     api.skills.list(),
-    fetch(apiUrl(`/api/photos`)).then(r => r.json())
+    api.notes.listAll(),
   ])
+
+  // Modified in last 7 days
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const modifiedRecently = skills.filter((s) => {
+    const t = new Date(s.updated_at).getTime()
+    return !isNaN(t) && t >= sevenDaysAgo
+  }).length
 
   return {
     totalSkills: skills.length,
-    totalPhotos: photos.length,
-    skillsTrend: '+5',
-    photosTrend: '+12'
+    modifiedSkills: modifiedRecently,
+    totalNotes: notes.length,
+    skillsTrend: '+0',
+    modifiedTrend: '+0',
+    notesTrend: '+0',
   }
 }
 
@@ -37,9 +43,11 @@ async function fetchNotes() {
 function DashboardPage() {
   const [stats, setStats] = useState({
     totalSkills: 0,
-    totalPhotos: 0,
+    modifiedSkills: 0,
+    totalNotes: 0,
     skillsTrend: '+0',
-    photosTrend: '+0'
+    modifiedTrend: '+0',
+    notesTrend: '+0',
   })
   const [notes, setNotes] = useState<Note[]>([])
   const [skills, setSkills] = useState<Skill[]>([])
@@ -80,10 +88,11 @@ function DashboardPage() {
     <div className="flex flex-col h-full p-4 gap-4">
       {/* Top row - Stats + Empty placeholder */}
       <div className="flex gap-4">
-        {/* Stats cards - 2/3 width */}
-        <div className="flex-1 flex gap-4">
+        {/* Stats cards - compact, side by side */}
+        <div className="flex gap-3">
           {loading ? (
             <>
+              <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </>
@@ -93,20 +102,26 @@ function DashboardPage() {
                 label="Total Skills"
                 value={stats.totalSkills}
                 trend={stats.skillsTrend}
-                icon={<BookOpen className="w-5 h-5" strokeWidth={1.5} />}
+                icon="/folder.png"
               />
               <StatCard
-                label="Total Photos"
-                value={stats.totalPhotos}
-                trend={stats.photosTrend}
-                icon={<ImageIcon className="w-5 h-5" strokeWidth={1.5} />}
+                label="Skills Modified"
+                value={stats.modifiedSkills}
+                trend={stats.modifiedTrend}
+                icon="/folder.png"
+              />
+              <StatCard
+                label="Total Notes"
+                value={stats.totalNotes}
+                trend={stats.notesTrend}
+                icon="/note.png"
               />
             </>
           )}
         </div>
 
-        {/* Empty placeholder - 1/3 width */}
-        <div className="w-1/3 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
+        {/* Empty placeholder - fills remaining space */}
+        <div className="flex-1 border border-default rounded bg-input flex items-center justify-center text-muted text-xs">
           Empty for now
         </div>
       </div>
@@ -204,25 +219,33 @@ function StatCard({
   label,
   value,
   trend,
-  icon
+  icon,
 }: {
   label: string
   value: number
   trend: string
-  icon: React.ReactNode
+  icon: string
 }) {
+  const isPositive = trend.startsWith('+') && trend !== '+0'
+
   return (
-    <div className="border border-default rounded bg-raised p-4 flex items-start justify-between">
-      <div className="space-y-1">
-        <span className="text-[11px] text-tertiary uppercase tracking-wide">{label}</span>
-        <div className="text-3xl font-semibold text-white">{value}</div>
-        <div className="flex items-center gap-1 text-xs">
-          <TrendingUp className="w-3 h-3 text-success" strokeWidth={1.5} />
-          <span className="text-success">{trend} vs last month</span>
+    <div className="relative overflow-hidden rounded-xl border border-default bg-gradient-to-br from-raised to-input p-4 transition-all duration-200 hover:border-strong hover:shadow-lg group w-72">
+      {/* Decorative icon - right side, fully visible */}
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-24 h-24 opacity-90 brightness-150 group-hover:brightness-200 transition-all duration-200 pointer-events-none select-none object-contain"
+      />
+
+      {/* Content */}
+      <div className="relative space-y-2.0 pr-25">
+        <span className="text-xs font-medium text-tertiary whitespace-nowrap">{label}</span>
+        <div className="text-3xl font-bold text-white tracking-tight">{value}</div>
+        <div className="text-[11px] font-medium">
+          <span className={isPositive ? 'text-success' : 'text-muted'}>{trend}</span>
+          <span className="text-muted ml-1">vs last month</span>
         </div>
-      </div>
-      <div className="p-2 bg-input rounded border border-default text-tertiary">
-        {icon}
       </div>
     </div>
   )
