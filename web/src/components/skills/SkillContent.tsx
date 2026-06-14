@@ -2,7 +2,9 @@ import { FileEdit, MessageSquare, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { AccentStripes } from '@/components/ui/AccentStripes';
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
+import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import { stripFrontmatter } from '@/lib/skills/utils';
 import type { SkillDetail, SkillReference } from '@/types';
 
@@ -63,7 +65,9 @@ export function SkillContent({
       setIsEditing(false);
       onRefetch?.();
     } catch (err) {
-      console.error('Failed to save reference:', err);
+      const normalized = toError(err);
+      console.error('Failed to save reference:', normalized);
+      toast(normalized.message, 'error');
     } finally {
       setSavingRef(false);
     }

@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { Note } from '@/types';
 
 interface UseNotesReturn {
@@ -27,7 +29,9 @@ export function useNotes(): UseNotesReturn {
       const data = await api.notes.list(skillId);
       setNotes(data);
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -42,7 +46,9 @@ export function useNotes(): UseNotesReturn {
         setNotes(updatedNotes);
         return updatedNotes;
       } catch (err) {
-        setError(err as Error);
+        const normalized = toError(err);
+        setError(normalized);
+        toast(normalized.message, 'error');
         return null;
       } finally {
         setAdding(false);
@@ -61,7 +67,9 @@ export function useNotes(): UseNotesReturn {
         setNotes(updatedNotes);
         return true;
       } catch (err) {
-        setError(err as Error);
+        const normalized = toError(err);
+        setError(normalized);
+        toast(normalized.message, 'error');
         return false;
       } finally {
         setAdding(false);
@@ -77,7 +85,9 @@ export function useNotes(): UseNotesReturn {
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
       return true;
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
       return false;
     }
   }, []);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { PanelType, ScheduleStatusMap } from '@/types';
 
 type UseSmartBoardPanelReturn<T> = {
@@ -26,8 +27,9 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
       setLastRefreshed(result.lastRefreshed ? new Date(result.lastRefreshed) : null);
       setError(null);
     } catch (err) {
-      console.error(`Failed to fetch ${panelType}:`, err);
-      setError(err as Error);
+      const normalized = toError(err);
+      console.error(`Failed to fetch ${panelType}:`, normalized);
+      setError(normalized);
     }
   }, [panelType]);
 
@@ -41,8 +43,9 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
       setError(null);
       toast('Panel updated successfully', 'success');
     } catch (err) {
-      console.error(`Failed to refresh ${panelType}:`, err);
-      setError(err as Error);
+      const normalized = toError(err);
+      console.error(`Failed to refresh ${panelType}:`, normalized);
+      setError(normalized);
       toast('Failed to refresh panel', 'error');
     } finally {
       setLoading(false);
@@ -58,8 +61,9 @@ export function useSmartBoardPanel<T>(panelType: PanelType): UseSmartBoardPanelR
         await fetchCachedData();
         toast('Item updated', 'success');
       } catch (err) {
-        console.error('Failed to update item status:', err);
-        toast('Failed to update item', 'error');
+        const normalized = toError(err);
+        console.error('Failed to update item status:', normalized);
+        toast(normalized.message, 'error');
       }
     },
     [panelType, fetchCachedData]

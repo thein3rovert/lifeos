@@ -1,6 +1,7 @@
 import { ChevronUp, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 
 type Message = {
   role: string;
@@ -51,14 +52,14 @@ export default function AgentChatPage() {
       if (data.sessionId) {
         setSessionId(data.sessionId);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to send message:', error);
 
-      let errorMessage = "Sorry, I couldn't process that message.";
-      if (error?.message?.includes('timeout') || error?.message?.includes('504')) {
-        errorMessage =
-          '⏱️ Request timed out. The agent might be processing a complex task or MCP is slow. Try again or simplify your request.';
-      }
+      const message = getErrorMessage(error);
+      const errorMessage =
+        message.includes('timeout') || message.includes('504')
+          ? '⏱️ Request timed out. The agent might be processing a complex task or MCP is slow. Try again or simplify your request.'
+          : "Sorry, I couldn't process that message.";
 
       setMessages((prev) => [...prev, { role: 'assistant', content: errorMessage }]);
     } finally {

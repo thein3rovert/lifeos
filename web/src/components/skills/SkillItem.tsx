@@ -174,7 +174,7 @@ function TreeNodeItem({
       </button>
 
       {expanded && hasChildren && (
-        <TreeView nodes={node.children!} depth={depth + 1} onSelectFile={onSelectFile} />
+        <TreeView nodes={node.children ?? []} depth={depth + 1} onSelectFile={onSelectFile} />
       )}
     </div>
   );

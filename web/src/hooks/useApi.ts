@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { toError } from '@/lib/errors';
 
 interface UseApiState<T> {
   data: T | null;
@@ -24,7 +25,7 @@ export function useApi<T>(fetcher: () => Promise<T>, immediate = true): UseApiRe
       const result = await fetcher();
       setState({ data: result, loading: false, error: null });
     } catch (err) {
-      setState({ data: null, loading: false, error: err as Error });
+      setState({ data: null, loading: false, error: toError(err) });
     }
   }, [fetcher]);
 
@@ -63,7 +64,7 @@ export function useApiMutation<T, Args extends unknown[]>(
         setState({ data: result, loading: false, error: null });
         return result;
       } catch (err) {
-        setState({ data: null, loading: false, error: err as Error });
+        setState({ data: null, loading: false, error: toError(err) });
         return null;
       }
     },

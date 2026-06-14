@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { Skill } from '@/types';
 
 type SyncState = 'idle' | 'pulling' | 'pushing';
@@ -24,7 +26,9 @@ export function useSync(): UseSyncReturn {
     try {
       await api.skills.sync();
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
     } finally {
       setSyncState('idle');
     }
@@ -37,7 +41,9 @@ export function useSync(): UseSyncReturn {
       await api.skills.push();
       return true;
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
       return false;
     } finally {
       setSyncState('idle');
@@ -53,7 +59,9 @@ export function useSync(): UseSyncReturn {
       }
       return true;
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
       return false;
     } finally {
       setSyncState('idle');

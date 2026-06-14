@@ -5,8 +5,10 @@ import {
   SuggestionsPanel,
   ThingsToRememberPanel,
 } from '@/components/agent';
+import { toast } from '@/components/ui/Toast';
 import { useScheduleStatus, useSmartBoardPanel } from '@/hooks';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type {
   AchievementsData,
   BlockersData,
@@ -118,8 +120,9 @@ export default function AgentSmartBoard() {
 
       setEditorOpen(false);
     } catch (error) {
-      console.error('Failed to save edit:', error);
-      // TODO: Show toast notification
+      const normalized = toError(error);
+      console.error('Failed to save edit:', normalized);
+      toast(normalized.message, 'error');
     }
   };
 

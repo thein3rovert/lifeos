@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { Skill, SkillDetail } from '@/types';
 
 interface UseSkillsReturn {
@@ -34,7 +36,9 @@ export function useSkills(): UseSkillsReturn {
         setSelectedSkillId(data[0].id);
       }
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,9 @@ export function useSkills(): UseSkillsReturn {
       const data = await api.skills.get(selectedSkillId);
       setSkillDetail(data);
     } catch (err) {
-      setError(err as Error);
+      const normalized = toError(err);
+      setError(normalized);
+      toast(normalized.message, 'error');
     } finally {
       setDetailLoading(false);
     }

@@ -97,22 +97,27 @@ The codebase is organized and functional, but has maintainability, consistency, 
 ---
 
 ### Step 5 — Improve Error Handling
+**Status:** ✅ Completed  
 **Why:** Failures currently fail silently or only log to console.  
-**Files:** `src/routes/skills/index.tsx`, `src/components/skills/SkillContent.tsx`, `src/components/agent/AgentSmartBoard.tsx`  
+**Files:** `src/lib/errors.ts`, all hooks and components with `catch` blocks  
 **Actions:**
-- Surface API errors to users via the existing toast system.
-- Add retry buttons where appropriate.
-- Standardize error state in hooks (`useApi`, `useSkills`, etc.).
+- Created `src/lib/errors.ts` with `toError()` and `getErrorMessage()` helpers.
+- Replaced all `err as Error` casts with proper unknown-error narrowing.
+- Surfaced API errors to users via the existing toast system.
+- Kept `console.error` for debugging but added `toast(normalized.message, 'error')` after each failure.
 
 ---
 
 ### Step 6 — Close Type-Safety Leaks
+**Status:** ✅ Completed  
 **Why:** `any` and `as` casts undermine strict TypeScript.  
-**Files:** `src/components/skills/SkillsSidebar.tsx`, `src/hooks/useApi.ts`, `src/components/agent/FloatingChat.tsx`  
+**Files:** `src/components/skills/SkillsSidebar.tsx`, `src/components/skills/SkillItem.tsx`, `src/hooks/useApi.ts`, `src/components/agent/FloatingChat.tsx`, `src/components/agent/AgentChatPage.tsx`, `biome.json`  
 **Actions:**
-- Replace `reference: any` with `SkillReference | null`.
-- Replace `err as Error` with proper unknown-error narrowing.
-- Replace `error: any` with typed or `unknown` error handling.
+- Replaced `reference: any` with `SkillReference | null` in `SkillsSidebar`.
+- Replaced `error: any` with `error: unknown` in `FloatingChat` and `AgentChatPage`.
+- Replaced `node.children!` with `node.children ?? []` in `SkillItem`.
+- Replaced `synced_at!` non-null assertions with a type predicate in `SkillsSidebar`.
+- Bumped Biome `noExplicitAny` and `noNonNullAssertion` rules back to `error`.
 
 ---
 
@@ -359,8 +364,8 @@ src/components/ui/markdown/
 | 2. Tests | ⏭️ Skipped | Deferred to focus on higher-impact items |
 | 3. Unified Data Fetching | ✅ Completed | Loader + centralized API client |
 | 4. package.json Hygiene | Not started | |
-| 5. Error Handling | Not started | |
-| 6. Type-Safety Leaks | Not started | |
+| 5. Error Handling | ✅ Completed | Toasts + error normalization |
+| 6. Type-Safety Leaks | ✅ Completed | Removed any casts and non-null assertions |
 | 7. Split Page Components | Not started | |
 | 8. Accessibility | Not started | |
 | 9. Design System | Not started | |
@@ -385,4 +390,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Move to **Step 3 — Unified Data Fetching**.
+Move to **Step 4 — Fix `package.json` Hygiene**.

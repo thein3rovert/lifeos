@@ -7,10 +7,12 @@ import { SkillContent } from '@/components/skills/SkillContent';
 import { SkillNotes } from '@/components/skills/SkillNotes';
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
 import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog';
+import { toast } from '@/components/ui/Toast';
 import { useNotes } from '@/hooks/useNotes';
 import { useSkills } from '@/hooks/useSkills';
 import { useSync } from '@/hooks/useSync';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { AIPreviewResponse, SkillReference } from '@/types';
 
 export const Route = createFileRoute('/skills/')({
@@ -121,7 +123,9 @@ function SkillsPage() {
         await refreshSkills();
         await refreshDetail();
       } catch (err) {
-        console.error('Failed to save skill:', err);
+        const normalized = toError(err);
+        console.error('Failed to save skill:', normalized);
+        toast(normalized.message, 'error');
       } finally {
         setSaving(false);
       }
@@ -179,7 +183,9 @@ function SkillsPage() {
       const preview = await api.skills.previewAIUpdate(selectedSkill.id);
       setAiPreview(preview);
     } catch (err) {
-      console.error('Failed to get AI preview:', err);
+      const normalized = toError(err);
+      console.error('Failed to get AI preview:', normalized);
+      toast(normalized.message, 'error');
       setShowAIPreview(false);
     } finally {
       setAiLoading(false);
@@ -195,7 +201,9 @@ function SkillsPage() {
       setShowAIPreview(false);
       setAiPreview(null);
     } catch (err) {
-      console.error('Failed to save AI update:', err);
+      const normalized = toError(err);
+      console.error('Failed to save AI update:', normalized);
+      toast(normalized.message, 'error');
     }
   }, [selectedSkill, aiPreview, refreshSkills, refreshDetail]);
 
@@ -212,7 +220,9 @@ function SkillsPage() {
         await refreshSkills();
         selectSkill(newSkill.id);
       } catch (err) {
-        console.error('Failed to create new skill:', err);
+        const normalized = toError(err);
+        console.error('Failed to create new skill:', normalized);
+        toast(normalized.message, 'error');
       } finally {
         setCreatingSkill(false);
       }
@@ -226,7 +236,9 @@ function SkillsPage() {
       const updated = await api.references.get(selectedReference.skill_id, selectedReference.path);
       setSelectedReference(updated);
     } catch (err) {
-      console.error('Failed to refetch reference:', err);
+      const normalized = toError(err);
+      console.error('Failed to refetch reference:', normalized);
+      toast(normalized.message, 'error');
     }
   }, [selectedReference]);
 

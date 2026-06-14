@@ -12,7 +12,9 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type { ChatMessage, Note, SkillReference } from '@/types';
 
 type SkillChatProps = {
@@ -62,7 +64,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       setNotes(skillNotes);
       setReferences(skillRefs);
     } catch (err) {
-      console.error('Failed to initialize chat:', err);
+      const normalized = toError(err);
+      console.error('Failed to initialize chat:', normalized);
+      toast(normalized.message, 'error');
     } finally {
       setInitializing(false);
     }
@@ -113,7 +117,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       };
       setMessages((prev) => [...(prev || []), assistantMsg]);
     } catch (err) {
-      console.error('Failed to send message:', err);
+      const normalized = toError(err);
+      console.error('Failed to send message:', normalized);
+      toast(normalized.message, 'error');
       setMessages((prev) => (prev || []).filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setLoading(false);
@@ -216,7 +222,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       setShowSaveModal(false);
       setSelectedNotes([]);
     } catch (err) {
-      console.error('Failed to update note:', err);
+      const normalized = toError(err);
+      console.error('Failed to update note:', normalized);
+      toast(normalized.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -235,7 +243,9 @@ export function SkillChatModal({ skillId, skillTitle, isOpen, onClose }: SkillCh
       setShowSaveModal(false);
       setSelectedNotes([]);
     } catch (err) {
-      console.error('Failed to create note:', err);
+      const normalized = toError(err);
+      console.error('Failed to create note:', normalized);
+      toast(normalized.message, 'error');
     } finally {
       setSaving(false);
     }
