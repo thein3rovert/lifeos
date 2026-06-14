@@ -106,7 +106,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                       alt="LifeOS"
                       className="w-9 h-9 rounded object-contain"
                     />
-                    <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+                    <span className="font-logo text-lg tracking-wide text-white">LifeOS</span>
                   </div>
                   <button
                     onClick={() => setSidebarCollapsed(true)}
