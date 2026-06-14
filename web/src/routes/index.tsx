@@ -5,7 +5,6 @@ import {
   Plus
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import { apiUrl } from '@/lib/apiUrl'
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton'
 import type { Note, Skill } from '@/types'
 
@@ -79,6 +78,7 @@ function DashboardPage() {
     if (!searchQuery) return notes
     const query = searchQuery.toLowerCase()
     return notes.filter(note =>
+      (note.title?.toLowerCase().includes(query) ?? false) ||
       note.content.toLowerCase().includes(query) ||
       getSkillTitle(note.skill_id).toLowerCase().includes(query)
     )
@@ -128,38 +128,37 @@ function DashboardPage() {
 
       {/* Middle row - Notes table + Empty placeholder */}
       <div className="flex-1 flex gap-4 min-h-0">
-        {/* Today's Notes - 2/3 width */}
-        <div className="flex-1 border border-default rounded bg-input flex flex-col">
+        {/* Recent Notes - 2/3 width */}
+        <div className="flex-1 border border-default rounded-xl bg-input flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-default">
-            <span className="text-xs font-medium text-secondary">Today's Notes</span>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-default">
+            <span className="text-sm font-semibold text-white">Recent Notes</span>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" strokeWidth={1.5} />
                 <input
                   type="text"
-                  placeholder="Search notes..."
+                  placeholder="Search here..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-6 pl-7 pr-2 text-xs bg-input border border-default rounded text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-40"
+                  className="h-7 pl-8 pr-3 text-xs bg-raised border border-default rounded-md text-secondary placeholder:text-muted focus:outline-none focus:border-strong w-44"
                 />
               </div>
-              <button className="h-6 px-2 flex items-center justify-center bg-accent-primary hover:brightness-95 text-black rounded transition-colors duration-150">
+              <button className="h-7 px-2 flex items-center justify-center bg-accent-primary hover:brightness-95 text-black rounded-md transition-colors duration-150">
                 <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
           {/* Table header */}
-          <div className="grid grid-cols-4 px-3 py-1.5 border-b border-default text-xxs uppercase tracking-wider text-tertiary">
-            <span>Note description</span>
-            <span>Skills</span>
-            <span>Tags</span>
+          <div className="grid grid-cols-[1fr_1fr_120px] gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-tertiary">
+            <span>Note Title</span>
+            <span>Skill</span>
             <span>Date</span>
           </div>
 
           {/* Table body */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto px-2 pb-2 space-y-1">
             {loading ? (
               <>
                 <SkeletonTableRow />
@@ -174,20 +173,39 @@ function DashboardPage() {
               filteredNotes.map((note) => (
                 <div
                   key={note.id}
-                  className="grid grid-cols-4 px-3 py-2 border-b border-subtle hover:bg-hover transition-colors duration-150 cursor-pointer"
+                  className="grid grid-cols-[1fr_1fr_120px] gap-4 items-center px-3 py-2.5 rounded-lg bg-raised hover:bg-hover transition-colors duration-150 cursor-pointer"
                 >
-                  <span className="text-xs text-secondary truncate" title={note.content}>
-                    {note.content}
-                  </span>
-                  <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
-                    {getSkillTitle(note.skill_id)}
-                  </span>
-                  <span className="text-xs text-tertiary">-</span>
+                  {/* Title with note icon */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src="/note.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-5 h-5 brightness-150 shrink-0 object-contain"
+                    />
+                    <span className="text-xs text-secondary truncate" title={note.title || note.content}>
+                      {note.title || note.content}
+                    </span>
+                  </div>
+
+                  {/* Skill with folder icon */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src="/folder.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-5 h-5 brightness-150 shrink-0 object-contain"
+                    />
+                    <span className="text-xs text-highlight truncate" title={getSkillTitle(note.skill_id)}>
+                      {getSkillTitle(note.skill_id)}
+                    </span>
+                  </div>
+
+                  {/* Date */}
                   <span className="text-xs text-tertiary">
                     {(() => {
                       try {
-                        // Parse Go timestamp: "2026-04-24 22:34:14.340107457 +0100 BST"
-                        const dateStr = note.created_at.split(' ')[0] // Get just "2026-04-24"
+                        const dateStr = note.created_at.split(' ')[0]
                         const date = new Date(dateStr)
                         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       } catch {
