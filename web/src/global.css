@@ -7,6 +7,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Custom logo font */
+@font-face {
+  font-family: 'Exbed';
+  src: url('/fonts/Exbed.otf') format('opentype'),
+       url('/fonts/Exbed.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-logo {
+  font-family: 'Exbed', sans-serif;
+}
+
 /* ==========================================================================
    ATLAS TOKENS - Tailwind @theme
    Using --color-* prefix for Tailwind v4 integration
@@ -14,7 +28,7 @@
 
 @theme {
   /* ---------- Backgrounds ---------- */
-  --color-bg-base: #000000;
+  --color-bg-base: #2a2a2a2a; /*Taupe Black */
   --color-bg-sidebar: #000000;
   --color-bg-surface: #000000;
   --color-bg-raised: #0f0f0f;
