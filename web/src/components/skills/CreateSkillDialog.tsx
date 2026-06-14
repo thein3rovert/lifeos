@@ -1,5 +1,12 @@
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui';
+
+const SKILL_FORMATS = [
+  { value: 'opencode', label: 'OpenCode' },
+  { value: 'claude', label: 'Claude' },
+  { value: 'copilot', label: 'Copilot' },
+];
 
 type CreateSkillDialogProps = {
   isOpen: boolean;
@@ -8,11 +15,18 @@ type CreateSkillDialogProps = {
   isLoading?: boolean;
 };
 
-const SKILL_FORMATS = [
-  { value: 'opencode', label: 'OpenCode' },
-  { value: 'claude', label: 'Claude' },
-  { value: 'copilot', label: 'Copilot' },
-];
+const DEFAULT_CONTENT = `---
+name:
+description:
+format: opencode
+---
+
+## Overview
+
+## Instructions
+
+## Examples
+`;
 
 export function CreateSkillDialog({
   isOpen,
@@ -22,34 +36,12 @@ export function CreateSkillDialog({
 }: CreateSkillDialogProps) {
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState('opencode');
-  const [content, setContent] = useState(`---
-name:
-description:
-format: opencode
----
-
-## Overview
-
-## Instructions
-
-## Examples
-`);
+  const [content, setContent] = useState(DEFAULT_CONTENT);
 
   const handleClose = () => {
     setTitle('');
     setFormat('opencode');
-    setContent(`---
-name:
-description:
-format: opencode
----
-
-## Overview
-
-## Instructions
-
-## Examples
-`);
+    setContent(DEFAULT_CONTENT);
     onCancel();
   };
 
@@ -65,105 +57,81 @@ format: opencode
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div
-        className="w-full max-w-dialog-lg h-dialog bg-raised border border-default rounded-lg flex flex-col"
-        style={{ boxShadow: 'var(--shadow-overlay)' }}
-      >
-        {/* Header */}
-        <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
-          <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
-            <span className="text-base font-medium text-white">Create New Skill</span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 hover:bg-hover rounded-md transition-colors"
-          >
-            <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
-          </button>
+    <Dialog isOpen={isOpen} onClose={handleClose} className="w-full max-w-dialog-lg h-dialog">
+      <DialogHeader
+        title="Create New Skill"
+        icon={<Plus className="w-4 h-4 text-blue-500" strokeWidth={1.5} />}
+        onClose={handleClose}
+      />
+
+      <DialogBody className="space-y-4">
+        {/* Title Input */}
+        <div>
+          <label htmlFor="skill-title" className="block text-xs text-secondary mb-2">
+            Skill Title
+          </label>
+          <input
+            id="skill-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter skill title..."
+            className="w-full h-8 px-3 bg-raised border border-default rounded-md text-base text-white placeholder:text-muted focus:outline-none focus:border-highlight"
+          />
         </div>
 
-        {/* Form */}
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          {/* Title Input */}
-          <div>
-            <label htmlFor="skill-title" className="block text-xs text-secondary mb-2">
-              Skill Title
-            </label>
-            <input
-              id="skill-title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter skill title..."
-              className="w-full h-8 px-3 bg-raised border border-default rounded-md text-base text-white placeholder:text-muted focus:outline-none focus:border-highlight"
-            />
-          </div>
-
-          {/* Format Select */}
-          <div>
-            <span className="block text-xs text-secondary mb-2">Format</span>
-            <div className="flex gap-2">
-              {SKILL_FORMATS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setFormat(f.value)}
-                  className={`h-7 px-3 text-xs font-medium rounded-md transition-colors duration-150 ${
-                    format === f.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-raised text-secondary hover:bg-hover'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Editor */}
-          <div className="flex-1 min-h-0">
-            <label htmlFor="skill-content" className="block text-xs text-secondary mb-2">
-              Content (Markdown)
-            </label>
-            <textarea
-              id="skill-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Enter skill content in markdown..."
-              className="w-full h-[calc(100%-28px)] min-h-dialog-content-sm p-3 bg-raised border border-default rounded-md text-base text-secondary placeholder:text-muted focus:outline-none focus:border-highlight resize-none font-mono"
-            />
+        {/* Format Select */}
+        <div>
+          <span className="block text-xs text-secondary mb-2">Format</span>
+          <div className="flex gap-2">
+            {SKILL_FORMATS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setFormat(f.value)}
+                className={`h-7 px-3 text-xs font-medium rounded-md transition-colors duration-150 ${
+                  format === f.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-raised text-secondary hover:bg-hover'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="h-14 flex items-center justify-end gap-2 px-4 border-t border-default bg-raised shrink-0">
-          <button
-            onClick={handleClose}
-            className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-xs font-medium rounded-md transition-colors duration-150"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!title.trim() || !content.trim() || isLoading}
-            className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
-          >
-            {isLoading ? (
-              <>Creating...</>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Create Skill
-              </>
-            )}
-          </button>
+        {/* Content Editor */}
+        <div className="flex-1 min-h-0">
+          <label htmlFor="skill-content" className="block text-xs text-secondary mb-2">
+            Content (Markdown)
+          </label>
+          <textarea
+            id="skill-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter skill content in markdown..."
+            className="w-full h-[calc(100%-28px)] min-h-dialog-content-sm p-3 bg-raised border border-default rounded-md text-base text-secondary placeholder:text-muted focus:outline-none focus:border-highlight resize-none font-mono"
+          />
         </div>
-      </div>
-    </div>
+      </DialogBody>
+
+      <DialogFooter className="bg-raised">
+        <Button variant="ghost" onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleSubmit}
+          isLoading={isLoading}
+          disabled={!title.trim() || !content.trim()}
+          leftIcon={<Plus className="w-3.5 h-3.5" strokeWidth={1.5} />}
+        >
+          {isLoading ? 'Creating...' : 'Create Skill'}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }

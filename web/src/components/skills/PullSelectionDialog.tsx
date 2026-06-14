@@ -1,5 +1,6 @@
-import { Check, Download, X } from 'lucide-react';
+import { Check, Download } from 'lucide-react';
 import { useState } from 'react';
+import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui';
 import type { Skill } from '@/types';
 
 type PullSelectionDialogProps = {
@@ -47,31 +48,19 @@ export function PullSelectionDialog({
     onCancel();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div
-        className="w-full max-w-dialog-sm bg-raised border border-default rounded-lg flex flex-col max-h-dialog"
-        style={{ boxShadow: 'var(--shadow-overlay)' }}
-      >
-        {/* Header */}
-        <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
-          <div className="flex items-center gap-2">
-            <Download className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
-            <span className="text-base font-medium text-white">Pull from GitHub</span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 hover:bg-hover rounded-md transition-colors"
-          >
-            <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
-          </button>
-        </div>
+    <Dialog isOpen={isOpen} onClose={handleClose} className="w-full max-w-dialog-sm max-h-dialog">
+      <DialogHeader
+        title="Pull from GitHub"
+        icon={<Download className="w-4 h-4 text-blue-500" strokeWidth={1.5} />}
+        onClose={handleClose}
+      />
 
+      <DialogBody className="py-1 px-0">
         {/* Select All */}
         <div className="px-4 py-2 border-b border-default bg-raised">
           <button
+            type="button"
             onClick={handleSelectAll}
             className="flex items-center gap-2 text-xs text-secondary hover:text-white transition-colors"
           >
@@ -102,6 +91,7 @@ export function PullSelectionDialog({
               return (
                 <button
                   key={skill.id}
+                  type="button"
                   onClick={() => handleToggle(skill.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                     isSelected ? 'bg-selected' : 'hover:bg-hover'
@@ -133,34 +123,27 @@ export function PullSelectionDialog({
             })
           )}
         </div>
+      </DialogBody>
 
-        {/* Footer */}
-        <div className="h-14 flex items-center justify-between px-4 border-t border-default bg-raised shrink-0">
-          <span className="text-xs text-secondary">{selectedIds.size} selected</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleClose}
-              className="h-8 px-4 bg-raised hover:bg-hover text-secondary text-xs font-medium rounded-md transition-colors duration-150"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handlePull}
-              disabled={selectedIds.size === 0 || isLoading}
-              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md flex items-center gap-2 transition-colors duration-150"
-            >
-              {isLoading ? (
-                <>Pulling...</>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  Pull {selectedIds.size > 0 && `(${selectedIds.size})`}
-                </>
-              )}
-            </button>
-          </div>
+      <DialogFooter className="bg-raised justify-between">
+        <span className="text-xs text-secondary">{selectedIds.size} selected</span>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handlePull}
+            isLoading={isLoading}
+            disabled={selectedIds.size === 0}
+            leftIcon={<Download className="w-3.5 h-3.5" strokeWidth={1.5} />}
+          >
+            {isLoading
+              ? 'Pulling...'
+              : `Pull ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`}
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogFooter>
+    </Dialog>
   );
 }

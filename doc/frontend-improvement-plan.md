@@ -376,8 +376,8 @@ src/components/ui/markdown/
 
 | Area | Priority | Notes |
 | ---- | -------- | ----- |
-| Button primitive | High | Repeated everywhere |
-| Dialog primitive | High | Repeats a11y logic |
+| Button primitive | ✅ Completed | `src/components/ui/Button.tsx` |
+| Dialog primitive | ✅ Completed | `src/components/ui/Dialog.tsx` |
 | Split `__root.tsx` layout | Medium | Immediate readability gain |
 | Skills dialog orchestrator | Medium | Cuts 100+ lines from SkillsPage |
 | API domain split | Medium | Scales with endpoints |
@@ -390,4 +390,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Move to **Step 4 — Fix `package.json` Hygiene**.
+Continue modularization with **Split `__root.tsx` layout** or return to **Step 4 — Fix `package.json` Hygiene**.

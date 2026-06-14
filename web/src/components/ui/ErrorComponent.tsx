@@ -1,4 +1,5 @@
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from './Button';
 
 interface ErrorComponentProps {
   error: Error;
@@ -12,20 +13,18 @@ export default function ErrorComponent({ error, onRetry }: ErrorComponentProps) 
       <h1 className="text-md font-medium text-primary mb-1">Something went wrong</h1>
       <p className="text-xs text-secondary mb-4 max-w-xs">{error.message}</p>
       {onRetry ? (
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onRetry}
-          className="h-7 px-3 bg-accent-primary hover:brightness-95 text-black text-xs font-medium rounded flex items-center gap-1.5 transition-colors"
+          leftIcon={<RefreshCw className="w-3 h-3" strokeWidth={1.5} />}
         >
-          <RefreshCw className="w-3 h-3" strokeWidth={1.5} />
           Try again
-        </button>
+        </Button>
       ) : (
-        <button
-          onClick={() => window.location.reload()}
-          className="h-7 px-3 bg-accent-primary hover:brightness-95 text-black text-xs font-medium rounded transition-colors"
-        >
+        <Button variant="primary" size="sm" onClick={() => window.location.reload()}>
           Reload page
-        </button>
+        </Button>
       )}
     </div>
   );

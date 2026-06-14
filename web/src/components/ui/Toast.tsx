@@ -51,7 +51,11 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
     <div className="flex items-center gap-2 bg-raised border border-default rounded p-3 shadow-lg min-w-64 max-w-96">
       <Icon className={`w-4 h-4 shrink-0 ${colors[t.type]}`} strokeWidth={1.5} />
       <span className="text-xs text-secondary flex-1">{t.message}</span>
-      <button onClick={onDismiss} className="text-tertiary hover:text-secondary transition-colors">
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="text-tertiary hover:text-secondary transition-colors"
+      >
         <X className="w-3 h-3" strokeWidth={1.5} />
       </button>
     </div>
