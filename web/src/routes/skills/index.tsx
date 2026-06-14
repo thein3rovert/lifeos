@@ -1,19 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
-import { PullSelectionDialog } from '@/components/skills/PullSelectionDialog';
-import { SkillAIPreviewDialog } from '@/components/skills/SkillAIPreviewDialog';
-import { SkillChatModal } from '@/components/skills/SkillChatModal';
 import { SkillContent } from '@/components/skills/SkillContent';
+import { SkillDialogs } from '@/components/skills/SkillDialogs';
 import { SkillNotes } from '@/components/skills/SkillNotes';
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
-import { SyncConfirmationDialog } from '@/components/skills/SyncConfirmationDialog';
 import { toast } from '@/components/ui/Toast';
 import { useNotes } from '@/hooks/useNotes';
+import { useSkillDialogs } from '@/hooks/useSkillDialogs';
 import { useSkills } from '@/hooks/useSkills';
 import { useSync } from '@/hooks/useSync';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
-import type { AIPreviewResponse, SkillReference } from '@/types';
+import type { SkillReference } from '@/types';
 
 export const Route = createFileRoute('/skills/')({
   component: SkillsPage,
@@ -27,18 +25,35 @@ function SkillsPage() {
 
   const { syncState, sync, push, pushSelected } = useSync();
 
-  // UI State
+  const {
+    state: dialogState,
+    openPullDialog,
+    closePullDialog,
+    closeSyncConfirmation,
+    openChat,
+    closeChat,
+    handlePullSelected,
+    handlePullAnyway,
+    handlePushFirst,
+    handlePushSelected,
+    handleAIPreview,
+    handleSaveAIUpdate,
+    handleAIReject,
+  } = useSkillDialogs({
+    skills,
+    selectedSkill,
+    refreshSkills,
+    refreshDetail,
+    sync,
+    push,
+    pushSelected,
+  });
+
+  // Local UI state
   const [selectedReference, setSelectedReference] = useState<SkillReference | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiPreview, setAiPreview] = useState<AIPreviewResponse | null>(null);
-  const [showAIPreview, setShowAIPreview] = useState(false);
   const [creatingSkill, setCreatingSkill] = useState(false);
-  const [showPullDialog, setShowPullDialog] = useState(false);
-  const [showSyncConfirmation, setShowSyncConfirmation] = useState(false);
-  const [selectedPullIds, setSelectedPullIds] = useState<string[]>([]);
-  const [showChat, setShowChat] = useState(false);
 
   // Load skills on mount
   useEffect(() => {
@@ -62,58 +77,6 @@ function SkillsPage() {
   ]);
 
   // Handlers
-  const handleSync = useCallback(() => {
-    setShowPullDialog(true);
-  }, []);
-
-  const performPull = useCallback(
-    async (skillIds: string[]) => {
-      setShowSyncConfirmation(false);
-      await sync();
-      await refreshSkills();
-      if (selectedSkill && skillIds.includes(selectedSkill.id)) {
-        await refreshDetail();
-      }
-    },
-    [sync, refreshSkills, refreshDetail, selectedSkill]
-  );
-
-  const handlePullSelected = useCallback(
-    async (skillIds: string[]) => {
-      setShowPullDialog(false);
-      const selectedSkills = skills.filter((s) => skillIds.includes(s.id));
-      const hasLocalChanges = selectedSkills.some(
-        (s) => s.pending_sync || (s.note_count && s.note_count > 0)
-      );
-
-      if (hasLocalChanges) {
-        setSelectedPullIds(skillIds);
-        setShowSyncConfirmation(true);
-      } else {
-        await performPull(skillIds);
-      }
-    },
-    [skills, performPull]
-  );
-
-  const handlePullAnyway = useCallback(() => {
-    performPull(selectedPullIds);
-  }, [performPull, selectedPullIds]);
-
-  const handlePushFirst = useCallback(async () => {
-    setShowSyncConfirmation(false);
-    await push();
-    await performPull(selectedPullIds);
-  }, [push, performPull, selectedPullIds]);
-
-  const handlePushSelected = useCallback(
-    async (skillIds: string[]) => {
-      await pushSelected(skillIds);
-      await refreshSkills();
-    },
-    [pushSelected, refreshSkills]
-  );
-
   const handleSaveSkill = useCallback(
     async (content: string) => {
       if (!selectedSkill) return;
@@ -175,43 +138,6 @@ function SkillsPage() {
     [selectedSkill, editNote]
   );
 
-  const handleAIPreview = useCallback(async () => {
-    if (!selectedSkill) return;
-    setAiLoading(true);
-    setShowAIPreview(true);
-    try {
-      const preview = await api.skills.previewAIUpdate(selectedSkill.id);
-      setAiPreview(preview);
-    } catch (err) {
-      const normalized = toError(err);
-      console.error('Failed to get AI preview:', normalized);
-      toast(normalized.message, 'error');
-      setShowAIPreview(false);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [selectedSkill]);
-
-  const handleSaveAIUpdate = useCallback(async () => {
-    if (!selectedSkill || !aiPreview) return;
-    try {
-      await api.skills.saveAIUpdate(selectedSkill.id, aiPreview.updated_content);
-      await refreshSkills();
-      await refreshDetail();
-      setShowAIPreview(false);
-      setAiPreview(null);
-    } catch (err) {
-      const normalized = toError(err);
-      console.error('Failed to save AI update:', normalized);
-      toast(normalized.message, 'error');
-    }
-  }, [selectedSkill, aiPreview, refreshSkills, refreshDetail]);
-
-  const handleAIReject = useCallback(() => {
-    setShowAIPreview(false);
-    setAiPreview(null);
-  }, []);
-
   const handleCreateSkill = useCallback(
     async (title: string, format: string, content: string) => {
       setCreatingSkill(true);
@@ -254,7 +180,7 @@ function SkillsPage() {
         onSelectReference={handleSelectReference}
         loading={loading}
         syncing={syncing}
-        onSync={handleSync}
+        onSync={openPullDialog}
         pushing={pushing}
         onPush={push}
         onPushSelected={handlePushSelected}
@@ -269,7 +195,7 @@ function SkillsPage() {
         selectedReference={selectedReference}
         onSave={handleSaveSkill}
         saving={saving}
-        onOpenChat={() => setShowChat(true)}
+        onOpenChat={openChat}
         onRefetch={handleRefetchReference}
       />
 
@@ -280,42 +206,25 @@ function SkillsPage() {
         onEditNote={handleEditNote}
         addingNote={adding}
         onAIPreview={handleAIPreview}
-        aiLoading={aiLoading}
+        aiLoading={dialogState.aiLoading}
       />
 
-      <SkillAIPreviewDialog
-        isOpen={showAIPreview}
-        preview={aiPreview}
-        isLoading={aiLoading}
-        onCancel={handleAIReject}
-        onAccept={handleSaveAIUpdate}
-        onReject={handleAIReject}
-      />
-
-      <PullSelectionDialog
-        isOpen={showPullDialog}
+      <SkillDialogs
+        state={dialogState}
         skills={skills}
-        onCancel={() => setShowPullDialog(false)}
+        selectedSkill={selectedSkill}
+        selectedSkillTitle={skillDetail?.skill.title ?? null}
+        syncing={syncing}
+        onCancelPull={closePullDialog}
         onPull={handlePullSelected}
-        isLoading={syncing}
-      />
-
-      <SyncConfirmationDialog
-        isOpen={showSyncConfirmation}
-        skills={skills.filter((s) => selectedPullIds.includes(s.id))}
-        onCancel={() => setShowSyncConfirmation(false)}
+        onCancelSyncConfirmation={closeSyncConfirmation}
         onPushFirst={handlePushFirst}
         onPullAnyway={handlePullAnyway}
+        onCancelAIPreview={handleAIReject}
+        onAcceptAIUpdate={handleSaveAIUpdate}
+        onRejectAIUpdate={handleAIReject}
+        onCloseChat={closeChat}
       />
-
-      {selectedSkill && skillDetail && (
-        <SkillChatModal
-          skillId={selectedSkill.id}
-          skillTitle={skillDetail.skill.title}
-          isOpen={showChat}
-          onClose={() => setShowChat(false)}
-        />
-      )}
     </div>
   );
 }

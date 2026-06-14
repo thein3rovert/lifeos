@@ -122,12 +122,15 @@ The codebase is organized and functional, but has maintainability, consistency, 
 ---
 
 ### Step 7 — Split Overgrown Page Components
+**Status:** ✅ Completed  
 **Why:** `SkillsPage` is 291 lines with too many responsibilities.  
-**Files:** `src/routes/skills/index.tsx`, `src/routes/__root.tsx`  
+**Files:** `src/routes/skills/index.tsx`, `src/routes/__root.tsx`, `src/components/layout/`, `src/hooks/useSkillDialogs.ts`, `src/components/skills/SkillDialogs.tsx`  
 **Actions:**
-- Extract dialog components and handlers into smaller hooks/components.
-- Move sync orchestration into `useSync` or a new `usePullFlow` hook.
-- Separate navigation/sidebar logic from the root route shell.
+- Extracted `RootDocument.tsx` and `Sidebar.tsx` from `__root.tsx`; root route is now a thin config wrapper.
+- Created `useSkillDialogs.ts` hook to own dialog state and AI/sync flow handlers.
+- Created `SkillDialogs.tsx` orchestrator to render all modal components.
+- Reduced `SkillsPage` from ~320 lines to ~220 lines while preserving all behavior.
+- Verified `tsc --noEmit`, `npm run check`, and `npm run build` still pass.
 
 ---
 
@@ -366,7 +369,7 @@ src/components/ui/markdown/
 | 4. package.json Hygiene | Not started | |
 | 5. Error Handling | ✅ Completed | Toasts + error normalization |
 | 6. Type-Safety Leaks | ✅ Completed | Removed any casts and non-null assertions |
-| 7. Split Page Components | Not started | |
+| 7. Split Page Components | ✅ Completed | `__root.tsx` + `SkillsPage` refactored |
 | 8. Accessibility | Not started | |
 | 9. Design System | Not started | |
 | 10. Environment Config | Not started | |
@@ -378,9 +381,9 @@ src/components/ui/markdown/
 | ---- | -------- | ----- |
 | Button primitive | ✅ Completed | `src/components/ui/Button.tsx` |
 | Dialog primitive | ✅ Completed | `src/components/ui/Dialog.tsx` |
-| Split `__root.tsx` layout | Medium | Immediate readability gain |
-| Skills dialog orchestrator | Medium | Cuts 100+ lines from SkillsPage |
-| API domain split | Medium | Scales with endpoints |
+| Split `__root.tsx` layout | ✅ Completed | `RootDocument.tsx`, `Sidebar.tsx` extracted |
+| Skills dialog orchestrator | ✅ Completed | `useSkillDialogs.ts`, `SkillDialogs.tsx` |
+| API domain split | ✅ Completed | `src/lib/api/` domain modules |
 | Smartboard feature folder | Low-Medium | Group existing code |
 | Skills feature folder | Low-Medium | Group existing code |
 | Markdown element split | Low | Nice-to-have for testing |
@@ -390,4 +393,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Continue modularization with **Split `__root.tsx` layout** or return to **Step 4 — Fix `package.json` Hygiene**.
+Continue modularization with **Smartboard feature folder** (`src/features/smartboard/`) or return to **Step 4 — Fix `package.json` Hygiene**.
