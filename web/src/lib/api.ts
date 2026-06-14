@@ -1,151 +1,11 @@
 // =============================================================================
 // LifeOS - API Client
 // Centralized API client for Go backend
+//
+// NOTE: The API client has been split into domain modules under src/lib/api/.
+// This file is kept as a backward-compatible re-export.
 // =============================================================================
 
-import type {
-  AIPreviewResponse,
-  ChatMessage,
-  ChatSession,
-  Note,
-  PanelType,
-  ScheduleStatusMap,
-  Skill,
-  SkillDetail,
-  SkillReference,
-  SmartBoardPanelResponse,
-} from '@/types';
-import { apiUrl } from './apiUrl';
-
-async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(apiUrl(endpoint), {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`API Error: ${response.status} - ${error}`);
-  }
-
-  return response.json();
-}
-
-export const api = {
-  skills: {
-    list: () => fetcher<Skill[]>('/api/skills'),
-    get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
-    sync: () => fetcher<Skill[]>('/api/skills/sync'),
-    push: () =>
-      fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
-
-    save: (id: string, content: string) =>
-      fetcher<Skill>('/api/skills/edit', {
-        method: 'POST',
-        body: JSON.stringify({ skill_id: id, content }),
-      }),
-
-    previewAIUpdate: (id: string) =>
-      fetcher<AIPreviewResponse>(`/api/skills/${id}/preview`, { method: 'POST' }),
-
-    saveAIUpdate: (id: string, updatedContent: string) =>
-      fetcher<{ status: string; skill_id: string }>(`/api/skills/${id}/save`, {
-        method: 'POST',
-        body: JSON.stringify({ updated_content: updatedContent }),
-      }),
-
-    create: (title: string, format: string, content: string) =>
-      fetcher<Skill>('/api/skills/create', {
-        method: 'POST',
-        body: JSON.stringify({ title, format, content }),
-      }),
-
-    pushSingle: (id: string) =>
-      fetcher<{ message: string; pushed: number }>(`/api/skills/${id}/push`, { method: 'POST' }),
-  },
-
-  notes: {
-    listAll: () => fetcher<Note[]>('/api/notes'),
-    list: (skillId: string) => fetcher<Note[]>(`/api/skills/${skillId}/notes`),
-    add: (skillId: string, title: string, content: string, type?: 'manual' | 'ai-generated') =>
-      fetcher<Note[]>(`/api/skills/${skillId}/notes`, {
-        method: 'POST',
-        body: JSON.stringify({ title, content, type: type || 'manual' }),
-      }),
-    delete: (skillId: string, noteId: number) =>
-      fetcher(`/api/skills/${skillId}/notes/${noteId}`, { method: 'DELETE' }),
-    update: (skillId: string, noteId: number, content: string) =>
-      fetcher<Note>(`/api/skills/${skillId}/notes/${noteId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ content }),
-      }),
-    edit: (skillId: string, noteId: number, title: string, content: string) =>
-      fetcher<{ status: string }>(`/api/skills/${skillId}/notes/${noteId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ title, content }),
-      }),
-  },
-
-  chat: {
-    getOrCreateSession: (skillId: string) =>
-      fetcher<ChatSession>(`/api/skills/${skillId}/session`, { method: 'POST' }),
-    sendMessage: (skillId: string, message: string, noteIds?: number[]) =>
-      fetcher<{ response: string }>(`/api/skills/${skillId}/chat`, {
-        method: 'POST',
-        body: JSON.stringify({ message, noteIds }),
-      }),
-    getMessages: (skillId: string) =>
-      fetcher<{ messages: ChatMessage[] }>(`/api/skills/${skillId}/messages`),
-  },
-
-  references: {
-    list: (skillId: string) => fetcher<SkillReference[]>(`/api/skills/${skillId}/files`),
-    get: (skillId: string, path: string) =>
-      fetcher<SkillReference>(`/api/skills/${skillId}/files/${path}`),
-    save: (skillId: string, path: string, content: string) =>
-      fetcher<{ status: string }>(`/api/skills/${skillId}/files/${path}`, {
-        method: 'PUT',
-        body: JSON.stringify({ content }),
-      }),
-  },
-
-  agent: {
-    chat: (message: string, sessionId?: string | null) =>
-      fetcher<{ response: string; sessionId: string }>('/api/agent/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message, sessionId }),
-      }),
-  },
-
-  smartboard: {
-    getPanel: (panelType: PanelType) =>
-      fetcher<SmartBoardPanelResponse>(`/api/smartboard/${panelType}`),
-
-    refreshPanel: (panelType: PanelType, force = true) =>
-      fetcher<SmartBoardPanelResponse>(`/api/smartboard/refresh/${panelType}?force=${force}`, {
-        method: 'POST',
-      }),
-
-    updateItemStatus: (itemId: string, panelType: PanelType, status: string) =>
-      fetcher<{ message: string }>(`/api/smartboard/item/${itemId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ panelType, status }),
-      }),
-
-    updateItemContent: (itemId: string, panelType: PanelType, fields: Record<string, string>) =>
-      fetcher<{ message: string }>(`/api/smartboard/item/${itemId}/content`, {
-        method: 'PATCH',
-        body: JSON.stringify({ panelType, fields }),
-      }),
-
-    getSchedule: () => fetcher<ScheduleStatusMap>('/api/smartboard/schedule'),
-  },
-};
-
-// Re-export types for convenience
 export type {
   AIPreviewResponse,
   ChatMessage,
@@ -158,3 +18,4 @@ export type {
   SkillReference,
   SmartBoardPanelResponse,
 } from '@/types';
+export { api } from './api/index';
