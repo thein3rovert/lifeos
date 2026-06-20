@@ -1,8 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
 import type { SkillDetail, SkillSummary } from '@/types';
+
+interface UseSkillsOptions {
+  initialSkills?: SkillSummary[];
+  initialSelectedId?: string | null;
+  initialDetail?: SkillDetail | null;
+}
 
 interface UseSkillsReturn {
   skills: SkillSummary[];
@@ -16,15 +22,23 @@ interface UseSkillsReturn {
   refreshDetail: () => Promise<void>;
 }
 
-export function useSkills(): UseSkillsReturn {
-  const [skills, setSkills] = useState<SkillSummary[]>([]);
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
-  const [skillDetail, setSkillDetail] = useState<SkillDetail | null>(null);
+export function useSkills(options: UseSkillsOptions = {}): UseSkillsReturn {
+  const { initialSkills = [], initialSelectedId = null, initialDetail = null } = options;
+
+  const [skills, setSkills] = useState<SkillSummary[]>(initialSkills);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(initialSelectedId);
+  const [skillDetail, setSkillDetail] = useState<SkillDetail | null>(initialDetail);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const selectedSkill = skills.find((s) => s.id === selectedSkillId) || null;
+
+  // Sync with loader data when the URL-selected skill changes.
+  useEffect(() => {
+    setSelectedSkillId(initialSelectedId);
+    setSkillDetail(initialDetail);
+  }, [initialSelectedId, initialDetail]);
 
   const refreshSkills = useCallback(async () => {
     setLoading(true);

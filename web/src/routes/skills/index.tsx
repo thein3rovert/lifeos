@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 import { toast } from '@/components/ui/Toast';
 import {
   SkillContent,
@@ -15,13 +16,46 @@ import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
 import type { SkillReference } from '@/types';
 
+const skillsSearchSchema = z.object({
+  skillId: z.string().optional(),
+});
+
 export const Route = createFileRoute('/skills/')({
+  validateSearch: skillsSearchSchema,
+  loaderDeps: ({ search }) => ({ skillId: search.skillId }),
+  loader: async ({ deps }) => {
+    // When a skillId is in the URL we can fetch list + detail in parallel.
+    if (deps.skillId) {
+      const [skills, detail] = await Promise.all([api.skills.list(), api.skills.get(deps.skillId)]);
+      return { skills, selectedId: deps.skillId, detail };
+    }
+
+    // Otherwise we fall back to list first, then detail for the first skill.
+    const skills = await api.skills.list();
+    const selectedId = skills[0]?.id || null;
+    const detail = selectedId ? await api.skills.get(selectedId) : null;
+    return { skills, selectedId, detail };
+  },
   component: SkillsPage,
 });
 
 function SkillsPage() {
-  const { skills, selectedSkill, skillDetail, loading, selectSkill, refreshSkills, refreshDetail } =
-    useSkills();
+  const { skills, selectedId, detail } = Route.useLoaderData();
+  const navigate = Route.useNavigate();
+
+  const {
+    skills: liveSkills,
+    selectedSkill,
+    skillDetail,
+    loading,
+    selectSkill,
+    refreshSkills,
+    refreshDetail,
+  } = useSkills({
+    initialSkills: skills,
+    initialSelectedId: selectedId,
+    initialDetail: detail,
+  });
 
   const { adding, addNote, editNote, deleteNote } = useNotes();
 
@@ -42,7 +76,7 @@ function SkillsPage() {
     handleSaveAIUpdate,
     handleAIReject,
   } = useSkillDialogs({
-    skills,
+    skills: liveSkills,
     selectedSkill,
     refreshSkills,
     refreshDetail,
@@ -57,18 +91,16 @@ function SkillsPage() {
   const [saving, setSaving] = useState(false);
   const [creatingSkill, setCreatingSkill] = useState(false);
 
-  // Load skills on mount
-  useEffect(() => {
-    refreshSkills();
-  }, [refreshSkills]);
-
-  // Load skill detail when selected
+  // Clear reference and fetch detail when selected skill changes.
+  // Skip if the current detail already matches the selected skill (e.g. from loader).
   useEffect(() => {
     if (selectedSkill) {
       if (selectedReference && selectedReference.skill_id !== selectedSkill.id) {
         setSelectedReference(null);
       }
-      refreshDetail();
+      if (!skillDetail || skillDetail.skill.id !== selectedSkill.id) {
+        refreshDetail();
+      }
     }
   }, [
     selectedSkill?.id,
@@ -76,7 +108,16 @@ function SkillsPage() {
     selectedReference,
     selectedSkill,
     refreshDetail,
+    skillDetail,
   ]);
+
+  const handleSelectSkill = useCallback(
+    (id: string) => {
+      selectSkill(id);
+      void navigate({ search: { skillId: id } });
+    },
+    [selectSkill, navigate]
+  );
 
   // Handlers
   const handleSaveSkill = useCallback(
@@ -106,10 +147,10 @@ function SkillsPage() {
       }
       setSelectedReference(reference);
       if (reference.skill_id !== selectedSkill?.id) {
-        selectSkill(reference.skill_id);
+        handleSelectSkill(reference.skill_id);
       }
     },
-    [selectedSkill, selectSkill]
+    [selectedSkill, handleSelectSkill]
   );
 
   const handleAddNote = useCallback(
@@ -146,7 +187,7 @@ function SkillsPage() {
       try {
         const newSkill = await api.skills.create(title, format, content);
         await refreshSkills();
-        selectSkill(newSkill.id);
+        handleSelectSkill(newSkill.id);
       } catch (err) {
         const normalized = toError(err);
         console.error('Failed to create new skill:', normalized);
@@ -155,7 +196,7 @@ function SkillsPage() {
         setCreatingSkill(false);
       }
     },
-    [refreshSkills, selectSkill]
+    [refreshSkills, handleSelectSkill]
   );
 
   const handleRefetchReference = useCallback(async () => {
@@ -176,9 +217,9 @@ function SkillsPage() {
   return (
     <div className="flex h-full gap-3 p-4">
       <SkillsSidebar
-        skills={skills}
+        skills={liveSkills}
         selectedSkillId={selectedSkill?.id || null}
-        onSelectSkill={selectSkill}
+        onSelectSkill={handleSelectSkill}
         onSelectReference={handleSelectReference}
         loading={loading}
         syncing={syncing}
@@ -213,7 +254,7 @@ function SkillsPage() {
 
       <SkillDialogs
         state={dialogState}
-        skills={skills}
+        skills={liveSkills}
         selectedSkill={selectedSkill}
         selectedSkillTitle={skillDetail?.skill.title ?? null}
         syncing={syncing}
