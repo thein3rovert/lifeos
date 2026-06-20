@@ -87,12 +87,17 @@ The codebase is organized and functional, but has maintainability, consistency, 
 ---
 
 ### Step 4 — Fix `package.json` Hygiene
+**Status:** ✅ Completed  
 **Why:** Non-deterministic builds and mixed package managers cause CI/env issues.  
-**Files:** `package.json`, lockfile  
+**Files:** `web/package.json`, `web/package-lock.json`, `web/bun.lockb`  
 **Actions:**
-- Replace `"latest"` tags with pinned versions.
-- Remove unused dependencies (e.g. `@tanstack/react-router-ssr-query` if unused).
-- Decide on npm vs pnpm and remove the conflicting lockfile/config.
+- Migrated from npm to **bun**.
+- Pinned all `"latest"` dependency tags to caret ranges based on resolved versions.
+- Removed unused `@tanstack/react-router-ssr-query` dependency.
+- Removed the `pnpm` config block from `package.json`.
+- Replaced `package-lock.json` with `bun.lockb`.
+- Added `trustedDependencies` for `esbuild` and `lightningcss` (bun equivalent of pnpm `onlyBuiltDependencies`).
+- Verified `tsc --noEmit`, `npm run check`, and `npm run build` still pass.
 
 ---
 
@@ -370,7 +375,7 @@ src/components/ui/markdown/
 | 1. Linting/Formatting (Biome) | ✅ Completed | 65 files formatted; real TS bugs fixed |
 | 2. Tests | ⏭️ Skipped | Deferred to focus on higher-impact items |
 | 3. Unified Data Fetching | ✅ Completed | Loader + centralized API client |
-| 4. package.json Hygiene | Not started | |
+| 4. package.json Hygiene | ✅ Completed | Migrated to bun, pinned versions |
 | 5. Error Handling | ✅ Completed | Toasts + error normalization |
 | 6. Type-Safety Leaks | ✅ Completed | Removed any casts and non-null assertions |
 | 7. Split Page Components | ✅ Completed | `__root.tsx` + `SkillsPage` refactored |
@@ -397,4 +402,4 @@ src/components/ui/markdown/
 
 ## Next Action
 
-Return to **Step 4 — Fix `package.json` Hygiene** or continue with **Barrel files everywhere**.
+Continue with **Step 8 — Accessibility** (81 Biome warnings) or **Step 10 — Environment Config**.
