@@ -80,7 +80,20 @@ func NewSkillHandler(skillStore store.SkillStore, noteStore store.NoteStore) *Sk
 	}
 }
 
+// SkillSummaryResponse is the lightweight JSON shape returned by list endpoints.
+// It omits the skill content to keep payloads small.
+type SkillSummaryResponse struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Format      string `json:"format"`
+	UpdatedAt   string `json:"updated_at"`
+	SyncedAt    string `json:"synced_at"`
+	PendingSync bool   `json:"pending_sync"`
+	NoteCount   int    `json:"note_count"`
+}
+
 // SkillResponse is the JSON shape returned by skill endpoints
+
 type SkillResponse struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
@@ -158,6 +171,24 @@ func SkillToResponse(s *model.Skill) SkillResponse {
 	return SkillToResponseWithNotes(s, 0)
 }
 
+// SkillToSummaryResponse converts a model.Skill to a lightweight summary for lists.
+func SkillToSummaryResponse(s *model.Skill, noteCount int) SkillSummaryResponse {
+	resp := SkillSummaryResponse{
+		ID:          s.ID,
+		Title:       s.Title,
+		Format:      s.Format,
+		UpdatedAt:   s.UpdatedAt.Format(time.RFC3339),
+		PendingSync: s.PendingSync,
+		NoteCount:   noteCount,
+	}
+
+	if !s.SyncedAt.IsZero() {
+		resp.SyncedAt = s.SyncedAt.Format(time.RFC3339)
+	}
+
+	return resp
+}
+
 // skillToResponseWithNotes converts a model.Skill to a SkillResponse with note count
 func SkillToResponseWithNotes(s *model.Skill, noteCount int) SkillResponse {
 	resp := SkillResponse{
@@ -189,9 +220,9 @@ func (h *SkillHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 	// Get note counts for all skills
 	noteCounts, _ := h.noteStore.GetSkillNoteCounts()
 
-	var resp []SkillResponse
+	var resp []SkillSummaryResponse
 	for _, s := range skills {
-		resp = append(resp, SkillToResponseWithNotes(&s, noteCounts[s.ID]))
+		resp = append(resp, SkillToSummaryResponse(&s, noteCounts[s.ID]))
 	}
 
 	respondJSON(w, http.StatusOK, resp)
@@ -286,9 +317,9 @@ func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp []SkillResponse
+	var resp []SkillSummaryResponse
 	for _, s := range skills {
-		resp = append(resp, SkillToResponse(&s))
+		resp = append(resp, SkillToSummaryResponse(&s, 0))
 	}
 
 	respondJSON(w, http.StatusOK, resp)
