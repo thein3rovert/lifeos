@@ -13,12 +13,16 @@ import {
   useSync,
 } from '@/features/skills';
 import { api } from '@/lib/api';
+import { getCache, invalidateCache, setCache } from '@/lib/cache';
 import { toError } from '@/lib/errors';
-import type { SkillReference } from '@/types';
+import type { SkillDetail, SkillReference, SkillSummary } from '@/types';
 
 const skillsSearchSchema = z.object({
   skillId: z.string().optional(),
 });
+
+const SKILLS_LIST_CACHE_KEY = 'skills:list';
+const skillDetailCacheKey = (id: string) => `skills:detail:${id}`;
 
 export const Route = createFileRoute('/skills/')({
   validateSearch: skillsSearchSchema,
@@ -26,14 +30,30 @@ export const Route = createFileRoute('/skills/')({
   loader: async ({ deps }) => {
     // When a skillId is in the URL we can fetch list + detail in parallel.
     if (deps.skillId) {
+      const cachedList = getCache<SkillSummary[]>(SKILLS_LIST_CACHE_KEY);
+      const cachedDetail = getCache<SkillDetail>(skillDetailCacheKey(deps.skillId));
+
+      if (cachedList && cachedDetail) {
+        return { skills: cachedList, selectedId: deps.skillId, detail: cachedDetail };
+      }
+
       const [skills, detail] = await Promise.all([api.skills.list(), api.skills.get(deps.skillId)]);
+      setCache(SKILLS_LIST_CACHE_KEY, skills);
+      if (detail) setCache(skillDetailCacheKey(deps.skillId), detail);
       return { skills, selectedId: deps.skillId, detail };
     }
 
     // Otherwise we fall back to list first, then detail for the first skill.
-    const skills = await api.skills.list();
+    const skills = getCache<SkillSummary[]>(SKILLS_LIST_CACHE_KEY) ?? (await api.skills.list());
+    setCache(SKILLS_LIST_CACHE_KEY, skills);
+
     const selectedId = skills[0]?.id || null;
-    const detail = selectedId ? await api.skills.get(selectedId) : null;
+    const detail = selectedId
+      ? (getCache<SkillDetail>(skillDetailCacheKey(selectedId)) ??
+        (await api.skills.get(selectedId)))
+      : null;
+    if (selectedId && detail) setCache(skillDetailCacheKey(selectedId), detail);
+
     return { skills, selectedId, detail };
   },
   component: SkillsPage,
@@ -126,6 +146,7 @@ function SkillsPage() {
       setSaving(true);
       try {
         await api.skills.save(selectedSkill.id, content);
+        invalidateCache('skills:');
         await refreshSkills();
         await refreshDetail();
       } catch (err) {
@@ -158,6 +179,7 @@ function SkillsPage() {
       if (!title.trim() || !content.trim() || !selectedSkill) return;
       const result = await addNote(selectedSkill.id, title, content);
       if (result) {
+        invalidateCache('skills:');
         await refreshSkills();
       }
     },
@@ -168,6 +190,7 @@ function SkillsPage() {
     async (noteId: number) => {
       if (!selectedSkill) return;
       await deleteNote(selectedSkill.id, noteId);
+      invalidateCache('skills:');
       await refreshSkills();
     },
     [selectedSkill, deleteNote, refreshSkills]
@@ -177,6 +200,7 @@ function SkillsPage() {
     async (noteId: number, title: string, content: string) => {
       if (!selectedSkill) return;
       await editNote(selectedSkill.id, noteId, title, content);
+      invalidateCache('skills:');
     },
     [selectedSkill, editNote]
   );
@@ -186,6 +210,7 @@ function SkillsPage() {
       setCreatingSkill(true);
       try {
         const newSkill = await api.skills.create(title, format, content);
+        invalidateCache('skills:');
         await refreshSkills();
         handleSelectSkill(newSkill.id);
       } catch (err) {

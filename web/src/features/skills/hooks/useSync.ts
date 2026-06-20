@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { invalidateCache } from '@/lib/cache';
 import { toError } from '@/lib/errors';
-import type { Skill } from '@/types';
+import type { SkillSummary } from '@/types';
 
 type SyncState = 'idle' | 'pulling' | 'pushing';
 
@@ -13,7 +14,7 @@ interface UseSyncReturn {
   sync: () => Promise<void>;
   push: () => Promise<boolean>;
   pushSelected: (skillIds: string[]) => Promise<boolean>;
-  checkHasLocalChanges: (skills: Skill[]) => boolean;
+  checkHasLocalChanges: (skills: SkillSummary[]) => boolean;
 }
 
 export function useSync(): UseSyncReturn {
@@ -25,6 +26,7 @@ export function useSync(): UseSyncReturn {
     setError(null);
     try {
       await api.skills.sync();
+      invalidateCache('skills:');
     } catch (err) {
       const normalized = toError(err);
       setError(normalized);
@@ -39,6 +41,7 @@ export function useSync(): UseSyncReturn {
     setError(null);
     try {
       await api.skills.push();
+      invalidateCache('skills:');
       return true;
     } catch (err) {
       const normalized = toError(err);
@@ -57,6 +60,7 @@ export function useSync(): UseSyncReturn {
       for (const skillId of skillIds) {
         await api.skills.pushSingle(skillId);
       }
+      invalidateCache('skills:');
       return true;
     } catch (err) {
       const normalized = toError(err);
@@ -68,7 +72,7 @@ export function useSync(): UseSyncReturn {
     }
   }, []);
 
-  const checkHasLocalChanges = useCallback((skills: Skill[]): boolean => {
+  const checkHasLocalChanges = useCallback((skills: SkillSummary[]): boolean => {
     const pendingCount = skills.filter((s) => s.pending_sync).length;
     const skillsWithNotes = skills.filter((s) => (s.note_count || 0) > 0).length;
     return pendingCount > 0 || skillsWithNotes > 0;
