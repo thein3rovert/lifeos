@@ -1,10 +1,10 @@
-import type { AIPreviewResponse, Skill, SkillDetail } from '@/types';
+import type { AIPreviewResponse, Skill, SkillDetail, SkillSummary } from '@/types';
 import { fetcher } from './client';
 
 export const skillsApi = {
-  list: () => fetcher<Skill[]>('/api/skills'),
+  list: () => fetcher<SkillSummary[]>('/api/skills'),
   get: (id: string) => fetcher<SkillDetail>(`/api/skills/${id}`),
-  sync: () => fetcher<Skill[]>('/api/skills/sync'),
+  sync: () => fetcher<SkillSummary[]>('/api/skills/sync'),
   push: () => fetcher<{ message: string; pushed: number }>('/api/skills/push', { method: 'POST' }),
 
   save: (id: string, content: string) =>

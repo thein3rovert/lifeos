@@ -1,9 +1,9 @@
 import { AlertTriangle } from 'lucide-react';
-import type { Skill } from '@/types';
+import type { SkillSummary } from '@/types';
 
 type SyncConfirmationDialogProps = {
   isOpen: boolean;
-  skills: Skill[];
+  skills: SkillSummary[];
   onCancel: () => void;
   onPushFirst: () => void;
   onPullAnyway: () => void;

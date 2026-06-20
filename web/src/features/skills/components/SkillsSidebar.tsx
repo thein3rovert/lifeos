@@ -1,14 +1,14 @@
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { AccentStripes } from '@/components/ui/AccentStripes';
-import type { Skill, SkillReference } from '@/types';
+import type { SkillReference, SkillSummary } from '@/types';
 import { CreateSkillDialog } from './CreateSkillDialog';
 import { PushSelectionDialog } from './PushSelectionDialog';
 import { SkillItem } from './SkillItem';
 import { SyncConfirmationDialog } from './SyncConfirmationDialog';
 
 type SkillsSidebarProps = {
-  skills: Skill[];
+  skills: SkillSummary[];
   selectedSkillId: string | null;
   onSelectSkill: (id: string) => void;
   onSelectReference?: (reference: SkillReference | null) => void;
@@ -51,7 +51,7 @@ export function SkillsSidebar({
   const lastSynced =
     skills.length > 0
       ? skills
-          .filter((s): s is Skill & { synced_at: string } => Boolean(s.synced_at))
+          .filter((s): s is SkillSummary & { synced_at: string } => Boolean(s.synced_at))
           .sort((a, b) => new Date(b.synced_at).getTime() - new Date(a.synced_at).getTime())[0]
           ?.synced_at
       : null;

@@ -1,13 +1,13 @@
 import { Check, Download } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui';
-import type { Skill } from '@/types';
+import type { SkillSummary } from '@/types';
 
 type PullSelectionDialogProps = {
   isOpen: boolean;
-  skills: Skill[];
+  skills: SkillSummary[];
   onCancel: () => void;
-  onPull: (selectedIds: string[]) => void;
+  onPull: (skillIds: string[]) => void;
   isLoading?: boolean;
 };
 

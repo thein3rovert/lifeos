@@ -1,12 +1,12 @@
 import { Check, Upload, X } from 'lucide-react';
 import { useState } from 'react';
-import type { Skill } from '@/types';
+import type { SkillSummary } from '@/types';
 
 type PushSelectionDialogProps = {
   isOpen: boolean;
-  skills: Skill[];
+  skills: SkillSummary[];
   onCancel: () => void;
-  onPush: (selectedIds: string[]) => void;
+  onPush: (skillIds: string[]) => void;
   isLoading?: boolean;
 };
 

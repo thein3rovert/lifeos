@@ -7,15 +7,18 @@
 // Skill Types
 // -----------------------------------------------------------------------------
 
-export interface Skill {
+export interface SkillSummary {
   id: string;
   title: string;
   format: string;
-  content: string;
   updated_at: string;
   synced_at?: string;
   pending_sync?: boolean;
   note_count?: number;
+}
+
+export interface Skill extends SkillSummary {
+  content: string;
 }
 
 export interface Note {

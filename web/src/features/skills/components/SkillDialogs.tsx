@@ -1,4 +1,4 @@
-import type { Skill } from '@/types';
+import type { SkillSummary } from '@/types';
 import type { DialogState } from '../hooks/useSkillDialogs';
 import { PullSelectionDialog } from './PullSelectionDialog';
 import { SkillAIPreviewDialog } from './SkillAIPreviewDialog';
@@ -7,8 +7,8 @@ import { SyncConfirmationDialog } from './SyncConfirmationDialog';
 
 type SkillDialogsProps = {
   state: DialogState;
-  skills: Skill[];
-  selectedSkill: Skill | null;
+  skills: SkillSummary[];
+  selectedSkill: SkillSummary | null;
   selectedSkillTitle: string | null;
   syncing: boolean;
   onCancelPull: () => void;

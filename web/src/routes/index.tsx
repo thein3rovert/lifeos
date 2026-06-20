@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { api } from '@/lib/api';
-import type { Note, Skill } from '@/types';
+import type { Note, SkillSummary } from '@/types';
 
 export const Route = createFileRoute('/')({
   loader: async () => {
@@ -181,7 +181,7 @@ function DashboardPage() {
   );
 }
 
-function getSkillTitle(skills: Skill[], skillId: string): string {
+function getSkillTitle(skills: SkillSummary[], skillId: string): string {
   const skill = skills.find((s) => s.id === skillId);
   return skill?.title || skillId;
 }

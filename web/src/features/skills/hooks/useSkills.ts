@@ -2,11 +2,11 @@ import { useCallback, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
-import type { Skill, SkillDetail } from '@/types';
+import type { SkillDetail, SkillSummary } from '@/types';
 
 interface UseSkillsReturn {
-  skills: Skill[];
-  selectedSkill: Skill | null;
+  skills: SkillSummary[];
+  selectedSkill: SkillSummary | null;
   skillDetail: SkillDetail | null;
   loading: boolean;
   detailLoading: boolean;
@@ -17,7 +17,7 @@ interface UseSkillsReturn {
 }
 
 export function useSkills(): UseSkillsReturn {
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [skillDetail, setSkillDetail] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(false);

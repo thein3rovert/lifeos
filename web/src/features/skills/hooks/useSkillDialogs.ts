@@ -2,11 +2,11 @@ import { useCallback, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
-import type { AIPreviewResponse, Skill } from '@/types';
+import type { AIPreviewResponse, SkillSummary } from '@/types';
 
 type UseSkillDialogsProps = {
-  skills: Skill[];
-  selectedSkill: Skill | null;
+  skills: SkillSummary[];
+  selectedSkill: SkillSummary | null;
   refreshSkills: () => Promise<void>;
   refreshDetail: () => Promise<void>;
   sync: () => Promise<void>;
