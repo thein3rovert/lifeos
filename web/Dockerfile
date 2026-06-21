@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1.7
 # Build stage
-FROM node:22-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lockb ./
 
 # Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm install
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -18,10 +18,10 @@ COPY . .
 # Note: app uses same-origin relative URLs (/api/*), so no VITE_API_URL needed.
 # A reverse proxy routes /api/* to the backend in production; vite dev server
 # proxies it in local dev (see vite.config.ts).
-RUN npm run build
+RUN bun run build
 
 # Production stage
-FROM node:22-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
@@ -33,4 +33,4 @@ EXPOSE 3000
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["bun", "run", ".output/server/index.mjs"]
