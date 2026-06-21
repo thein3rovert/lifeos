@@ -14,6 +14,9 @@ type SmartBoardStore interface {
 	GetLatestPanel(panelType string) (*model.SmartBoardPanel, error)
 	UpdateItemStatus(panelType, itemID, status string) error
 	UpdateItemContent(panelType, itemID string, fields map[string]string) error
+	GetPanelSchedule(panelType string) (*model.PanelSchedule, error)
+	SavePanelSchedule(schedule *model.PanelSchedule) error
+	GetAllPanelSchedules() ([]*model.PanelSchedule, error)
 }
 
 // SQLSmartBoardStore implements SmartBoardStore using SQLite
@@ -244,4 +247,90 @@ func (s *SQLSmartBoardStore) UpdateItemContent(panelType, itemID string, fields 
 	query := `UPDATE smartboard_panels SET data = ? WHERE id = ?`
 	_, err = s.db.Exec(query, string(jsonData), panel.ID)
 	return err
+}
+
+// GetPanelSchedule retrieves the schedule configuration for a panel
+func (s *SQLSmartBoardStore) GetPanelSchedule(panelType string) (*model.PanelSchedule, error) {
+	query := `SELECT panel_type, paused, mode, COALESCE(interval_minutes, 0),
+	          COALESCE(weekly_day, 0), COALESCE(weekly_hour, 0), updated_at
+	          FROM panel_schedules
+	          WHERE panel_type = ?`
+
+	var schedule model.PanelSchedule
+	err := s.db.QueryRow(query, panelType).Scan(
+		&schedule.PanelType,
+		&schedule.Paused,
+		&schedule.Mode,
+		&schedule.IntervalMinutes,
+		&schedule.WeeklyDay,
+		&schedule.WeeklyHour,
+		&schedule.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No config yet
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &schedule, nil
+}
+
+// SavePanelSchedule saves or updates a panel schedule configuration
+func (s *SQLSmartBoardStore) SavePanelSchedule(schedule *model.PanelSchedule) error {
+	query := `INSERT INTO panel_schedules (panel_type, paused, mode, interval_minutes, weekly_day, weekly_hour, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?)
+	          ON CONFLICT(panel_type) DO UPDATE SET
+	          paused = excluded.paused,
+	          mode = excluded.mode,
+	          interval_minutes = excluded.interval_minutes,
+	          weekly_day = excluded.weekly_day,
+	          weekly_hour = excluded.weekly_hour,
+	          updated_at = excluded.updated_at`
+
+	_, err := s.db.Exec(query,
+		schedule.PanelType,
+		schedule.Paused,
+		schedule.Mode,
+		schedule.IntervalMinutes,
+		schedule.WeeklyDay,
+		schedule.WeeklyHour,
+		time.Now(),
+	)
+	return err
+}
+
+// GetAllPanelSchedules retrieves all panel schedule configurations
+func (s *SQLSmartBoardStore) GetAllPanelSchedules() ([]*model.PanelSchedule, error) {
+	query := `SELECT panel_type, paused, mode, COALESCE(interval_minutes, 0),
+	          COALESCE(weekly_day, 0), COALESCE(weekly_hour, 0), updated_at
+	          FROM panel_schedules`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var schedules []*model.PanelSchedule
+	for rows.Next() {
+		var schedule model.PanelSchedule
+		err := rows.Scan(
+			&schedule.PanelType,
+			&schedule.Paused,
+			&schedule.Mode,
+			&schedule.IntervalMinutes,
+			&schedule.WeeklyDay,
+			&schedule.WeeklyHour,
+			&schedule.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		schedules = append(schedules, &schedule)
+	}
+
+	return schedules, rows.Err()
 }

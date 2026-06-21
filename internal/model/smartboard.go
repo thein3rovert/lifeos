@@ -71,3 +71,14 @@ type BlockerItem struct {
 type BlockersData struct {
 	Blockers []BlockerItem `json:"blockers"`
 }
+
+// PanelSchedule: This is the schedule configuration for a panel
+type PanelSchedule struct {
+	PanelType       string    `json:"panelType"`
+	Paused          bool      `json:"paused"`
+	Mode            string    `json:"mode"` // "interval" or "weekly"
+	IntervalMinutes int       `json:"intervalMinutes,omitempty"`
+	WeeklyDay       int       `json:"weeklyDay,omitempty"` // 0-6 (Sunday-Saturday)
+	WeeklyHour      int       `json:"weeklyHour,omitempty"` // 0-23
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
