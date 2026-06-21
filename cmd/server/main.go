@@ -179,6 +179,11 @@ func runHTTPServer() {
 	// Smart Board
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
 	mux.HandleFunc("GET /api/smartboard/schedule", smartBoardAPI.GetScheduleStatus)
+	mux.HandleFunc("POST /api/smartboard/schedule/pause-all", smartBoardAPI.PauseAllPanels)
+	mux.HandleFunc("POST /api/smartboard/schedule/resume-all", smartBoardAPI.ResumeAllPanels)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}/pause", smartBoardAPI.PausePanel)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}/resume", smartBoardAPI.ResumePanel)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}", smartBoardAPI.SetPanelSchedule)
 	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)

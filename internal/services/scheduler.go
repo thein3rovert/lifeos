@@ -36,7 +36,7 @@ type PanelScheduleStatus struct {
 // Scheduler auto-refreshes smart board panels on a schedule.
 type Scheduler struct {
 	svc       *SmartBoardService
-	store     store.SmartBoardStore
+	store     store.SmartBoardStore // Hellps to get schedules details
 	ctx       context.Context
 	cancel    context.CancelFunc
 	schedules []panelSchedule
@@ -134,6 +134,7 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 			fmt.Printf("[scheduler] %s: stopped\n", sched.panelType)
 			return
 		case <-ticker.C:
+		// Refresh if panel is not paused
 			if !s.IsPaused(sched.panelType) {
 				s.refresh(sched.panelType)
 			}
@@ -368,4 +369,39 @@ func (s *Scheduler) IsPaused(panelType string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.paused[panelType]
+}
+
+// SetSchedule updates the schedule configuration for a panel
+func (s *Scheduler) SetSchedule(panelType string, mode string, intervalMinutes, weeklyDay, weeklyHour int) error {
+	// Get existing schedule from DB
+	schedule, err := s.store.GetPanelSchedule(panelType)
+	if err != nil {
+		return err
+	}
+	if schedule == nil {
+		return fmt.Errorf("schedule not found for panel: %s", panelType)
+	}
+
+	// Update fields
+	schedule.Mode = mode
+	schedule.IntervalMinutes = intervalMinutes
+	schedule.WeeklyDay = weeklyDay
+	schedule.WeeklyHour = weeklyHour
+
+	// Save to DB
+	if err := s.store.SavePanelSchedule(schedule); err != nil {
+		return err
+	}
+
+	// Reload schedules to apply changes
+	s.mu.Lock()
+	s.schedules = nil // Clear existing
+	s.mu.Unlock()
+	s.loadSchedules()
+
+	// Note: Current goroutines will continue with old schedule until their next tick.
+	// For immediate effect, we would need to cancel and restart goroutines.
+	// For now, changes will take effect on next scheduled refresh.
+
+	return nil
 }

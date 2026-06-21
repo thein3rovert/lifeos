@@ -190,3 +190,121 @@ func (h *SmartBoardHandler) GetScheduleStatus(w http.ResponseWriter, r *http.Req
 	}
 	api.RespondJSON(w, http.StatusOK, status)
 }
+
+// PausePanel pauses auto-refresh for a specific panel
+// POST /api/smartboard/schedule/:panelType/pause
+func (h *SmartBoardHandler) PausePanel(w http.ResponseWriter, r *http.Request) {
+	panelType := r.PathValue("panelType")
+	if panelType == "" {
+		api.RespondError(w, http.StatusBadRequest, "panelType is required")
+		return
+	}
+
+	if err := h.service.PausePanel(panelType); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "panel paused successfully",
+	})
+}
+
+// ResumePanel resumes auto-refresh for a specific panel
+// POST /api/smartboard/schedule/:panelType/resume
+func (h *SmartBoardHandler) ResumePanel(w http.ResponseWriter, r *http.Request) {
+	panelType := r.PathValue("panelType")
+	if panelType == "" {
+		api.RespondError(w, http.StatusBadRequest, "panelType is required")
+		return
+	}
+
+	if err := h.service.ResumePanel(panelType); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "panel resumed successfully",
+	})
+}
+
+// PauseAllPanels pauses all panel auto-refreshes
+// POST /api/smartboard/schedule/pause-all
+func (h *SmartBoardHandler) PauseAllPanels(w http.ResponseWriter, r *http.Request) {
+	if err := h.service.PauseAllPanels(); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "all panels paused successfully",
+	})
+}
+
+// ResumeAllPanels resumes all panel auto-refreshes
+// POST /api/smartboard/schedule/resume-all
+func (h *SmartBoardHandler) ResumeAllPanels(w http.ResponseWriter, r *http.Request) {
+	if err := h.service.ResumeAllPanels(); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "all panels resumed successfully",
+	})
+}
+
+// SetPanelSchedule updates the schedule configuration for a panel
+// POST /api/smartboard/schedule/:panelType
+func (h *SmartBoardHandler) SetPanelSchedule(w http.ResponseWriter, r *http.Request) {
+	panelType := r.PathValue("panelType")
+	if panelType == "" {
+		api.RespondError(w, http.StatusBadRequest, "panelType is required")
+		return
+	}
+
+	var req struct {
+		Mode            string `json:"mode"`            // "interval" or "weekly"
+		IntervalMinutes int    `json:"intervalMinutes"` // for interval mode
+		WeeklyDay       int    `json:"weeklyDay"`       // 0-6 for weekly mode
+		WeeklyHour      int    `json:"weeklyHour"`      // 0-23 for weekly mode
+	}
+
+	if err := api.DecodeJSON(r, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// Validate mode
+	if req.Mode != "interval" && req.Mode != "weekly" {
+		api.RespondError(w, http.StatusBadRequest, "mode must be 'interval' or 'weekly'")
+		return
+	}
+
+	// Validate based on mode
+	if req.Mode == "interval" && req.IntervalMinutes <= 0 {
+		api.RespondError(w, http.StatusBadRequest, "intervalMinutes must be positive for interval mode")
+		return
+	}
+
+	if req.Mode == "weekly" {
+		if req.WeeklyDay < 0 || req.WeeklyDay > 6 {
+			api.RespondError(w, http.StatusBadRequest, "weeklyDay must be between 0-6")
+			return
+		}
+		if req.WeeklyHour < 0 || req.WeeklyHour > 23 {
+			api.RespondError(w, http.StatusBadRequest, "weeklyHour must be between 0-23")
+			return
+		}
+	}
+
+	if err := h.service.SetPanelSchedule(panelType, req.Mode, req.IntervalMinutes, req.WeeklyDay, req.WeeklyHour); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	api.RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "schedule updated successfully",
+	})
+}

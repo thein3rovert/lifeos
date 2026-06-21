@@ -81,6 +81,14 @@ func (s *SmartBoardService) ResumeAllPanels() error {
 	return s.scheduler.ResumeAll()
 }
 
+// SetPanelSchedule updates the schedule configuration for a panel
+func (s *SmartBoardService) SetPanelSchedule(panelType string, mode string, intervalMinutes, weeklyDay, weeklyHour int) error {
+	if s.scheduler == nil {
+		return fmt.Errorf("scheduler not available")
+	}
+	return s.scheduler.SetSchedule(panelType, mode, intervalMinutes, weeklyDay, weeklyHour)
+}
+
 // RefreshPanel fetches new data from AI and updates cache(db).
 // If force is false and the cached panel is younger than cacheTTL, returns
 // the cached panel without calling AI (instant, no token cost).
