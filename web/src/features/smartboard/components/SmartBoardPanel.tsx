@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, Clock, Pause, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { AccentStripes } from '@/components/ui/AccentStripes';
@@ -15,6 +15,7 @@ type SmartBoardPanelProps = {
   accentColor?: AccentColor;
   nextRefresh?: Date | null;
   lastError?: string;
+  paused?: boolean;
 };
 
 export function SmartBoardPanel({
@@ -27,6 +28,7 @@ export function SmartBoardPanel({
   accentColor = 'gray',
   nextRefresh,
   lastError,
+  paused = false,
 }: SmartBoardPanelProps) {
   return (
     <div
@@ -38,6 +40,12 @@ export function SmartBoardPanel({
           {/* Accent stripes indicator */}
           <AccentStripes color={accentColor} />
           <h2 className="text-sm font-medium text-primary">{title}</h2>
+          {paused && (
+            <span className="flex items-center gap-1 text-xxs bg-warning/10 text-warning px-2 py-0.5 rounded-sm">
+              <Pause className="w-3 h-3" strokeWidth={1.5} />
+              Paused
+            </span>
+          )}
         </div>
         <button
           onClick={onRefresh}
@@ -74,7 +82,7 @@ export function SmartBoardPanel({
             </span>
           )}
         </div>
-        {nextRefresh && !loading && <NextRefreshCountdown target={nextRefresh} />}
+        {nextRefresh && !loading && !paused && <NextRefreshCountdown target={nextRefresh} />}
       </div>
     </div>
   );

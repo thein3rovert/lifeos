@@ -9,9 +9,10 @@ type SuggestionsPanelProps = {
   lastRefreshed: Date | null;
   onRefresh: () => void;
   onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void;
-  onChangeStatus: (itemId: string, status: 'active' | 'dismissed' | 'completed') => void;
+  onChangeStatus: (itemId: string, status: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
+  paused?: boolean;
 };
 
 export function SuggestionsPanel({
@@ -23,6 +24,7 @@ export function SuggestionsPanel({
   onChangeStatus,
   nextRefresh,
   lastError,
+  paused,
 }: SuggestionsPanelProps) {
   const items = data?.suggestions || [];
 
@@ -64,6 +66,7 @@ export function SuggestionsPanel({
       accentColor="blue"
       nextRefresh={nextRefresh}
       lastError={lastError}
+      paused={paused}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

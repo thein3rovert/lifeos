@@ -10,6 +10,7 @@ type AchievementsPanelProps = {
   onEditItem: (itemId: string, achievement: string, title?: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
+  paused?: boolean;
 };
 
 export function AchievementsPanel({
@@ -20,6 +21,7 @@ export function AchievementsPanel({
   onEditItem,
   nextRefresh,
   lastError,
+  paused,
 }: AchievementsPanelProps) {
   const items = data?.achievements || [];
 
@@ -32,6 +34,7 @@ export function AchievementsPanel({
       accentColor="green"
       nextRefresh={nextRefresh}
       lastError={lastError}
+      paused={paused}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

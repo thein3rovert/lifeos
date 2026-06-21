@@ -10,6 +10,7 @@ type BlockersPanelProps = {
   onEditItem: (itemId: string, blocker: string, context: string, title?: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
+  paused?: boolean;
 };
 
 export function BlockersPanel({
@@ -20,6 +21,7 @@ export function BlockersPanel({
   onEditItem,
   nextRefresh,
   lastError,
+  paused,
 }: BlockersPanelProps) {
   const items = data?.blockers || [];
 
@@ -32,6 +34,7 @@ export function BlockersPanel({
       accentColor="yellow"
       nextRefresh={nextRefresh}
       lastError={lastError}
+      paused={paused}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

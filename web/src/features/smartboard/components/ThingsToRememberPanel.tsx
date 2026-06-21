@@ -9,9 +9,10 @@ type ThingsToRememberPanelProps = {
   lastRefreshed: Date | null;
   onRefresh: () => void;
   onEditItem: (itemId: string, text: string, title?: string) => void;
-  onChangeCategory: (itemId: string, category: 'urgent' | 'important' | 'not-important') => void;
+  onChangeCategory: (itemId: string, category: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
+  paused?: boolean;
 };
 
 export function ThingsToRememberPanel({
@@ -23,6 +24,7 @@ export function ThingsToRememberPanel({
   onChangeCategory,
   nextRefresh,
   lastError,
+  paused,
 }: ThingsToRememberPanelProps) {
   const items = data?.items || [];
 
@@ -64,6 +66,7 @@ export function ThingsToRememberPanel({
       accentColor="red"
       nextRefresh={nextRefresh}
       lastError={lastError}
+      paused={paused}
     >
       {items.length === 0 ? (
         <div className="text-center text-secondary text-sm py-8">

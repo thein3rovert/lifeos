@@ -160,6 +160,7 @@ export default function AgentSmartBoard() {
                       : null
                   }
                   lastError={schedule?.['things-to-remember']?.lastError}
+                  paused={schedule?.['things-to-remember']?.paused}
                 />
               </div>
 
@@ -178,6 +179,7 @@ export default function AgentSmartBoard() {
                       : null
                   }
                   lastError={schedule?.suggestions?.lastError}
+                  paused={schedule?.suggestions?.paused}
                 />
               </div>
             </div>
@@ -226,6 +228,7 @@ export default function AgentSmartBoard() {
                     : null
                 }
                 lastError={schedule?.achievements?.lastError}
+                paused={schedule?.achievements?.paused}
               />
             </div>
 
@@ -241,6 +244,7 @@ export default function AgentSmartBoard() {
                   schedule?.blockers?.nextRefresh ? new Date(schedule.blockers.nextRefresh) : null
                 }
                 lastError={schedule?.blockers?.lastError}
+                paused={schedule?.blockers?.paused}
               />
             </div>
           </div>
