@@ -29,7 +29,7 @@ func NewSmartBoardService(store store.SmartBoardStore, agentChatService *AgentCh
 		store:            store,
 		agentChatService: agentChatService,
 	}
-	svc.scheduler = NewScheduler(svc)
+	svc.scheduler = NewScheduler(svc, store)
 	svc.scheduler.Start()
 	return svc
 }
@@ -47,6 +47,38 @@ func (s *SmartBoardService) ScheduleStatus() map[string]PanelScheduleStatus {
 		return nil
 	}
 	return s.scheduler.Status()
+}
+
+// PausePanel pauses auto-refresh for a specific panel
+func (s *SmartBoardService) PausePanel(panelType string) error {
+	if s.scheduler == nil {
+		return fmt.Errorf("scheduler not available")
+	}
+	return s.scheduler.Pause(panelType)
+}
+
+// ResumePanel resumes auto-refresh for a specific panel
+func (s *SmartBoardService) ResumePanel(panelType string) error {
+	if s.scheduler == nil {
+		return fmt.Errorf("scheduler not available")
+	}
+	return s.scheduler.Resume(panelType)
+}
+
+// PauseAllPanels pauses all panel auto-refreshes
+func (s *SmartBoardService) PauseAllPanels() error {
+	if s.scheduler == nil {
+		return fmt.Errorf("scheduler not available")
+	}
+	return s.scheduler.PauseAll()
+}
+
+// ResumeAllPanels resumes all panel auto-refreshes
+func (s *SmartBoardService) ResumeAllPanels() error {
+	if s.scheduler == nil {
+		return fmt.Errorf("scheduler not available")
+	}
+	return s.scheduler.ResumeAll()
 }
 
 // RefreshPanel fetches new data from AI and updates cache(db).

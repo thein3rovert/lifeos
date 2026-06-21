@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/thein3rovert/lifeos/internal/model"
+	"github.com/thein3rovert/lifeos/internal/store"
 )
 
 // panelSchedule defines when a panel type should be auto-refreshed.
@@ -20,14 +23,20 @@ type panelSchedule struct {
 
 // PanelScheduleStatus holds the current schedule info for a single panel.
 type PanelScheduleStatus struct {
-	NextRefresh time.Time `json:"nextRefresh"`
-	LastError   string    `json:"lastError,omitempty"`
-	Interval    string    `json:"interval"` // human-readable schedule description
+	NextRefresh     time.Time `json:"nextRefresh"`
+	LastError       string    `json:"lastError,omitempty"`
+	Interval        string    `json:"interval"` // human-readable schedule description
+	Paused          bool      `json:"paused"`
+	Mode            string    `json:"mode"` // "interval" or "weekly"
+	IntervalMinutes int       `json:"intervalMinutes,omitempty"`
+	WeeklyDay       int       `json:"weeklyDay,omitempty"`
+	WeeklyHour      int       `json:"weeklyHour,omitempty"`
 }
 
 // Scheduler auto-refreshes smart board panels on a schedule.
 type Scheduler struct {
 	svc       *SmartBoardService
+	store     store.SmartBoardStore
 	ctx       context.Context
 	cancel    context.CancelFunc
 	schedules []panelSchedule
@@ -35,24 +44,26 @@ type Scheduler struct {
 	mu         sync.RWMutex
 	nextTimes  map[string]time.Time // next scheduled refresh per panel
 	lastErrors map[string]string    // last error message per panel (empty = ok)
+	paused     map[string]bool      // pause state per panel
 }
 
 // NewScheduler creates a scheduler with the default panel schedules.
-func NewScheduler(svc *SmartBoardService) *Scheduler {
+func NewScheduler(svc *SmartBoardService, store store.SmartBoardStore) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Scheduler{
+	s := &Scheduler{
 		svc:        svc,
+		store:      store,
 		ctx:        ctx,
 		cancel:     cancel,
 		nextTimes:  make(map[string]time.Time),
 		lastErrors: make(map[string]string),
-		schedules: []panelSchedule{
-			{panelType: "blockers", interval: 5 * time.Hour},
-			{panelType: "things-to-remember", interval: 6 * time.Hour},
-			{panelType: "suggestions", weekly: true, weeklyDay: time.Saturday, weeklyHr: 8},
-			{panelType: "achievements", weekly: true, weeklyDay: time.Saturday, weeklyHr: 8},
-		},
+		paused:     make(map[string]bool),
 	}
+
+	// Load schedules from DB or seed defaults
+	s.loadSchedules()
+
+	return s
 }
 
 // Start launches background goroutines for each panel schedule.
@@ -81,13 +92,28 @@ func (s *Scheduler) Status() map[string]PanelScheduleStatus {
 	result := make(map[string]PanelScheduleStatus, len(s.schedules))
 	for _, sched := range s.schedules {
 		desc := sched.interval.String()
+		mode := "interval"
+		intervalMins := int(sched.interval.Minutes())
+		weeklyDay := 0
+		weeklyHour := 0
+
 		if sched.weekly {
 			desc = fmt.Sprintf("weekly %s %02d:00", sched.weeklyDay, sched.weeklyHr)
+			mode = "weekly"
+			weeklyDay = int(sched.weeklyDay)
+			weeklyHour = sched.weeklyHr
+			intervalMins = 0
 		}
+
 		result[sched.panelType] = PanelScheduleStatus{
-			NextRefresh: s.nextTimes[sched.panelType],
-			LastError:   s.lastErrors[sched.panelType],
-			Interval:    desc,
+			NextRefresh:     s.nextTimes[sched.panelType],
+			LastError:       s.lastErrors[sched.panelType],
+			Interval:        desc,
+			Paused:          s.paused[sched.panelType],
+			Mode:            mode,
+			IntervalMinutes: intervalMins,
+			WeeklyDay:       weeklyDay,
+			WeeklyHour:      weeklyHour,
 		}
 	}
 	return result
@@ -108,7 +134,9 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 			fmt.Printf("[scheduler] %s: stopped\n", sched.panelType)
 			return
 		case <-ticker.C:
-			s.refresh(sched.panelType)
+			if !s.IsPaused(sched.panelType) {
+				s.refresh(sched.panelType)
+			}
 			s.setNextTime(sched.panelType, time.Now().Add(sched.interval))
 		}
 	}
@@ -133,7 +161,9 @@ func (s *Scheduler) runWeekly(sched panelSchedule) {
 			fmt.Printf("[scheduler] %s: stopped\n", sched.panelType)
 			return
 		case <-timer.C:
-			s.refresh(sched.panelType)
+			if !s.IsPaused(sched.panelType) {
+				s.refresh(sched.panelType)
+			}
 		}
 	}
 }
@@ -189,4 +219,153 @@ func durationUntil(day time.Weekday, hour, minute int) time.Duration {
 	}
 
 	return target.Sub(now)
+}
+
+// loadSchedules loads panel schedules from DB or seeds defaults
+func (s *Scheduler) loadSchedules() {
+	defaultSchedules := []struct {
+		panelType       string
+		mode            string
+		intervalMinutes int
+		weeklyDay       int
+		weeklyHour      int
+	}{
+		{"blockers", "interval", 300, 0, 0},           // 5 hours
+		{"things-to-remember", "interval", 360, 0, 0}, // 6 hours
+		{"suggestions", "weekly", 0, 6, 8},            // Saturday 08:00 (6 = Saturday in 0-6 scale)
+		{"achievements", "weekly", 0, 6, 8},           // Saturday 08:00
+	}
+
+	// Seed defaults if not exist
+	for _, def := range defaultSchedules {
+		existing, err := s.store.GetPanelSchedule(def.panelType)
+		if err != nil {
+			fmt.Printf("[scheduler] error loading schedule for %s: %v\n", def.panelType, err)
+			continue
+		}
+		if existing == nil {
+			// Seed default
+			schedule := &model.PanelSchedule{
+				PanelType:       def.panelType,
+				Paused:          false,
+				Mode:            def.mode,
+				IntervalMinutes: def.intervalMinutes,
+				WeeklyDay:       def.weeklyDay,
+				WeeklyHour:      def.weeklyHour,
+			}
+			if err := s.store.SavePanelSchedule(schedule); err != nil {
+				fmt.Printf("[scheduler] error seeding schedule for %s: %v\n", def.panelType, err)
+			}
+		}
+	}
+
+	// Load all schedules
+	dbSchedules, err := s.store.GetAllPanelSchedules()
+	if err != nil {
+		fmt.Printf("[scheduler] error loading schedules: %v\n", err)
+		return
+	}
+
+	// Convert to internal panelSchedule format
+	for _, dbSched := range dbSchedules {
+		sched := panelSchedule{
+			panelType: dbSched.PanelType,
+		}
+
+		if dbSched.Mode == "interval" {
+			sched.interval = time.Duration(dbSched.IntervalMinutes) * time.Minute
+		} else if dbSched.Mode == "weekly" {
+			sched.weekly = true
+			sched.weeklyDay = time.Weekday(dbSched.WeeklyDay)
+			sched.weeklyHr = dbSched.WeeklyHour
+		}
+
+		s.schedules = append(s.schedules, sched)
+		s.paused[dbSched.PanelType] = dbSched.Paused
+	}
+}
+
+// Pause pauses auto-refresh for a specific panel
+func (s *Scheduler) Pause(panelType string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.paused[panelType] = true
+
+	// Save to DB
+	schedule, err := s.store.GetPanelSchedule(panelType)
+	if err != nil {
+		return err
+	}
+	if schedule == nil {
+		return fmt.Errorf("schedule not found for panel: %s", panelType)
+	}
+
+	schedule.Paused = true
+	return s.store.SavePanelSchedule(schedule)
+}
+
+// Resume resumes auto-refresh for a specific panel
+func (s *Scheduler) Resume(panelType string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.paused[panelType] = false
+
+	// Save to DB
+	schedule, err := s.store.GetPanelSchedule(panelType)
+	if err != nil {
+		return err
+	}
+	if schedule == nil {
+		return fmt.Errorf("schedule not found for panel: %s", panelType)
+	}
+
+	schedule.Paused = false
+	return s.store.SavePanelSchedule(schedule)
+}
+
+// PauseAll pauses all panel auto-refreshes
+func (s *Scheduler) PauseAll() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, sched := range s.schedules {
+		s.paused[sched.panelType] = true
+		schedule, err := s.store.GetPanelSchedule(sched.panelType)
+		if err != nil || schedule == nil {
+			continue
+		}
+		schedule.Paused = true
+		if err := s.store.SavePanelSchedule(schedule); err != nil {
+			fmt.Printf("[scheduler] error pausing %s: %v\n", sched.panelType, err)
+		}
+	}
+	return nil
+}
+
+// ResumeAll resumes all panel auto-refreshes
+func (s *Scheduler) ResumeAll() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, sched := range s.schedules {
+		s.paused[sched.panelType] = false
+		schedule, err := s.store.GetPanelSchedule(sched.panelType)
+		if err != nil || schedule == nil {
+			continue
+		}
+		schedule.Paused = false
+		if err := s.store.SavePanelSchedule(schedule); err != nil {
+			fmt.Printf("[scheduler] error resuming %s: %v\n", sched.panelType, err)
+		}
+	}
+	return nil
+}
+
+// IsPaused checks if a panel is paused
+func (s *Scheduler) IsPaused(panelType string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.paused[panelType]
 }
