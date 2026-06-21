@@ -64,28 +64,30 @@ export function ScheduleCard({
         </div>
         {!editing && (
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setEditing(true)}
-              disabled={saving}
-              leftIcon={<Edit2 className="w-3 h-3" />}
-            >
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant={schedule.paused ? 'primary' : 'secondary'}
-              onClick={schedule.paused ? onResume : onPause}
-              disabled={saving}
-              isLoading={saving}
-              leftIcon={
-                !saving &&
-                (schedule.paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />)
-              }
-            >
-              {schedule.paused ? 'Resume' : 'Pause'}
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditing(true)}
+                disabled={saving}
+                leftIcon={<Edit2 className="w-3 h-3" />}
+              >
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="neuro"
+                onClick={schedule.paused ? onResume : onPause}
+                disabled={saving}
+                isLoading={saving}
+                leftIcon={
+                  !saving &&
+                  (schedule.paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />)
+                }
+              >
+                {schedule.paused ? 'Resume' : 'Pause'}
+              </Button>
+            </>
           </div>
         )}
       </div>

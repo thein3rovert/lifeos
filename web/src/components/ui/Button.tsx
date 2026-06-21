@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'neuro';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,11 +14,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-accent-primary text-inverse hover:brightness-95 disabled:opacity-50 disabled:hover:brightness-100',
+    'bg-highlight hover:bg-highlight-hover text-white disabled:opacity-50',
   secondary:
     'bg-raised border border-default text-secondary hover:bg-hover hover:text-white disabled:opacity-50',
   ghost: 'bg-transparent text-secondary hover:bg-hover hover:text-white disabled:opacity-50',
   danger: 'bg-error text-white hover:brightness-110 disabled:opacity-50',
+  neuro:
+    'bg-button text-secondary hover:text-primary disabled:opacity-50',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -39,6 +41,12 @@ export function Button({
   type = 'button',
   ...props
 }: ButtonProps) {
+  // Add neuro shadow for neuro variant
+  const needsShadow = variant === 'neuro';
+  const shadowStyle = needsShadow && !disabled && !isLoading
+    ? { boxShadow: 'var(--shadow-neuro-raised)' }
+    : {};
+
   return (
     <button
       type={type}
@@ -46,12 +54,14 @@ export function Button({
       className={`
         inline-flex items-center justify-center
         rounded-md font-medium
-        transition-colors duration-150
+        transition-all duration-150
+        active:scale-98
         disabled:cursor-not-allowed
         ${variantClasses[variant]}
         ${sizeClasses[size]}
         ${className}
       `}
+      style={shadowStyle}
       {...props}
     >
       {isLoading ? (

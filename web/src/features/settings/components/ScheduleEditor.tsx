@@ -87,7 +87,7 @@ export function ScheduleEditor({ schedule, saving, onSave, onCancel }: ScheduleE
       )}
 
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="primary" onClick={handleSave} disabled={saving} isLoading={saving}>
+        <Button size="sm" variant="neuro" onClick={handleSave} disabled={saving} isLoading={saving}>
           Save
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel} disabled={saving}>

@@ -38,6 +38,7 @@
   --color-bg-selected: rgba(255, 255, 255, 0.06);
   --color-bg-active: rgba(255, 255, 255, 0.08);
   --color-bg-elevated: #0f0f0f;
+  --color-bg-button: #0f0f0f;
 
   /* ---------- Text ---------- */
   --color-text-primary: #ffffff;

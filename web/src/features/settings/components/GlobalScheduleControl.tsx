@@ -22,7 +22,7 @@ export function GlobalScheduleControl({
           </p>
         </div>
         <Button
-          variant={globalPaused ? 'primary' : 'secondary'}
+          variant="neuro"
           size="sm"
           onClick={onToggle}
           disabled={saving}
