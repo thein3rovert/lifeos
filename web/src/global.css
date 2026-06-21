@@ -309,3 +309,13 @@ body {
 .atlas-input::placeholder {
   color: var(--color-text-muted);
 }
+
+/* Select dropdowns */
+select option {
+  background-color: var(--color-bg-raised);
+  color: var(--color-text-primary);
+}
+
+select option:checked {
+  background-color: var(--color-accent-highlight);
+}

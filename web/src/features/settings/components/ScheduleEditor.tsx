@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PanelScheduleStatus } from '@/types';
-import { Button } from '@/components/ui/Button';
+import { Button, Select, Input } from '@/components/ui';
 
 const WEEKDAY_LABELS = [
   'Sunday',
@@ -42,61 +42,47 @@ export function ScheduleEditor({ schedule, saving, onSave, onCancel }: ScheduleE
 
   return (
     <div className="pt-3 border-t border-default space-y-3">
-      <div>
-        <label className="text-xs font-medium text-primary block mb-1.5">Schedule Mode</label>
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as 'interval' | 'weekly')}
-          className="w-full h-6 px-2 bg-input border border-default rounded-md text-xs text-primary focus:border-highlight focus:outline-none transition-colors"
-        >
-          <option value="interval">Interval</option>
-          <option value="weekly">Weekly</option>
-        </select>
-      </div>
+      <Select
+        label="Schedule Mode"
+        value={mode}
+        onChange={(e) => setMode(e.target.value as 'interval' | 'weekly')}
+      >
+        <option value="interval">Interval</option>
+        <option value="weekly">Weekly</option>
+      </Select>
 
       {mode === 'interval' && (
-        <div>
-          <label className="text-xs font-medium text-primary block mb-1.5">
-            Refresh Every (hours)
-          </label>
-          <input
-            type="number"
-            min="1"
-            max="168"
-            value={intervalHours}
-            onChange={(e) => setIntervalHours(Number.parseInt(e.target.value))}
-            className="w-full h-6 px-2 bg-input border border-default rounded-md text-xs text-primary placeholder:text-muted focus:border-highlight focus:outline-none transition-colors"
-          />
-        </div>
+        <Input
+          type="number"
+          label="Refresh Every (hours)"
+          min="1"
+          max="168"
+          value={intervalHours}
+          onChange={(e) => setIntervalHours(Number.parseInt(e.target.value))}
+        />
       )}
 
       {mode === 'weekly' && (
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium text-primary block mb-1.5">Day of Week</label>
-            <select
-              value={weeklyDay}
-              onChange={(e) => setWeeklyDay(Number.parseInt(e.target.value))}
-              className="w-full h-6 px-2 bg-input border border-default rounded-md text-xs text-primary focus:border-highlight focus:outline-none transition-colors"
-            >
-              {WEEKDAY_LABELS.map((day, i) => (
-                <option key={i} value={i}>
-                  {day}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-primary block mb-1.5">Hour (24h)</label>
-            <input
-              type="number"
-              min="0"
-              max="23"
-              value={weeklyHour}
-              onChange={(e) => setWeeklyHour(Number.parseInt(e.target.value))}
-              className="w-full h-6 px-2 bg-input border border-default rounded-md text-xs text-primary placeholder:text-muted focus:border-highlight focus:outline-none transition-colors"
-            />
-          </div>
+          <Select
+            label="Day of Week"
+            value={weeklyDay}
+            onChange={(e) => setWeeklyDay(Number.parseInt(e.target.value))}
+          >
+            {WEEKDAY_LABELS.map((day, i) => (
+              <option key={i} value={i}>
+                {day}
+              </option>
+            ))}
+          </Select>
+          <Input
+            type="number"
+            label="Hour (24h)"
+            min="0"
+            max="23"
+            value={weeklyHour}
+            onChange={(e) => setWeeklyHour(Number.parseInt(e.target.value))}
+          />
         </div>
       )}
 
