@@ -41,9 +41,9 @@ export function Sidebar() {
         <div className="h-14 flex items-center justify-between px-4 border-b border-default">
           {!collapsed && (
             <>
-              <div className="flex items-center gap-2">
-                <img src="/logo-512.png" alt="LifeOS" className="w-9 h-9 rounded object-contain" />
-                <span className="font-logo text-lg tracking-wide text-white">LifeOS</span>
+              <div className="flex items-center gap-2.5">
+                <img src="/logo-512.png" alt="LifeOS" className="w-8 h-8 rounded object-contain" />
+                <span className="font-logo text-lg tracking-wide text-white leading-none">LifeOS</span>
               </div>
               <button
                 type="button"
