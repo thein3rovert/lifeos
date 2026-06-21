@@ -127,6 +127,17 @@ func (s *SQLiteStore) migrate() error {
 		`ALTER TABLE smartboard_panels ADD COLUMN session_id TEXT;`,
 		`ALTER TABLE smartboard_panels ADD COLUMN source_fingerprint TEXT NOT NULL DEFAULT '';`,
 		`CREATE INDEX IF NOT EXISTS idx_smartboard_panels_type_refresh ON smartboard_panels(panel_type, last_refreshed DESC);`,
+
+		// Add panel_schedules table for scheduler settings
+		`CREATE TABLE IF NOT EXISTS panel_schedules (
+        panel_type TEXT PRIMARY KEY,
+        paused BOOLEAN DEFAULT FALSE,
+        mode TEXT DEFAULT 'interval' CHECK(mode IN ('interval', 'weekly')),
+        interval_minutes INTEGER,
+        weekly_day INTEGER CHECK(weekly_day >= 0 AND weekly_day <= 6),
+        weekly_hour INTEGER CHECK(weekly_hour >= 0 AND weekly_hour <= 23),
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
 	}
 	for _, q := range queries {
 		if _, err := s.db.Exec(q); err != nil {
