@@ -9,7 +9,7 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] I need to convert the catagory on the card to tags instead and have them below like linear
 - [x] I need to preview card below to show the preview mode first instead of edit mode and i need the save to work.
 - [ ] Make sure the github action is using bun so it have faster build time
-- [ ] Generate a new agent.md for lifeos so its 
+- [x] Generate a new agent.md for lifeos so its 
 - [ ] Add the ability to pause/disable the timer on each panel
   - [ ] Maybe also add it in settings
 - [ ] Add notification (discord/telegram)
@@ -24,11 +24,11 @@ But this page except for the chat interface is currently blank and has nothing i
 
 #### Phase 1: Backend Foundation ✅ COMMITTED
 - [x] 1.1 Database schema - Add migration to sqlite.go
-- [x] 1.2 Model - Create internal/model/smartboard.go
-- [x] 1.3 Store - Create internal/store/smartboard.go
-- [x] 1.4 Service - Create internal/services/smartboard.go
-- [x] 1.5 Handlers - Create internal/api/smartboard/smartboard.go
-- [x] 1.6 Routes - Wire up in cmd/server/main.go
+- [x] 1.2 Model - Create server/internal/model/smartboard.go
+- [x] 1.3 Store - Create server/internal/store/smartboard.go
+- [x] 1.4 Service - Create server/internal/services/smartboard.go
+- [x] 1.5 Handlers - Create server/internal/api/smartboard/smartboard.go
+- [x] 1.6 Routes - Wire up in server/cmd/server/main.go
 
 #### Phase 2: Frontend Components
 - [x] 2.1 Create reusable SmartBoardPanel component

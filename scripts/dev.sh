@@ -57,7 +57,7 @@ start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && npm start" "3002"
 sleep 2
 
 # 3. Start Go Backend
-start_service "Backend" "export CORS_ORIGINS='http://localhost:3001,http://100.105.217.77:3001' && cd $PROJECT_ROOT && go run cmd/server/main.go" "6060"
+start_service "Backend" "export CORS_ORIGINS='http://localhost:3001,http://100.105.217.77:3001' && cd $PROJECT_ROOT && go run server/cmd/server/main.go" "6060"
 sleep 2
 
 # 4. Start Vite Frontend

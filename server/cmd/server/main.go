@@ -1,0 +1,252 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/mark3labs/mcp-go/server"
+	"github.com/thein3rovert/lifeos/server/internal/api"
+	agents "github.com/thein3rovert/lifeos/server/internal/api/agents"
+	chats "github.com/thein3rovert/lifeos/server/internal/api/chats"
+	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
+	smartboardapi "github.com/thein3rovert/lifeos/server/internal/api/smartboard"
+	"github.com/thein3rovert/lifeos/server/internal/handler"
+	mcpServer "github.com/thein3rovert/lifeos/server/internal/mcp"
+	"github.com/thein3rovert/lifeos/server/internal/middleware"
+	service "github.com/thein3rovert/lifeos/server/internal/services"
+	"github.com/thein3rovert/lifeos/server/internal/store"
+	"github.com/thein3rovert/lifeos/server/internal/store/github"
+	"github.com/thein3rovert/lifeos/server/internal/store/notes"
+	skillstore "github.com/thein3rovert/lifeos/server/internal/store/skills"
+)
+
+// go run server/cmd/server/main.go           -- runs HTTP server
+// go run server/cmd/server/main.go --mcp     -- runs MCP stdio server
+func main() {
+	// Parse command line flags
+	mcpMode := flag.Bool("mcp", false, "Run as MCP stdio server instead of HTTP server")
+	flag.Parse()
+
+	// If --mcp flag is set, run the MCP stdio server
+	if *mcpMode {
+		runMCPServer()
+		return
+	}
+
+	// Otherwise, run the normal HTTP server
+	runHTTPServer()
+}
+
+// runMCPServer starts the MCP stdio server for OpenCode
+func runMCPServer() {
+	s := mcpServer.NewMCPServer()
+	if err := server.ServeStdio(s); err != nil {
+		log.Fatalf("MCP server error: %v", err)
+	}
+}
+
+// runHTTPServer starts the normal HTTP server for the web app
+func runHTTPServer() {
+
+	// Initialise store (Database store -> photos)
+	db, err := store.NewSQLiteStore("lifeos.db")
+	if err != nil {
+		log.Fatalf("Failed to initialise store: %v", err)
+	}
+
+	// Initialise new photo store
+	photoStore := store.NewPhotoStore(db.DB())
+
+	// Initialise GitHub skills store
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubOwner := os.Getenv("GITHUB_OWNER")
+	githubRepo := os.Getenv("GITHUB_REPO")
+
+	if githubToken == "" || githubOwner == "" || githubRepo == "" {
+		log.Fatal("GitHub credentials not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables")
+	}
+
+	// Create GitHub store for sync operations
+	githubSkillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
+
+	// Create SQLite-backed skill store (primary source, GitHub for sync)
+	skillStore, err := skillstore.NewSQLSkillStore(db.DB(), githubSkillStore)
+	if err != nil {
+		log.Fatalf("Failed to initialise skill store: %v", err)
+	}
+
+	// Sync from GitHub only if SQLite is empty (first run)
+	skills, _ := skillStore.ListSkills()
+	if len(skills) == 0 {
+		log.Println("SQLite empty, performing initial sync from GitHub...")
+		if err := skillStore.Sync(); err != nil {
+			log.Printf("Warning: initial sync failed: %v", err)
+			log.Println("Continuing with empty skill cache - use manual sync button to retry")
+		} else {
+			log.Println("Initial skills sync complete")
+		}
+	} else {
+		log.Printf("Loaded %d skills from SQLite (manual sync available)", len(skills))
+	}
+
+	noteStore := notes.New(db.DB())
+	chatMsgStore := store.NewChatMessageStore(db.DB())
+
+	// Get port from env
+	port := os.Getenv("LIFEOS_PORT")
+	if port == "" {
+		port = "6060"
+	}
+
+	mux := http.NewServeMux()
+
+	// ── Initialize services ─────────────────────────────────────
+	sidecarURL := os.Getenv("SIDECAR_URL")
+	if sidecarURL == "" {
+		sidecarURL = "http://127.0.0.1:3002"
+	}
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
+	noteService := service.NewNoteService(noteStore, skillStore)
+
+	// Smart board store and service
+	smartBoardStore := store.NewSmartBoardStore(db.DB())
+	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService)
+	defer smartBoardService.Stop()
+
+	// ── Initialize API handlers ─────────────────────────────────────
+	photoAPI := api.NewPhotoHandler(photoStore)
+	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
+	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
+	noteAPI := api.NewNoteHandler(noteService)
+	aiAPI := api.NewAIHandler(skillStore, noteStore)
+	tagAPI := api.NewTagHandler(photoStore)
+	chatAPI := chats.NewAgentChatHandler(agentChatService)
+	agentAPI := agents.NewAgentChatHandler(agentChatService)
+	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
+
+	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
+	// Photos
+	mux.HandleFunc("GET /api/photos", photoAPI.ListPhotos)
+	mux.HandleFunc("GET /api/photos/search", photoAPI.SearchPhotos)
+	mux.HandleFunc("POST /api/photos/upload", photoAPI.UploadPhoto)
+	mux.HandleFunc("GET /api/photos/{id}", photoAPI.GetPhoto)
+
+	// Skills
+	mux.HandleFunc("POST /api/skills/create", skillAPI.CreateNewSkill)
+	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
+	mux.HandleFunc("GET /api/skills/sync", skillAPI.SyncSkills)
+	mux.HandleFunc("POST /api/skills/push", skillAPI.PushSkills)
+	mux.HandleFunc("POST /api/skills/{id}/push", skillAPI.PushSingleSkill)
+	mux.HandleFunc("POST /api/skills/edit", skillAPI.EditSkill)
+	mux.HandleFunc("GET /api/skills/{id}", skillAPI.GetSkill)
+	mux.HandleFunc("GET /api/skills/{id}/files", skillFileAPI.ListFile)
+	mux.HandleFunc("GET /api/skills/{id}/files/{path...}", skillFileAPI.GetFile)
+	mux.HandleFunc("PUT /api/skills/{id}/files/{path...}", skillFileAPI.SaveFile)
+
+	// Notes
+	mux.HandleFunc("GET /api/notes", noteAPI.GetAllNotes)
+	mux.HandleFunc("GET /api/skills/{id}/notes", noteAPI.GetNotes)
+	mux.HandleFunc("POST /api/skills/{id}/notes", noteAPI.AddNote)
+	mux.HandleFunc("PUT /api/skills/{id}/notes/{noteId}", noteAPI.UpdateNote)
+	mux.HandleFunc("PATCH /api/skills/{id}/notes/{noteId}", noteAPI.EditNote)
+	mux.HandleFunc("DELETE /api/skills/{id}/notes/{noteId}", noteAPI.DeleteNote)
+
+	// AI workflow
+	mux.HandleFunc("POST /api/skills/{id}/preview", aiAPI.PreviewSkillUpdate)
+	mux.HandleFunc("POST /api/skills/{id}/save", aiAPI.SaveSkillUpdate)
+	mux.HandleFunc("POST /api/skills/{id}/notes/append", aiAPI.AppendNotesToSkill)
+	mux.HandleFunc("POST /api/skills/preview-render", aiAPI.RenderMarkdown)
+
+	// Tags
+	mux.HandleFunc("GET /api/tags", tagAPI.ListTags)
+
+	// Chat (persistent sessions)
+	mux.HandleFunc("POST /api/skills/{id}/session", chatAPI.GetOrCreateSession)
+	mux.HandleFunc("POST /api/skills/{id}/chat", chatAPI.SendChatMessage)
+	mux.HandleFunc("GET /api/skills/{id}/messages", chatAPI.GetChatMessages)
+
+	// Agent chat (general assistant with MCP tools)
+	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChatMessage)
+	mux.HandleFunc("POST /api/agent/abort", agentAPI.AbortRequest)
+
+	// Smart Board
+	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
+	mux.HandleFunc("GET /api/smartboard/schedule", smartBoardAPI.GetScheduleStatus)
+	mux.HandleFunc("POST /api/smartboard/schedule/pause-all", smartBoardAPI.PauseAllPanels)
+	mux.HandleFunc("POST /api/smartboard/schedule/resume-all", smartBoardAPI.ResumeAllPanels)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}/pause", smartBoardAPI.PausePanel)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}/resume", smartBoardAPI.ResumePanel)
+	mux.HandleFunc("POST /api/smartboard/schedule/{panelType}", smartBoardAPI.SetPanelSchedule)
+	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
+	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
+	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)
+
+	// ==== MCP SSE Endpoints ====
+	lifeosMCPServer := mcpServer.NewMCPServer()
+	// Server sent event transport
+	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+port))
+	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
+
+	// ── HTML routes (existing, will be removed in Phase 4) ─────────
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("LifeOS is running"))
+	})
+
+	mux.HandleFunc("/home", handler.Home)
+
+	mux.HandleFunc("/photos", handler.Photos)
+	mux.HandleFunc("/photos/view", handler.ListPhotos(photoStore))
+	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(photoStore))
+	mux.HandleFunc("/photos/search", handler.SearchPhotos(photoStore))
+
+	// Static file server for serving local photos
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+
+	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
+	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
+	mux.HandleFunc("/skills/edit", handler.EditSkill(skillStore))
+	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
+	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
+	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
+	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore))
+	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
+	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
+	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
+
+	// ── Start HTTP server with graceful shutdown ──────────────────────
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: middleware.CORS(middleware.CustomLogger(mux)),
+	}
+
+	// Channel to capture shutdown signals
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("Server starting on %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Failed to listen at port %s: %v\n", port, err)
+			log.Fatal(err)
+		}
+	}()
+
+	// Block until signal received
+	<-stop
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	log.Println("Server stopped")
+}

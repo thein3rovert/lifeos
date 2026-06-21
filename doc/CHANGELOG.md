@@ -14,8 +14,8 @@ All notable changes and features will be documented in this file.
 - **Dual-Mode Binary** - Single server binary with `--mcp` flag for MCP mode
 
 ### Backend
-- `internal/mcp/server.go` - MCP server with `list_files` and `read_file` tools
-- `cmd/server/main.go --mcp` flag - Combined binary for both HTTP and MCP modes
+- `server/internal/mcp/server.go` - MCP server with `list_files` and `read_file` tools
+- `server/cmd/server/main.go --mcp` flag - Combined binary for both HTTP and MCP modes
 - `isAllowedDirectory()` - Security check restricting access to approved paths
 - Allowed directories: `/home/thein3rovert/Documents/project/*` and `/home/thein3rovert/.config/opencode/*`
 
@@ -73,8 +73,8 @@ All notable changes and features will be documented in this file.
 - `skill_files` table - Stores reference files with content (skill_id, path, type, name, content, updated_at)
 - `GET /api/skills/{id}/files` - List all reference files for a skill
 - `GET /api/skills/{id}/files/{path...}` - Get single reference file by path
-- `internal/store/skills/files.go` - CRUD operations for skill files
-- `internal/api/skills/files.go` - API handlers for skill references
+- `server/internal/store/skills/files.go` - CRUD operations for skill files
+- `server/internal/api/skills/files.go` - API handlers for skill references
 - `ListDirectoryRecursive()` in GitHub client - Recursive folder fetching
 - `GetSkillFiles()` in GitHub SkillStore - Fetches and caches reference files
 - Sync automatically fetches references for each skill

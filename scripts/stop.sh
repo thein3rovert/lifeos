@@ -40,7 +40,7 @@ echo ""
 echo -e "${YELLOW}[•]${NC} Cleaning up any remaining processes..."
 pkill -f "opencode serve" 2>/dev/null || true
 pkill -f "npm start" 2>/dev/null || true
-pkill -f "go run cmd/server/main.go" 2>/dev/null || true
+pkill -f "go run server/cmd/server/main.go" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 
 echo ""

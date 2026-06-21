@@ -17,7 +17,7 @@ COPY . .
 # Build the binary with cache mounts for module and build cache
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 GOOS=linux go build -ldflags="-w -s" -o lifeos cmd/server/main.go
+    CGO_ENABLED=1 GOOS=linux go build -ldflags="-w -s" -o lifeos server/cmd/server/main.go
 
 # Final stage
 FROM alpine:latest

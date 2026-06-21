@@ -58,5 +58,4 @@ tmp/
 node_modules/
 package-lock.json
 /.next/
-agent.md
 logs

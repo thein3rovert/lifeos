@@ -7,7 +7,7 @@
 
 ## Current Behavior
 
-The backend scheduler (`internal/services/scheduler.go`) runs four panel schedules with hard-coded intervals:
+The backend scheduler (`server/internal/services/scheduler.go`) runs four panel schedules with hard-coded intervals:
 
 | Panel | Schedule |
 | ----- | -------- |
@@ -52,7 +52,7 @@ Seed default rows matching the current hard-coded schedules.
 
 ### 2. Scheduler Refactor
 
-`internal/services/scheduler.go`:
+`server/internal/services/scheduler.go`:
 
 - Load schedules from DB on `NewScheduler` / `Start`.
 - Keep an in-memory `paused` map per panel.
@@ -67,7 +67,7 @@ Seed default rows matching the current hard-coded schedules.
 
 ### 3. API Endpoints
 
-`internal/api/smartboard/smartboard.go`:
+`server/internal/api/smartboard/smartboard.go`:
 
 - `GET /api/smartboard/schedule` — already exists; extend response with pause + config fields.
 - `POST /api/smartboard/schedule/{panelType}/pause`
@@ -78,7 +78,7 @@ Seed default rows matching the current hard-coded schedules.
 
 ### 4. Store Layer
 
-`internal/store/smartboard/schedule.go`:
+`server/internal/store/smartboard/schedule.go`:
 
 - `GetPanelSchedule(panelType string) (*PanelSchedule, error)`
 - `SavePanelSchedule(schedule *PanelSchedule) error`

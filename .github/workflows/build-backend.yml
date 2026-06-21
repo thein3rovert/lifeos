@@ -5,8 +5,8 @@ on:
     branches: [main]
     tags: ['v*']
     paths:
-      - 'cmd/**'
-      - 'internal/**'
+      - 'server/cmd/**'
+      - 'server/internal/**'
       - 'go.mod'
       - 'go.sum'
       - 'Dockerfile'

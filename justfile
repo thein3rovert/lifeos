@@ -15,7 +15,7 @@ stop:
 # Start only the Go backend
 backend:
     @echo "🚀 Starting Backend..."
-    @export CORS_ORIGINS="http://localhost:3001,http://100.105.217.77:3001" && go run cmd/server/main.go
+    @export CORS_ORIGINS="http://localhost:3001,http://100.105.217.77:3001" && go run server/cmd/server/main.go
 
 # Start only the frontend
 frontend:
@@ -35,7 +35,7 @@ opencode:
 # Build the Go backend
 build:
     @echo "🔨 Building backend..."
-    @go build -o bin/lifeos cmd/server/main.go
+    @go build -o bin/lifeos server/cmd/server/main.go
     @echo "✓ Binary created: bin/lifeos"
 
 # Run tests
@@ -84,7 +84,7 @@ install:
 # Database migrations (if needed)
 migrate:
     @echo "🗄️  Running migrations..."
-    @go run cmd/server/main.go migrate
+    @go run server/cmd/server/main.go migrate
 
 # Open the app in browser
 open:
