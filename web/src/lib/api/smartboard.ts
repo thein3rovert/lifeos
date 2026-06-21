@@ -23,4 +23,38 @@ export const smartboardApi = {
     }),
 
   getSchedule: () => fetcher<ScheduleStatusMap>('/api/smartboard/schedule'),
+
+  pausePanel: (panelType: PanelType) =>
+    fetcher<{ message: string }>(`/api/smartboard/schedule/${panelType}/pause`, {
+      method: 'POST',
+    }),
+
+  resumePanel: (panelType: PanelType) =>
+    fetcher<{ message: string }>(`/api/smartboard/schedule/${panelType}/resume`, {
+      method: 'POST',
+    }),
+
+  setPanelSchedule: (
+    panelType: PanelType,
+    config: {
+      mode: 'interval' | 'weekly';
+      intervalMinutes?: number;
+      weeklyDay?: number;
+      weeklyHour?: number;
+    }
+  ) =>
+    fetcher<{ message: string }>(`/api/smartboard/schedule/${panelType}`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+
+  pauseAllPanels: () =>
+    fetcher<{ message: string }>('/api/smartboard/schedule/pause-all', {
+      method: 'POST',
+    }),
+
+  resumeAllPanels: () =>
+    fetcher<{ message: string }>('/api/smartboard/schedule/resume-all', {
+      method: 'POST',
+    }),
 };

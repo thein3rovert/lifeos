@@ -159,6 +159,11 @@ export interface PanelScheduleStatus {
   nextRefresh: string;
   lastError: string;
   interval: string;
+  paused: boolean;
+  mode: 'interval' | 'weekly';
+  intervalMinutes?: number;
+  weeklyDay?: number;
+  weeklyHour?: number;
 }
 
 export type ScheduleStatusMap = Record<PanelType, PanelScheduleStatus>;
