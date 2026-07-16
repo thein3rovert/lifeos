@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"strings"
 
@@ -20,13 +19,15 @@ import (
 type AIHandler struct {
 	skillStore store.SkillStore
 	noteStore  store.NoteStore
+	sidecarURL string
 }
 
 // NewAIHandler creates a new AI workflow API handler
-func NewAIHandler(skillStore store.SkillStore, noteStore store.NoteStore) *AIHandler {
+func NewAIHandler(skillStore store.SkillStore, noteStore store.NoteStore, sidecarURL string) *AIHandler {
 	return &AIHandler{
 		skillStore: skillStore,
 		noteStore:  noteStore,
+		sidecarURL: sidecarURL,
 	}
 }
 
@@ -67,7 +68,7 @@ func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call sidecar for AI update
-	updatedContent, err := callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
+	updatedContent, err := h.callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
 	if err != nil {
 		log.Printf("Sidecar error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
@@ -209,7 +210,7 @@ func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call sidecar for AI update
-	updatedContent, err := callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
+	updatedContent, err := h.callSideCarForSkillUpdate(skill.Content, notesBuilder.String())
 	if err != nil {
 		log.Printf("Sidecar error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "failed to update skill with AI: "+err.Error())
@@ -231,9 +232,10 @@ func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, skillsapi.SkillToResponse(skill))
 }
 
-// callSideCarForSkillUpdate calls the Node.js sidecar for AI skill updates
+// callSideCarForSkillUpdate calls the Node.js sidecar for AI skill updates.
+// Method on AIHandler so it can use the configured sidecar URL.
 // TODO: extract to shared client or dedicated package
-func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
+func (h *AIHandler) callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 	type sidecarRequest struct {
 		ExistingSkill string `json:"existingSkill"`
 		NewNotes      string `json:"newNotes"`
@@ -253,13 +255,7 @@ func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 		return "", err
 	}
 
-	// Get sidecar URL from env or use default
-	sidecarURL := os.Getenv("SIDECAR_URL")
-	if sidecarURL == "" {
-		sidecarURL = "http://localhost:3002"
-	}
-
-	response, err := http.Post(sidecarURL+"/skill/update", "application/json", bytes.NewBuffer(jsonData))
+	response, err := http.Post(h.sidecarURL+"/skill/update", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}

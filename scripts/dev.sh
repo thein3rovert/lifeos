@@ -2,11 +2,27 @@
 
 # LifeOS Development Startup Script
 # Runs all services: OpenCode, Sidecar, Backend, Frontend
+# Config comes from .env (see .env.example for defaults).
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/logs"
+
+# ── Load .env if present ────────────────────────────────────────
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
+# Defaults (used only if .env doesn't set them)
+: "${LIFEOS_PORT:=6060}"
+: "${PORT:=3002}"                              # sidecar internal port
+: "${FRONTEND_DEV_PORT:=3000}"                 # vite dev server
+: "${OPENCODE_PORT:=4097}"
+: "${CORS_ORIGINS:=http://localhost:${FRONTEND_DEV_PORT}}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -49,19 +65,19 @@ start_service() {
 }
 
 # 1. Start OpenCode Server
-start_service "OpenCode" "opencode serve --port 4097" "4097"
+start_service "OpenCode" "opencode serve --port $OPENCODE_PORT" "$OPENCODE_PORT"
 sleep 2
 
 # 2. Start Sidecar
-start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && npm start" "3002"
+start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && PORT=$PORT npm start" "$PORT"
 sleep 2
 
 # 3. Start Go Backend
-start_service "Backend" "export CORS_ORIGINS='http://localhost:3001,http://100.105.217.77:3001' && cd $PROJECT_ROOT && go run server/cmd/server/main.go" "6060"
+start_service "Backend" "cd $PROJECT_ROOT && CORS_ORIGINS='$CORS_ORIGINS' LIFEOS_PORT=$LIFEOS_PORT go run server/cmd/server/main.go" "$LIFEOS_PORT"
 sleep 2
 
 # 4. Start Vite Frontend
-start_service "Frontend" "cd $PROJECT_ROOT/web && npm run dev" "3001"
+start_service "Frontend" "cd $PROJECT_ROOT/web && npm run dev" "$FRONTEND_DEV_PORT"
 sleep 2
 
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
@@ -69,10 +85,10 @@ echo -e "${GREEN}║   ✨ All services running!            ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}Services:${NC}"
-echo -e "  • OpenCode:  ${YELLOW}http://localhost:4097${NC}"
-echo -e "  • Sidecar:   ${YELLOW}http://localhost:3002${NC}"
-echo -e "  • Backend:   ${YELLOW}http://localhost:6060${NC}"
-echo -e "  • Frontend:  ${YELLOW}http://localhost:3001${NC}"
+echo -e "  • OpenCode:  ${YELLOW}http://localhost:$OPENCODE_PORT${NC}"
+echo -e "  • Sidecar:   ${YELLOW}http://localhost:$PORT${NC}"
+echo -e "  • Backend:   ${YELLOW}http://localhost:$LIFEOS_PORT${NC}"
+echo -e "  • Frontend:  ${YELLOW}http://localhost:$FRONTEND_DEV_PORT${NC}"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
 echo -e "  • tail -f $LOG_DIR/OpenCode.log"

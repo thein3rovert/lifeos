@@ -12,8 +12,15 @@
 //   environment:
 //     - API_URL=http://100.105.217.77:6060
 
-const FRONTEND_DIRECT_PORTS = new Set(['3000', '3001']);
-const BACKEND_PORT = '6060';
+// Map frontend host ports to their corresponding backend host ports.
+// - 3000: native dev (npm run dev) → backend on 6060
+// - 3001: legacy container mapping → backend on 6060
+// - 7001: prod containers (docker-compose.prod.yml) → backend on 7060
+const FRONTEND_TO_BACKEND_PORT: Record<string, string> = {
+  '3000': '6060',
+  '3001': '6060',
+  '7001': '7060',
+};
 
 declare global {
   interface Window {
@@ -36,8 +43,9 @@ export function apiUrl(path: string): string {
 
   // Fallback: detect from window.location
   const { protocol, hostname, port } = window.location;
-  if (FRONTEND_DIRECT_PORTS.has(port)) {
-    return `${protocol}//${hostname}:${BACKEND_PORT}${path}`;
+  const backendPort = FRONTEND_TO_BACKEND_PORT[port];
+  if (backendPort) {
+    return `${protocol}//${hostname}:${backendPort}${path}`;
   }
 
   // Same-origin (reverse proxy)

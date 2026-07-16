@@ -259,7 +259,7 @@ func DeleteNote(noteStore store.NoteStore) http.HandlerFunc {
 // Since all skills are fetched from github..we need to create a pr for
 // the append or send the note to ai to update the skillks and then create
 // pr
-func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) http.HandlerFunc {
+func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore, sidecarURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -303,7 +303,7 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
 		// Call sidecar to get AI-updated skills
 		// TODO: Move to Utilss
 		var skillContent = skill.Content
-		updatedContent, err := callSideCarForSkillUpdate(skillContent, newNotes)
+		updatedContent, err := callSideCarForSkillUpdate(skillContent, newNotes, sidecarURL)
 
 		// Add note builder content to skills by updating skills with AI-generated
 		// content
@@ -327,7 +327,7 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
 	}
 }
 
-func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
+func callSideCarForSkillUpdate(existingSkill, newNotes, sidecarURL string) (string, error) {
 	// TODO: Move type to appropraite or dedicated location
 	type sidecarRequest struct {
 		ExistingSkill string `json:"existingSkill"`
@@ -348,7 +348,7 @@ func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 	}
 
 	response, err := http.Post(
-		"http://localhost:3002/skill/update",
+		sidecarURL+"/skill/update",
 		"application/json",
 		bytes.NewBuffer(jsonData),
 	)
@@ -375,7 +375,7 @@ func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
 }
 
 // PreviewSkillUpdate calls sidecar to get AI-updated skill, shows preview
-func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) http.HandlerFunc {
+func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore, sidecarURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -418,7 +418,7 @@ func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) 
 		newNotes := notesBuilder.String()
 
 		// Call sidecar to get AI-updated skill
-		updatedContent, err := callSideCarForSkillUpdate(skill.Content, newNotes)
+		updatedContent, err := callSideCarForSkillUpdate(skill.Content, newNotes, sidecarURL)
 		if err != nil {
 			log.Printf("Sidecar error: %v", err)
 			http.Error(w, "Failed to update skill with AI: "+err.Error(), http.StatusInternalServerError)

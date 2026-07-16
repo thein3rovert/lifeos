@@ -17,6 +17,7 @@ import (
 	chats "github.com/thein3rovert/lifeos/server/internal/api/chats"
 	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
 	smartboardapi "github.com/thein3rovert/lifeos/server/internal/api/smartboard"
+	"github.com/thein3rovert/lifeos/server/internal/config"
 	"github.com/thein3rovert/lifeos/server/internal/handler"
 	mcpServer "github.com/thein3rovert/lifeos/server/internal/mcp"
 	"github.com/thein3rovert/lifeos/server/internal/middleware"
@@ -54,6 +55,8 @@ func runMCPServer() {
 
 // runHTTPServer starts the normal HTTP server for the web app
 func runHTTPServer() {
+	// Load configuration once at startup
+	cfg := config.Load()
 
 	// Initialise store (Database store -> photos)
 	db, err := store.NewSQLiteStore("lifeos.db")
@@ -64,17 +67,8 @@ func runHTTPServer() {
 	// Initialise new photo store
 	photoStore := store.NewPhotoStore(db.DB())
 
-	// Initialise GitHub skills store
-	githubToken := os.Getenv("GITHUB_TOKEN")
-	githubOwner := os.Getenv("GITHUB_OWNER")
-	githubRepo := os.Getenv("GITHUB_REPO")
-
-	if githubToken == "" || githubOwner == "" || githubRepo == "" {
-		log.Fatal("GitHub credentials not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables")
-	}
-
 	// Create GitHub store for sync operations
-	githubSkillStore := github.NewSkillStore(githubOwner, githubRepo, githubToken)
+	githubSkillStore := github.NewSkillStore(cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubToken)
 
 	// Create SQLite-backed skill store (primary source, GitHub for sync)
 	skillStore, err := skillstore.NewSQLSkillStore(db.DB(), githubSkillStore)
@@ -99,20 +93,10 @@ func runHTTPServer() {
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
 
-	// Get port from env
-	port := os.Getenv("LIFEOS_PORT")
-	if port == "" {
-		port = "6060"
-	}
-
 	mux := http.NewServeMux()
 
 	// ── Initialize services ─────────────────────────────────────
-	sidecarURL := os.Getenv("SIDECAR_URL")
-	if sidecarURL == "" {
-		sidecarURL = "http://127.0.0.1:3002"
-	}
-	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarURL)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, cfg.SidecarURL)
 	noteService := service.NewNoteService(noteStore, skillStore)
 
 	// Smart board store and service
@@ -125,7 +109,7 @@ func runHTTPServer() {
 	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
 	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
-	aiAPI := api.NewAIHandler(skillStore, noteStore)
+	aiAPI := api.NewAIHandler(skillStore, noteStore, cfg.SidecarURL)
 	tagAPI := api.NewTagHandler(photoStore)
 	chatAPI := chats.NewAgentChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
@@ -191,7 +175,7 @@ func runHTTPServer() {
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()
 	// Server sent event transport
-	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+port))
+	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+cfg.Port))
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 
 	// ── HTML routes (existing, will be removed in Phase 4) ─────────
@@ -214,16 +198,16 @@ func runHTTPServer() {
 	mux.HandleFunc("/skills/edit", handler.EditSkill(skillStore))
 	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
 	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
-	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore))
-	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore))
+	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore, cfg.SidecarURL))
+	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore, cfg.SidecarURL))
 	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
 	// ── Start HTTP server with graceful shutdown ──────────────────────
 	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: middleware.CORS(middleware.CustomLogger(mux)),
+		Addr:    ":" + cfg.Port,
+		Handler: middleware.CORS(cfg.CORSOrigins)(middleware.CustomLogger(mux)),
 	}
 
 	// Channel to capture shutdown signals
@@ -231,9 +215,9 @@ func runHTTPServer() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Server starting on %s", port)
+		log.Printf("Server starting on %s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Failed to listen at port %s: %v\n", port, err)
+			fmt.Printf("Failed to listen at port %s: %v\n", cfg.Port, err)
 			log.Fatal(err)
 		}
 	}()
