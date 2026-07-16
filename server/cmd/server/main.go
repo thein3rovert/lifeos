@@ -22,6 +22,7 @@ import (
 	mcpServer "github.com/thein3rovert/lifeos/server/internal/mcp"
 	"github.com/thein3rovert/lifeos/server/internal/middleware"
 	service "github.com/thein3rovert/lifeos/server/internal/services"
+	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
 	"github.com/thein3rovert/lifeos/server/internal/store/github"
 	"github.com/thein3rovert/lifeos/server/internal/store/notes"
@@ -95,8 +96,11 @@ func runHTTPServer() {
 
 	mux := http.NewServeMux()
 
+	// ── Initialize sidecar client (one instance, injected everywhere) ──
+	sidecarClient := sidecar.New(cfg.SidecarURL)
+
 	// ── Initialize services ─────────────────────────────────────
-	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, cfg.SidecarURL)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarClient)
 	noteService := service.NewNoteService(noteStore, skillStore)
 
 	// Smart board store and service
@@ -109,7 +113,7 @@ func runHTTPServer() {
 	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
 	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
-	aiAPI := api.NewAIHandler(skillStore, noteStore, cfg.SidecarURL)
+	aiAPI := api.NewAIHandler(skillStore, noteStore, sidecarClient)
 	tagAPI := api.NewTagHandler(photoStore)
 	chatAPI := chats.NewAgentChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
@@ -198,8 +202,8 @@ func runHTTPServer() {
 	mux.HandleFunc("/skills/edit", handler.EditSkill(skillStore))
 	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
 	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
-	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore, cfg.SidecarURL))
-	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore, cfg.SidecarURL))
+	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore, sidecarClient))
+	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore, sidecarClient))
 	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
 	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
 	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
