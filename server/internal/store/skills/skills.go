@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -59,8 +60,13 @@ func (s *SQLSkillStore) createTable() error {
 		return err
 	}
 
-	// Add column if table already exists (migration)
-	_, _ = s.db.Exec(`ALTER TABLE skills ADD COLUMN opencode_session_id TEXT`)
+	// Add column if table already exists. Only swallow "duplicate column"
+	// errors — any other failure is a real problem worth surfacing.
+	if _, err := s.db.Exec(`ALTER TABLE skills ADD COLUMN opencode_session_id TEXT`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			return fmt.Errorf("failed to add opencode_session_id column: %w", err)
+		}
+	}
 
 	return nil
 }

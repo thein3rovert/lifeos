@@ -109,7 +109,7 @@ func runHTTPServer() {
 	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
 	aiAPI := api.NewAIHandler(skillStore, noteStore, sidecarClient)
-	chatAPI := chats.NewAgentChatHandler(agentChatService)
+	chatAPI := chats.NewSkillChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
 

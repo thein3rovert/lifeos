@@ -290,16 +290,10 @@ func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
-// Pusher interface for skills that support pushing to GitHub
-type SkillPusher interface {
-	PushToGitHub() error
-	GetPendingSkills() ([]model.Skill, error)
-}
-
 // PushSkills pushes pending local changes to GitHub
 // POST /api/skills/push
 func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
-	pusher, ok := h.skillStore.(SkillPusher)
+	pusher, ok := h.skillStore.(store.SkillPusher)
 	if !ok {
 		respondError(w, http.StatusNotImplemented, "push not supported by current skill store")
 		return
@@ -332,11 +326,6 @@ func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Pusher interface extension for single skill push
-type SingleSkillPusher interface {
-	PushSingleSkill(skillID string) error
-}
-
 // PushSingleSkill pushes a single skill to GitHub
 // POST /api/skills/{id}/push
 func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +335,7 @@ func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pusher, ok := h.skillStore.(SingleSkillPusher)
+	pusher, ok := h.skillStore.(store.SingleSkillPusher)
 	if !ok {
 		respondError(w, http.StatusNotImplemented, "single skill push not supported")
 		return

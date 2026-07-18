@@ -10,6 +10,19 @@ type SkillStore interface {
 	Sync() error // Force refresh from source
 }
 
+// SkillPusher is implemented by skill stores that can push pending local
+// changes back to their remote source (e.g. GitHub).
+type SkillPusher interface {
+	PushToGitHub() error
+	GetPendingSkills() ([]model.Skill, error)
+}
+
+// SingleSkillPusher is implemented by skill stores that can push a single
+// skill by ID.
+type SingleSkillPusher interface {
+	PushSingleSkill(skillID string) error
+}
+
 // NoteStore is for buffered skill notes
 type NoteStore interface {
 	AddNote(skillID, title, content, noteType string) error

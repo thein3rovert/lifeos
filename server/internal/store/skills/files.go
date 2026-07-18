@@ -2,17 +2,14 @@ package skills
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
 )
 
-// Add this at the start of the file
-func init() {
-	// Migration: add pending_sync column to skill_files table
-}
-
-// CreateSkillFilesTable creates the skill_files table with pending_sync
+// CreateSkillFilesTable creates the skill_files table and runs idempotent
+// column-add migrations for older DBs.
 func (s *SQLSkillStore) createSkillFilesTable() error {
 	// First create table (IF NOT EXISTS handles existing tables)
 	query := `
@@ -28,25 +25,30 @@ func (s *SQLSkillStore) createSkillFilesTable() error {
 		github_sha TEXT,
 		UNIQUE(skill_id, path)
 	)`
-	_, err := s.db.Exec(query)
-	if err != nil {
+	if _, err := s.db.Exec(query); err != nil {
 		return err
 	}
 
-	// Create index separately (only runs if table was newly created or already has column)
-	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync)`)
+	// Create index separately (safe with IF NOT EXISTS)
+	if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync)`); err != nil {
+		return fmt.Errorf("failed to create idx_skill_files_pending: %w", err)
+	}
 
-	// Migration: add pending_sync column if it doesn't exist
+	// Migration: add pending_sync column if missing
 	var count int
 	row := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'pending_sync'")
 	if err := row.Scan(&count); err == nil && count == 0 {
-		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`)
+		if _, err := s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`); err != nil {
+			return fmt.Errorf("failed to add pending_sync column: %w", err)
+		}
 	}
 
-	// Migration: add github_sha column if it doesn't exist
+	// Migration: add github_sha column if missing
 	row = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'github_sha'")
 	if err := row.Scan(&count); err == nil && count == 0 {
-		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`)
+		if _, err := s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`); err != nil {
+			return fmt.Errorf("failed to add github_sha column: %w", err)
+		}
 	}
 
 	return nil
