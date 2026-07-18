@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -17,58 +16,14 @@ type SQLSkillStore struct {
 	githubStore store.SkillStore // GitHub store for sync operations
 }
 
-// NewSQLSkillStore creates a SQLite-backed skill store
+// NewSQLSkillStore creates a SQLite-backed skill store. Schema migrations
+// live in the parent store package (store.NewSQLiteStore) — this constructor
+// just wires up the store, no DDL.
 func NewSQLSkillStore(db *sql.DB, githubStore store.SkillStore) (*SQLSkillStore, error) {
-	s := &SQLSkillStore{
+	return &SQLSkillStore{
 		db:          db,
 		githubStore: githubStore,
-	}
-
-	if err := s.createTable(); err != nil {
-		return nil, fmt.Errorf("failed to create skills table: %w", err)
-	}
-
-	if err := s.createSkillFilesTable(); err != nil {
-		return nil, fmt.Errorf("failed to create skill_files table: %w", err)
-	}
-
-	return s, nil
-}
-
-// createTable creates the skills table with sync tracking
-func (s *SQLSkillStore) createTable() error {
-	query := `
-	CREATE TABLE IF NOT EXISTS skills (
-		id TEXT PRIMARY KEY,
-		title TEXT NOT NULL,
-		format TEXT,
-		author TEXT,
-		content TEXT NOT NULL,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		synced_at DATETIME,
-		pending_sync BOOLEAN DEFAULT FALSE,
-		github_sha TEXT,
-		opencode_session_id TEXT
-	);
-
-	CREATE INDEX IF NOT EXISTS idx_skills_pending ON skills(pending_sync);
-	CREATE INDEX IF NOT EXISTS idx_skills_synced ON skills(synced_at);
-	`
-
-	_, err := s.db.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	// Add column if table already exists. Only swallow "duplicate column"
-	// errors — any other failure is a real problem worth surfacing.
-	if _, err := s.db.Exec(`ALTER TABLE skills ADD COLUMN opencode_session_id TEXT`); err != nil {
-		if !strings.Contains(err.Error(), "duplicate column name") {
-			return fmt.Errorf("failed to add opencode_session_id column: %w", err)
-		}
-	}
-
-	return nil
+	}, nil
 }
 
 // ListSkills returns all skills from SQLite

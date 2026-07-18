@@ -45,7 +45,7 @@ But this page except for the chat interface is currently blank and has nothing i
 - [ ] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
 - [ ] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
 - [ ] Add `ChatMessageStore` interface in `store/store.go`
-- [ ] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
+- [x] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
 - [x] `ALTER TABLE` errors silently swallowed in `skills.go:64` + `files.go:37-49` — check for "duplicate column name" only
 - [x] Two `AgentHandler` structs in different packages → rename to `SkillChatHandler` and `AgentChatHandler`
 - [x] `api/skills/skill.go:329-373` — move `SkillPusher`/`SingleSkillPusher` interfaces to `store/store.go`

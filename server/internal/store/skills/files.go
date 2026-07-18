@@ -2,57 +2,15 @@ package skills
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
 )
 
-// CreateSkillFilesTable creates the skill_files table and runs idempotent
-// column-add migrations for older DBs.
-func (s *SQLSkillStore) createSkillFilesTable() error {
-	// First create table (IF NOT EXISTS handles existing tables)
-	query := `
-	CREATE TABLE IF NOT EXISTS skill_files (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		skill_id TEXT NOT NULL,
-		path TEXT NOT NULL,
-		type TEXT,
-		name TEXT,
-		content TEXT,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		pending_sync BOOLEAN DEFAULT FALSE,
-		github_sha TEXT,
-		UNIQUE(skill_id, path)
-	)`
-	if _, err := s.db.Exec(query); err != nil {
-		return err
-	}
+// Schema for skill_files (including pending_sync + github_sha columns and
+// their idempotent add-column migrations) lives in store/sqlite.go.
+// See store.SQLiteStore.migrate().
 
-	// Create index separately (safe with IF NOT EXISTS)
-	if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync)`); err != nil {
-		return fmt.Errorf("failed to create idx_skill_files_pending: %w", err)
-	}
-
-	// Migration: add pending_sync column if missing
-	var count int
-	row := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'pending_sync'")
-	if err := row.Scan(&count); err == nil && count == 0 {
-		if _, err := s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`); err != nil {
-			return fmt.Errorf("failed to add pending_sync column: %w", err)
-		}
-	}
-
-	// Migration: add github_sha column if missing
-	row = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'github_sha'")
-	if err := row.Scan(&count); err == nil && count == 0 {
-		if _, err := s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`); err != nil {
-			return fmt.Errorf("failed to add github_sha column: %w", err)
-		}
-	}
-
-	return nil
-}
 
 // SaveSkillFile inserts or updates a skill file
 func (s *SQLSkillStore) SaveSkillFile(file *model.SkillFile) error {
