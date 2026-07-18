@@ -23,6 +23,8 @@ fi
 : "${FRONTEND_DEV_PORT:=3000}"                 # vite dev server
 : "${OPENCODE_PORT:=4097}"
 : "${CORS_ORIGINS:=http://localhost:${FRONTEND_DEV_PORT}}"
+# Set START_OPENCODE=1 to also start OpenCode (default: skip — assumes systemd)
+: "${START_OPENCODE:=0}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -64,20 +66,28 @@ start_service() {
     echo ""
 }
 
-# 1. Start OpenCode Server
-start_service "OpenCode" "opencode serve --port $OPENCODE_PORT" "$OPENCODE_PORT"
-sleep 2
+# 1. Start OpenCode Server (skipped by default — usually managed by systemd)
+if [[ "$START_OPENCODE" == "1" ]]; then
+    start_service "OpenCode" "opencode serve --port $OPENCODE_PORT" "$OPENCODE_PORT"
+    sleep 2
+else
+    echo -e "${YELLOW}[i]${NC} Skipping OpenCode (assumed running via systemd on :$OPENCODE_PORT)"
+    echo -e "    Set START_OPENCODE=1 to launch it here instead."
+    echo ""
+fi
 
 # 2. Start Sidecar
 start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && PORT=$PORT npm start" "$PORT"
 sleep 2
 
-# 3. Start Go Backend
-start_service "Backend" "cd $PROJECT_ROOT && CORS_ORIGINS='$CORS_ORIGINS' LIFEOS_PORT=$LIFEOS_PORT go run server/cmd/server/main.go" "$LIFEOS_PORT"
+# 3. Start Go Backend (wrap in `nix develop` so we get the right Go version)
+start_service "Backend" "cd $PROJECT_ROOT && CORS_ORIGINS='$CORS_ORIGINS' LIFEOS_PORT=$LIFEOS_PORT nix develop -c go run server/cmd/server/main.go" "$LIFEOS_PORT"
 sleep 2
 
 # 4. Start Vite Frontend
-start_service "Frontend" "cd $PROJECT_ROOT/web && npm run dev" "$FRONTEND_DEV_PORT"
+# NOTE: PORT env is shared by sidecar and nitro (used by @tanstack/react-start).
+# We explicitly override PORT here so nitro doesn't grab the sidecar's port.
+start_service "Frontend" "cd $PROJECT_ROOT/web && PORT=$FRONTEND_DEV_PORT npm run dev -- --port $FRONTEND_DEV_PORT" "$FRONTEND_DEV_PORT"
 sleep 2
 
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"

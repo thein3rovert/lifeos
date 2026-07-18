@@ -13,11 +13,12 @@
 //     - API_URL=http://100.105.217.77:6060
 
 // Map frontend host ports to their corresponding backend host ports.
-// - 3000: native dev (npm run dev) → backend on 6060
-// - 3001: legacy container mapping → backend on 6060
-// - 7001: prod containers (docker-compose.prod.yml) → backend on 7060
+// - 3000/3050: native dev (npm run dev, host-configurable via FRONTEND_DEV_PORT) → 6060
+// - 3001:      legacy container mapping → backend on 6060
+// - 7001:      prod containers (docker-compose.prod.yml) → backend on 7060
 const FRONTEND_TO_BACKEND_PORT: Record<string, string> = {
   '3000': '6060',
+  '3050': '6060',
   '3001': '6060',
   '7001': '7060',
 };
