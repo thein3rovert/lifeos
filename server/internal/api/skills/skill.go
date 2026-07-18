@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -269,7 +270,8 @@ func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 // GET /api/skills/sync
 func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 	if err := h.skillStore.Sync(); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to sync skills")
+		log.Printf("[sync] failed: %v", err)
+		respondError(w, http.StatusInternalServerError, "failed to sync skills: "+err.Error())
 		return
 	}
 
