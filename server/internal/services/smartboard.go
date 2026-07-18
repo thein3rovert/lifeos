@@ -109,13 +109,13 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 	if !force && existingPanel != nil {
 		age := time.Since(existingPanel.LastRefreshed)
 		if age < cacheTTL {
-			fmt.Printf("[smartboard] cache hit for %s (age=%s, ttl=%s)\n",
+			log.Printf("[smartboard] cache hit for %s (age=%s, ttl=%s)",
 				panelType, age.Round(time.Second), cacheTTL)
 			return existingPanel, nil
 		}
 	}
 
-	fmt.Printf("[smartboard] cache miss for %s (force=%v)\n", panelType, force)
+	log.Printf("[smartboard] cache miss for %s (force=%v)", panelType, force)
 
 	// Build prompt, including existing items so the AI can reuse IDs for
 	// semantic matches (Option-1 merge strategy).

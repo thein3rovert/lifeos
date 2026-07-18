@@ -85,7 +85,7 @@ type CreateNewSkillRequest struct {
 // Create new skills
 // POST /api/skills/create
 
-func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r *http.Request) {
+func (h *SkillHandler) CreateNewSkill(w http.ResponseWriter, r *http.Request) {
 	var createSkillRequest CreateNewSkillRequest
 
 	if err := decodeJSON(r, &createSkillRequest); err != nil {
@@ -99,12 +99,11 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 		return
 	}
 
-	//Generate skill id from title
-	skillID := strings.ToLower(strings.ReplaceAll(createSkillRequest.Title, " ", "_"))
-	skillID = strings.ReplaceAll(skillID, "_", "_")
+	// Generate skill id from title: lower-case, spaces -> hyphens
+	skillID := strings.ToLower(strings.ReplaceAll(createSkillRequest.Title, " ", "-"))
 
-	//Check if skill already exists in the database
-	existingSkills, _ := createSkillHandler.skillStore.GetSkill(skillID)
+	// Check if skill already exists in the database
+	existingSkills, _ := h.skillStore.GetSkill(skillID)
 	if existingSkills != nil {
 		respondError(w, http.StatusConflict, "skill with this name already exists")
 		return
@@ -121,14 +120,13 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 	}
 
 	// Save skill to database
-	if err := createSkillHandler.skillStore.SaveSkill(newSkill); err != nil {
+	if err := h.skillStore.SaveSkill(newSkill); err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to create new skills: "+err.Error())
 		return
 	}
 
 	// Return the created skill after creation
 	respondJSON(w, http.StatusCreated, SkillToResponse(newSkill))
-
 }
 
 // skillToResponse converts a model.Skill to a SkillResponse

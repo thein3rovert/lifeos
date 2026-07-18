@@ -115,26 +115,40 @@ func (s *SQLSkillStore) Sync() error {
 
 		if err := s.upsertSkillFromGitHub(&skill); err != nil {
 			// Log but continue - don't fail entire sync for one skill
-			fmt.Printf("Warning: failed to sync skill %s: %v\n", skill.ID, err)
+			log.Printf("Warning: failed to sync skill %s: %v", skill.ID, err)
 			continue
 		}
 
 		// Sync skill files (references folder)
 		if err := s.syncSkillFiles(skill.ID); err != nil {
-			fmt.Printf("Warning: failed to sync files for skill %s: %v\n", skill.ID, err)
+			log.Printf("Warning: failed to sync files for skill %s: %v", skill.ID, err)
 		}
 	}
 
 	return nil
 }
 
-// upsertSkillFromGitHub inserts or updates skill from GitHub (preserves local pending changes)
+// upsertSkillFromGitHub inserts or updates a skill from GitHub.
+//
+// When the local row has PendingSync=true (unpushed local edits), we do
+// NOT clobber the local content. Instead we update the read-only
+// GitHub-side metadata (github_sha, synced_at) so the pending-push flow
+// still has an up-to-date SHA to base its PR on.
+//
+// A proper 3-way conflict resolution is deferred (see TODO).
 func (s *SQLSkillStore) upsertSkillFromGitHub(skill *model.Skill) error {
-	// Check if we have pending local changes
 	existing, err := s.GetSkill(skill.ID)
 	if err == nil && existing.PendingSync {
-		// Local has pending changes - don't overwrite, just update metadata
-		// TODO: Implement conflict resolution
+		// Local has unpushed changes — preserve them but refresh remote metadata
+		// so the next push knows the correct base SHA.
+		// TODO: Implement proper 3-way conflict resolution + user-visible surface.
+		log.Printf("[sync] skill %q has pending local changes; keeping local content, refreshing SHA only", skill.ID)
+		if _, err := s.db.Exec(
+			`UPDATE skills SET github_sha = ?, synced_at = ? WHERE id = ?`,
+			skill.GitHubSHA, skill.SyncedAt, skill.ID,
+		); err != nil {
+			return fmt.Errorf("failed to refresh SHA for %q: %w", skill.ID, err)
+		}
 		return nil
 	}
 

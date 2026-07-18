@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -194,7 +193,7 @@ func runHTTPServer() {
 	go func() {
 		log.Printf("Server starting on %s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Failed to listen at port %s: %v\n", cfg.Port, err)
+			log.Printf("Failed to listen at port %s: %v", cfg.Port, err)
 			log.Fatal(err)
 		}
 	}()

@@ -2,6 +2,7 @@ package chats
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -86,7 +87,7 @@ func (h *SkillChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Call the chat service to handle the businesss logic
+	// Call the chat service to handle the business logic
 	response, err := h.agentChatService.SendSkillChatMessage(skillID, req.Message, req.NoteIds)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, err.Error())
@@ -117,7 +118,7 @@ func (h *SkillChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Reques
 	messages, err := h.agentChatService.GetSkillChatMessages(skillID)
 
 	if err != nil {
-		fmt.Printf("[GetChatMessages] Error: %v\n", err)
+		log.Printf("[GetChatMessages] Error: %v", err)
 		api.RespondError(w, http.StatusInternalServerError, "failed to get messages")
 
 		return

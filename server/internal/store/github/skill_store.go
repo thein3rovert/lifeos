@@ -98,13 +98,6 @@ func (s *SkillStore) Sync() error {
 	return err
 }
 
-// InvalidateCache clears the cache
-func (s *SkillStore) InvalidateCache() {
-	s.cacheMux.Lock()
-	s.cache = make(map[string]cachedSkill)
-	s.cacheMux.Unlock()
-}
-
 // Internal: get all from cache
 func (s *SkillStore) getAllFromCache() []model.Skill {
 	s.cacheMux.RLock()

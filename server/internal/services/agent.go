@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -125,11 +126,11 @@ func (s *AgentChatService) SendSkillChatMessage(skillID, message string, noteIds
 
 	// Save user message (original, not with context)
 	if err := s.msgStore.SaveChatMessage(skillID, skill.OpenCodeSessionID, "user", message); err != nil {
-		fmt.Printf("Warning: failed to save user message: %v\n", err)
+		log.Printf("Warning: failed to save user message: %v", err)
 	}
 	// Save assistant response
 	if err := s.msgStore.SaveChatMessage(skillID, skill.OpenCodeSessionID, "assistant", response); err != nil {
-		fmt.Printf("Warning: failed to save assistant message: %v\n", err)
+		log.Printf("Warning: failed to save assistant message: %v", err)
 	}
 	return response, nil
 }

@@ -23,8 +23,8 @@ But this page except for the chat interface is currently blank and has nothing i
 
 ### Bugs
 - [x] `store/chat_message.go:11-12` — fix malformed JSON tags (missing closing `"`, caught by `go vet`)
-- [ ] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today) — N/A, handler/skills.go deleted
-- [ ] `api/skills/skill.go:138` — remove no-op `strings.ReplaceAll(id, "_", "_")`
+- [x] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today) — N/A, handler/skills.go deleted
+- [x] `api/skills/skill.go:138` — remove no-op `strings.ReplaceAll(id, "_", "_")`
 - [x] `handler/photo.go:42-43` — add missing `return` after `http.Error` — N/A, photo.go deleted
 - [x] `handler/photo.go:110` — check `r.ParseMultipartForm` error — N/A, photo.go deleted
 - [x] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`) — N/A, photo.go deleted
@@ -51,18 +51,18 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] `api/skills/skill.go:329-373` — move `SkillPusher`/`SingleSkillPusher` interfaces to `store/store.go`
 
 ### Store layer gaps
-- [ ] `SkillStore` interface doesn't cover file operations → add `SkillFileStore` interface
-- [ ] `store/skills/skills.go:172-179` — `upsertSkillFromGitHub` silently drops pending local changes (TODO: conflict resolution)
-- [ ] Delete unused `store/github/skill_store.go:101-106` `InvalidateCache`
+- [x] `SkillStore` interface doesn't cover file operations → add `SkillFileStore` interface
+- [x] `store/skills/skills.go:172-179` — `upsertSkillFromGitHub` silently drops pending local changes (TODO: conflict resolution)
+- [x] Delete unused `store/github/skill_store.go:101-106` `InvalidateCache`
 
 ### Nits
-- [ ] Replace `fmt.Printf` with `log.Printf` in ~20 places (scheduler.go, smartboard.go, agent.go, skills.go, chat.go, main.go)
-- [ ] Fix template `err` swallowing in `handler/skills.go` and `handler/photo.go` (blank page on template failure)
-- [ ] Delete commented-out blocks in `api/agents/agent.go:11-42, 104-137`
-- [ ] Delete empty `store/skills/files.go:11-13` `init()`
-- [ ] Delete stale `store/chat_messages.sql` (migration is embedded in `sqlite.go`)
-- [ ] Fix receiver name `createSkillHandler` → `h` in `api/skills/skill.go:123`
+- [x] Replace `fmt.Printf` with `log.Printf` in ~20 places (scheduler.go, smartboard.go, agent.go, skills.go, chat.go, main.go)
+- [x] Fix template `err` swallowing in `handler/skills.go` and `handler/photo.go` — N/A, handler pkg gone
+- [x] Delete commented-out blocks in `api/agents/agent.go:11-42, 104-137`
+- [x] Delete empty `store/skills/files.go:11-13` `init()`
+- [x] Delete stale `store/chat_messages.sql` (migration is embedded in `sqlite.go`)
+- [x] Fix receiver name `createSkillHandler` → `h` in `api/skills/skill.go:123`
 - [ ] Promote inline anonymous request structs to named types in `models/`
-- [ ] Downgrade or drop `log.Printf("SavePhoto Successfully")` per-save log in `store/photo.go:35`
-- [ ] Update outdated `api/README.md` (missing push/create/agent/smartboard endpoints)
-- [ ] Fix comment typos: "Mocw", "businesss", "Secureity", "decorder", "retuern", "funtion"
+- [x] Downgrade or drop `log.Printf("SavePhoto Successfully")` per-save log in `store/photo.go:35` — N/A, deleted
+- [x] Update outdated `api/README.md` (missing push/create/agent/smartboard endpoints)
+- [x] Fix comment typos: "Mocw", "businesss", "Secureity", "decorder", "retuern", "funtion"
