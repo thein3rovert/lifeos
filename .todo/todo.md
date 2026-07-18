@@ -30,7 +30,7 @@ But this page except for the chat interface is currently blank and has nothing i
 - [ ] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`)
 
 ### Duplication (~400 lines removable)
-- [ ] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
+- [x] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
 - [ ] Extract `stripMarkdownFrontMatter` once to `internal/utils/markdown.go` (exists in 2+ files today)
 - [ ] Delete `api/skills/skill.go:18-63` duplicates of `respondJSON`, `NoteResponse` etc. — use `api/` versions
 - [ ] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
