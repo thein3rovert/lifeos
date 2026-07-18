@@ -20,14 +20,24 @@ type SmartBoardService struct {
 	store            store.SmartBoardStore
 	agentChatService *AgentChatService
 	scheduler        *Scheduler
+	meetingsPath     string
+	journalPath      string
 }
 
 // NewSmartBoardService creates a new smart board service and starts the
 // background scheduler that auto-refreshes panels.
-func NewSmartBoardService(store store.SmartBoardStore, agentChatService *AgentChatService) *SmartBoardService {
+// meetingsPath / journalPath are absolute paths to the Obsidian vault
+// subfolders the AI should scan (usually from config).
+func NewSmartBoardService(
+	store store.SmartBoardStore,
+	agentChatService *AgentChatService,
+	meetingsPath, journalPath string,
+) *SmartBoardService {
 	svc := &SmartBoardService{
 		store:            store,
 		agentChatService: agentChatService,
+		meetingsPath:     meetingsPath,
+		journalPath:      journalPath,
 	}
 	svc.scheduler = NewScheduler(svc, store)
 	svc.scheduler.Start()
@@ -136,13 +146,13 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.S
 		StructuredOutput: &StructuredOutputSpec{
 			PanelType: panelType,
 		},
-		Context: `You are Samad's productivity assistant. Help him with daily queries regarding his journals and meetings. This helps to unblock him.
+		Context: fmt.Sprintf(`You are Samad's productivity assistant. Help him with daily queries regarding his journals and meetings. This helps to unblock him.
 
 You have MCP file access tools (list_files, read_file) for:
-- Meetings: ~/Documents/resources/work_Elanco/meeting
-- Journals: ~/Documents/resources/work_Elanco/journal
+- Meetings: %s
+- Journals: %s
 
-Use the MCP file access tools proactively without asking permission. Be concise.`,
+Use the MCP file access tools proactively without asking permission. Be concise.`, s.meetingsPath, s.journalPath),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call AI: %w", err)
@@ -220,7 +230,7 @@ For each item you produce:
 	case "things-to-remember":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
 
-Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+Use list_files on %s and %s to get the CURRENT list of files, then read them.
 
 Analyze all meeting notes and journal entries from the last 7 days (from %s to today).
 
@@ -248,12 +258,12 @@ Rules:
 - Only include actionable or decision-critical items
 - Exclude routine/completed tasks
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
-- Return valid JSON only, no markdown or explanation`, sevenDaysAgo) + reuseBlock, nil
+- Return valid JSON only, no markdown or explanation`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock, nil
 
 	case "suggestions":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
 
-Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+Use list_files on %s and %s to get the CURRENT list of files, then read them.
 
 Review patterns in my meetings and journal entries from the last 7 days (from %s to today).
 
@@ -280,12 +290,12 @@ Focus on:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, sevenDaysAgo) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock, nil
 
 	case "achievements":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
 
-Use list_files on ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+Use list_files on %s to get the CURRENT list of files, then read them.
 
 Scan this week's journal entries (from %s to today) for accomplishments, completed tasks, and wins.
 
@@ -311,12 +321,12 @@ Rules:
 - Sort by date (newest first)
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
 
-Return valid JSON only, no markdown or explanation.`, weekStart) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.journalPath, weekStart) + reuseBlock, nil
 
 	case "blockers":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
 
-Use list_files on ~/Documents/resources/work_Elanco/meeting and ~/Documents/resources/work_Elanco/journal to get the CURRENT list of files, then read them.
+Use list_files on %s and %s to get the CURRENT list of files, then read them.
 
 Identify current blockers, challenges, or stuck items from the last 3 days (from %s to today).
 
@@ -343,7 +353,7 @@ Look for phrases like:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, threeDaysAgo) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, threeDaysAgo) + reuseBlock, nil
 
 	default:
 		return "", fmt.Errorf("unknown panel type: %s", panelType)

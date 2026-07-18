@@ -45,9 +45,11 @@ func main() {
 	runHTTPServer()
 }
 
-// runMCPServer starts the MCP stdio server for OpenCode
+// runMCPServer starts the MCP stdio server for OpenCode.
+// Reads config for the allowed-directories list.
 func runMCPServer() {
-	s := mcpServer.NewMCPServer()
+	cfg := config.Load()
+	s := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
 	if err := server.ServeStdio(s); err != nil {
 		log.Fatalf("MCP server error: %v", err)
 	}
@@ -59,7 +61,7 @@ func runHTTPServer() {
 	cfg := config.Load()
 
 	// Initialise SQLite store
-	db, err := store.NewSQLiteStore("lifeos.db")
+	db, err := store.NewSQLiteStore(cfg.DBPath)
 	if err != nil {
 		log.Fatalf("Failed to initialise store: %v", err)
 	}
@@ -98,17 +100,18 @@ func runHTTPServer() {
 	// ── Initialize services ─────────────────────────────────────
 	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarClient)
 	noteService := service.NewNoteService(noteStore, skillStore)
+	skillAIService := service.NewSkillAIService(skillStore, noteStore, sidecarClient)
 
 	// Smart board store and service
 	smartBoardStore := store.NewSmartBoardStore(db.DB())
-	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService)
+	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService, cfg.MeetingsPath, cfg.JournalPath)
 	defer smartBoardService.Stop()
 
 	// ── Initialize API handlers ─────────────────────────────────────
 	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
 	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
-	aiAPI := api.NewAIHandler(skillStore, noteStore, sidecarClient)
+	aiAPI := api.NewAIHandler(skillAIService)
 	chatAPI := chats.NewSkillChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
@@ -162,8 +165,15 @@ func runHTTPServer() {
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)
 
 	// ==== MCP SSE Endpoints ====
-	lifeosMCPServer := mcpServer.NewMCPServer()
-	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+cfg.Port))
+	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
+	// Server sent event transport. Base URL falls back to localhost:PORT
+	// but should be set via LIFEOS_PUBLIC_URL when running behind a
+	// reverse proxy or a Tailscale hostname.
+	baseURL := cfg.PublicBaseURL
+	if baseURL == "" {
+		baseURL = "http://localhost:" + cfg.Port
+	}
+	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL(baseURL))
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 
 	// Health check

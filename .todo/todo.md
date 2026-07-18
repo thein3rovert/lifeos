@@ -36,13 +36,13 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
 
 ### Config leaks (survived the refactor)
-- [ ] `mcp/server.go:22-31, 90-92` — hardcoded absolute paths `/home/thein3rovert/Documents/...`, move to `MCP_ALLOWED_DIRS` env
-- [ ] `services/smartboard.go:141-146, 223, 256, 288, 319` — same paths baked into 5 prompt strings, parameterize via config
-- [ ] `main.go:63` — hardcoded `"lifeos.db"`, add `cfg.DBPath` (env `LIFEOS_DB_PATH`)
-- [ ] `main.go:182` — MCP SSE `http://localhost:` hardcoded, add `cfg.PublicBaseURL`
+- [x] `mcp/server.go:22-31, 90-92` — hardcoded absolute paths `/home/thein3rovert/Documents/...`, move to `MCP_ALLOWED_DIRS` env
+- [x] `services/smartboard.go:141-146, 223, 256, 288, 319` — same paths baked into 5 prompt strings, parameterize via config
+- [x] `main.go:63` — hardcoded `"lifeos.db"`, add `cfg.DBPath` (env `LIFEOS_DB_PATH`)
+- [x] `main.go:182` — MCP SSE `http://localhost:` hardcoded, add `cfg.PublicBaseURL`
 
 ### Structural
-- [ ] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
+- [x] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
 - [x] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
 - [x] Add `ChatMessageStore` interface in `store/store.go`
 - [x] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
