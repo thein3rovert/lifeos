@@ -1,7 +1,23 @@
 #!/usr/bin/env bash
 
 # LifeOS Stop Script
-# Stops all running services
+# Stops all running services (reads ports from .env)
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Load .env if present
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
+# Defaults
+: "${LIFEOS_PORT:=6060}"
+: "${PORT:=3002}"
+: "${FRONTEND_DEV_PORT:=3000}"
+: "${OPENCODE_PORT:=4097}"
 
 # Colors
 RED='\033[0;31m'
@@ -30,10 +46,10 @@ kill_port() {
 }
 
 # Stop all services
-kill_port 4097 "OpenCode"
-kill_port 3002 "Sidecar"
-kill_port 6060 "Backend"
-kill_port 3001 "Frontend"
+kill_port "$OPENCODE_PORT" "OpenCode"
+kill_port "$PORT"          "Sidecar"
+kill_port "$LIFEOS_PORT"   "Backend"
+kill_port "$FRONTEND_DEV_PORT" "Frontend"
 
 # Also kill by process name as fallback
 echo ""

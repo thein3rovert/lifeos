@@ -2,16 +2,14 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
+	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
 	"github.com/yuin/goldmark"
 )
@@ -259,7 +257,7 @@ func DeleteNote(noteStore store.NoteStore) http.HandlerFunc {
 // Since all skills are fetched from github..we need to create a pr for
 // the append or send the note to ai to update the skillks and then create
 // pr
-func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) http.HandlerFunc {
+func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore, sc *sidecar.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -303,7 +301,7 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
 		// Call sidecar to get AI-updated skills
 		// TODO: Move to Utilss
 		var skillContent = skill.Content
-		updatedContent, err := callSideCarForSkillUpdate(skillContent, newNotes)
+		updatedContent, err := sc.UpdateSkill(skillContent, newNotes)
 
 		// Add note builder content to skills by updating skills with AI-generated
 		// content
@@ -327,55 +325,8 @@ func AppendNotesToSkill(skillStore store.SkillStore, noteStore store.NoteStore) 
 	}
 }
 
-func callSideCarForSkillUpdate(existingSkill, newNotes string) (string, error) {
-	// TODO: Move type to appropraite or dedicated location
-	type sidecarRequest struct {
-		ExistingSkill string `json:"existingSkill"`
-		NewNotes      string `json:"newNotes"`
-	}
-	type sidecarResponse struct {
-		UpdatedSkill string `json:"updatedSkill"`
-		Error        string `json:"error"`
-	}
-	payload := sidecarRequest{
-		ExistingSkill: existingSkill,
-		NewNotes:      newNotes,
-	}
-
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	response, err := http.Post(
-		"http://localhost:3002/skill/update",
-		"application/json",
-		bytes.NewBuffer(jsonData),
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(response.Body)
-		return "", fmt.Errorf("sidecar return  %d: %s", response.StatusCode, string(body))
-	}
-
-	var result sidecarResponse
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
-		return "", err
-	}
-	if result.Error != "" {
-		return "", fmt.Errorf("sidecar error: %s", result.Error)
-	}
-	return result.UpdatedSkill, nil
-}
-
 // PreviewSkillUpdate calls sidecar to get AI-updated skill, shows preview
-func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) http.HandlerFunc {
+func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore, sc *sidecar.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -418,7 +369,7 @@ func PreviewSkillUpdate(skillStore store.SkillStore, noteStore store.NoteStore) 
 		newNotes := notesBuilder.String()
 
 		// Call sidecar to get AI-updated skill
-		updatedContent, err := callSideCarForSkillUpdate(skill.Content, newNotes)
+		updatedContent, err := sc.UpdateSkill(skill.Content, newNotes)
 		if err != nil {
 			log.Printf("Sidecar error: %v", err)
 			http.Error(w, "Failed to update skill with AI: "+err.Error(), http.StatusInternalServerError)

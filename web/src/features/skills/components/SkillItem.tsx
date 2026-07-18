@@ -45,7 +45,7 @@ export const SkillItem = memo(function SkillItem({
   return (
     <div className="my-0.5">
       {/* Skill header */}
-      <div className="flex items-center px-1">
+      <div className="flex items-center px-1 min-w-0">
         {/* Expand/collapse button */}
         <button
           onClick={(e) => {
@@ -70,7 +70,7 @@ export const SkillItem = memo(function SkillItem({
             }
           }}
           className={`
-            flex-1 flex items-center gap-2 px-2 py-2 text-left text-base
+            flex-1 min-w-0 flex items-center gap-2 px-2 py-2 text-left text-base
             transition-all duration-150 rounded-md
             ${
               isSelected

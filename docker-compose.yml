@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   backend:
@@ -17,7 +17,7 @@ services:
       - MCP_API_KEY=${MCP_API_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
     volumes:
-      - lifeos-data:/app  # Persist SQLite database
+      - lifeos-data:/app # Persist SQLite database
     restart: unless-stopped
     networks:
       - lifeos-network
