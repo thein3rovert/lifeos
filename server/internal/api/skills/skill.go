@@ -1,66 +1,31 @@
 package skills
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/thein3rovert/lifeos/server/internal/httpjson"
 	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/store"
 )
 
 // ===============================
-// HELPER FUNCTIONS
+// LOCAL SHORT ALIASES
 // ===============================
+// Keep call sites compact. The real implementations live in internal/httpjson
+// so both the parent api package and this one share them without cycles.
 
-// respondJSON writes a JSON response
-func respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if data != nil {
-		json.NewEncoder(w).Encode(data)
-	}
-}
+var (
+	respondJSON   = httpjson.RespondJSON
+	respondError  = httpjson.RespondError
+	decodeJSON    = httpjson.DecodeJSON
+	noteToResponse = httpjson.NoteToResponse
+)
 
-// respondError writes a JSON error response
-func respondError(w http.ResponseWriter, status int, message string) {
-	respondJSON(w, status, map[string]string{"error": message})
-}
-
-// decodeJSON decodes request body
-func decodeJSON(r *http.Request, dst interface{}) error {
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(dst)
-}
-
-// NoteResponse for JSON serialization
-type NoteResponse struct {
-	ID        int     `json:"id"`
-	SkillID   string  `json:"skill_id"`
-	Title     string  `json:"title"`
-	Content   string  `json:"content"`
-	Type      string  `json:"type"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt *string `json:"updated_at,omitempty"`
-}
-
-func noteToResponse(n *model.Note) NoteResponse {
-	var updatedAt *string
-	if n.UpdatedAt != nil {
-		updatedAtStr := n.UpdatedAt.String()
-		updatedAt = &updatedAtStr
-	}
-	return NoteResponse{
-		ID:        n.ID,
-		SkillID:   n.SkillID,
-		Title:     n.Title,
-		Content:   n.Content,
-		Type:      n.Type,
-		CreatedAt: n.CreatedAt.String(),
-		UpdatedAt: updatedAt,
-	}
-}
+// NoteResponse is aliased so downstream types in this file can continue to
+// use the local name without redefining the shape.
+type NoteResponse = httpjson.NoteResponse
 
 // ===============================
 // TYPES

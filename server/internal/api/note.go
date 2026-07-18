@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/thein3rovert/lifeos/server/internal/model"
+	"github.com/thein3rovert/lifeos/server/internal/httpjson"
 	service "github.com/thein3rovert/lifeos/server/internal/services"
 )
 
@@ -18,34 +18,13 @@ func NewNoteHandler(noteService *service.NoteService) *NoteHandler {
 	return &NoteHandler{noteService: noteService}
 }
 
-type NoteResponse struct {
-	ID        int     `json:"id"`
-	SkillID   string  `json:"skill_id"`
-	Title     string  `json:"title"`
-	Content   string  `json:"content"`
-	Type      string  `json:"type"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt *string `json:"updated_at,omitempty"`
-}
+// NoteResponse is aliased from httpjson so callers already importing "api"
+// keep the api.NoteResponse identifier while the underlying shape lives in
+// one place (httpjson) that api/skills also uses without an import cycle.
+type NoteResponse = httpjson.NoteResponse
 
-// Map note response to note model
-func NoteToResponse(n *model.Note) NoteResponse {
-	var updatedAt *string
-	if n.UpdatedAt != nil {
-		updatedAtStr := n.UpdatedAt.String()
-		updatedAt = &updatedAtStr
-	}
-
-	return NoteResponse{
-		ID:        n.ID,
-		SkillID:   n.SkillID,
-		Title:     n.Title,
-		Content:   n.Content,
-		Type:      n.Type,
-		CreatedAt: n.CreatedAt.String(),
-		UpdatedAt: updatedAt,
-	}
-}
+// NoteToResponse converts a model.Note into its JSON response shape.
+var NoteToResponse = httpjson.NoteToResponse
 
 // Returns all notes for a skill
 // GET /api/skills/{id}/notes

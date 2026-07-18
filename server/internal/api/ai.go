@@ -10,6 +10,7 @@ import (
 	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
+	"github.com/thein3rovert/lifeos/server/internal/utils"
 	"github.com/yuin/goldmark"
 )
 
@@ -74,7 +75,7 @@ func (h *AIHandler) PreviewSkillUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render markdown to HTML
-	markdownContent := stripMarkdownFrontMatter(updatedContent)
+	markdownContent := utils.StripFrontmatter(updatedContent)
 	var buf bytes.Buffer
 	if err := goldmark.Convert([]byte(markdownContent), &buf); err != nil {
 		buf.WriteString(markdownContent)
@@ -160,7 +161,7 @@ func (h *AIHandler) RenderMarkdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	markdownContent := stripMarkdownFrontMatter(req.Content)
+	markdownContent := utils.StripFrontmatter(req.Content)
 	var buf bytes.Buffer
 	if err := goldmark.Convert([]byte(markdownContent), &buf); err != nil {
 		RespondError(w, http.StatusInternalServerError, "failed to render markdown")
@@ -228,31 +229,4 @@ func (h *AIHandler) AppendNotesToSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondJSON(w, http.StatusOK, skillsapi.SkillToResponse(skill))
-}
-
-// stripMarkdownFrontMatter removes YAML frontmatter from markdown content
-// TODO: move to shared util
-func stripMarkdownFrontMatter(content string) string {
-	if !strings.HasPrefix(content, "---") {
-		return content
-	}
-
-	lines := strings.Split(content, "\n")
-	inFrontmatter := true
-	var result []string
-
-	for i, line := range lines {
-		if i == 0 && line == "---" {
-			continue
-		}
-		if inFrontmatter && line == "---" {
-			inFrontmatter = false
-			continue
-		}
-		if !inFrontmatter {
-			result = append(result, line)
-		}
-	}
-
-	return strings.Join(result, "\n")
 }

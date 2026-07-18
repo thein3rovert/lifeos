@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -453,33 +452,6 @@ func (s *SQLSkillStore) scanSkillFromRows(rows *sql.Rows) (model.Skill, error) {
 	return skill, nil
 }
 
-// ParseFrontmatter extracts title, format, author from markdown content
-func ParseFrontmatter(content string) (title, format, author string) {
-	if !strings.HasPrefix(content, "---") {
-		return
-	}
-
-	lines := strings.Split(content, "\n")
-	for _, line := range lines[1:] {
-		if strings.HasPrefix(line, "title:") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
-		}
-		if strings.HasPrefix(line, "name:") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
-		}
-		if strings.HasPrefix(line, "format:") {
-			format = strings.TrimSpace(strings.TrimPrefix(line, "format:"))
-		}
-		if strings.HasPrefix(line, "compatibility:") {
-			format = strings.TrimSpace(strings.TrimPrefix(line, "compatibility:"))
-		}
-		if strings.HasPrefix(line, "author:") {
-			author = strings.TrimSpace(strings.TrimPrefix(line, "author:"))
-		}
-		if line == "---" {
-			break
-		}
-	}
-
-	return
-}
+// ParseFrontmatter removed — was exported but never referenced.
+// See internal/utils.StripFrontmatter for the stripping equivalent,
+// or reintroduce a proper YAML parser (gopkg.in/yaml.v3) when needed.

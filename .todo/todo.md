@@ -31,9 +31,9 @@ But this page except for the chat interface is currently blank and has nothing i
 
 ### Duplication (~400 lines removable)
 - [x] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
-- [ ] Extract `stripMarkdownFrontMatter` once to `internal/utils/markdown.go` (exists in 2+ files today)
-- [ ] Delete `api/skills/skill.go:18-63` duplicates of `respondJSON`, `NoteResponse` etc. — use `api/` versions
-- [ ] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
+- [x] Extract `stripMarkdownFrontMatter` once to `internal/utils/markdown.go` (exists in 2+ files today)
+- [x] Delete `api/skills/skill.go:18-63` duplicates of `respondJSON`, `NoteResponse` etc. — use `api/` versions
+- [x] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
 
 ### Config leaks (survived the refactor)
 - [ ] `mcp/server.go:22-31, 90-92` — hardcoded absolute paths `/home/thein3rovert/Documents/...`, move to `MCP_ALLOWED_DIRS` env
