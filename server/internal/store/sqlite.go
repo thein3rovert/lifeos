@@ -47,28 +47,6 @@ func (s *SQLiteStore) DB() *sql.DB {
 // Safe to run every startup — IF NOT EXISTS means it won't clobber existing data.
 func (s *SQLiteStore) migrate() error {
 	queries := []string{
-		`CREATE TABLE IF NOT EXISTS photos (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename   TEXT NOT NULL,
-        path       TEXT NOT NULL,
-        caption    TEXT,
-        description TEXT,
-        created_at DATETIME NOT NULL
-    );`,
-		// Add Tag Table
-		`CREATE TABLE IF NOT EXISTS tags (
-        id   INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
-    );`,
-		// Add Photo Tag table
-		`CREATE TABLE IF NOT EXISTS photo_tags (
-        photo_id INTEGER NOT NULL,
-        tag_id   INTEGER NOT NULL,
-        PRIMARY KEY (photo_id, tag_id),
-        FOREIGN KEY (photo_id) REFERENCES photos(id),
-        FOREIGN KEY (tag_id)   REFERENCES tags(id)
-    );`,
-
 		// Add ai chat message table
 		`CREATE TABLE IF NOT EXISTS chat_messages (
 	        id INTEGER PRIMARY KEY AUTOINCREMENT,

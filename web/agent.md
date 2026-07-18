@@ -35,7 +35,6 @@ TanStack Start uses file-based routing with route directories:
 | Route | File | Purpose |
 |-------|------|---------|
 | `/` | `routes/index.tsx` | Dashboard with stats and "Today's Notes" |
-| `/gallery` | `routes/gallery/index.tsx` | Photo grid, upload, viewer |
 | `/skills` | `routes/skills/index.tsx` | 3-pane skills viewer (sidebar + content + notes) |
 | `/notes` | `routes/notes/index.tsx` | Full notes CRUD interface |
 | `/settings` | `routes/settings/index.tsx` | Settings and configuration |

@@ -18,7 +18,6 @@ import (
 	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
 	smartboardapi "github.com/thein3rovert/lifeos/server/internal/api/smartboard"
 	"github.com/thein3rovert/lifeos/server/internal/config"
-	"github.com/thein3rovert/lifeos/server/internal/handler"
 	mcpServer "github.com/thein3rovert/lifeos/server/internal/mcp"
 	"github.com/thein3rovert/lifeos/server/internal/middleware"
 	service "github.com/thein3rovert/lifeos/server/internal/services"
@@ -59,14 +58,11 @@ func runHTTPServer() {
 	// Load configuration once at startup
 	cfg := config.Load()
 
-	// Initialise store (Database store -> photos)
+	// Initialise SQLite store
 	db, err := store.NewSQLiteStore("lifeos.db")
 	if err != nil {
 		log.Fatalf("Failed to initialise store: %v", err)
 	}
-
-	// Initialise new photo store
-	photoStore := store.NewPhotoStore(db.DB())
 
 	// Create GitHub store for sync operations
 	githubSkillStore := github.NewSkillStore(cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubToken)
@@ -109,23 +105,15 @@ func runHTTPServer() {
 	defer smartBoardService.Stop()
 
 	// ── Initialize API handlers ─────────────────────────────────────
-	photoAPI := api.NewPhotoHandler(photoStore)
 	skillAPI := skillsapi.NewSkillHandler(skillStore, noteStore)
 	skillFileAPI := skillsapi.NewSkillFileHandler(skillStore)
 	noteAPI := api.NewNoteHandler(noteService)
 	aiAPI := api.NewAIHandler(skillStore, noteStore, sidecarClient)
-	tagAPI := api.NewTagHandler(photoStore)
 	chatAPI := chats.NewAgentChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
-	// Photos
-	mux.HandleFunc("GET /api/photos", photoAPI.ListPhotos)
-	mux.HandleFunc("GET /api/photos/search", photoAPI.SearchPhotos)
-	mux.HandleFunc("POST /api/photos/upload", photoAPI.UploadPhoto)
-	mux.HandleFunc("GET /api/photos/{id}", photoAPI.GetPhoto)
-
 	// Skills
 	mux.HandleFunc("POST /api/skills/create", skillAPI.CreateNewSkill)
 	mux.HandleFunc("GET /api/skills", skillAPI.ListSkills)
@@ -152,9 +140,6 @@ func runHTTPServer() {
 	mux.HandleFunc("POST /api/skills/{id}/notes/append", aiAPI.AppendNotesToSkill)
 	mux.HandleFunc("POST /api/skills/preview-render", aiAPI.RenderMarkdown)
 
-	// Tags
-	mux.HandleFunc("GET /api/tags", tagAPI.ListTags)
-
 	// Chat (persistent sessions)
 	mux.HandleFunc("POST /api/skills/{id}/session", chatAPI.GetOrCreateSession)
 	mux.HandleFunc("POST /api/skills/{id}/chat", chatAPI.SendChatMessage)
@@ -178,35 +163,13 @@ func runHTTPServer() {
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer()
-	// Server sent event transport
 	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL("http://localhost:"+cfg.Port))
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 
-	// ── HTML routes (existing, will be removed in Phase 4) ─────────
+	// Health check
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("LifeOS is running"))
 	})
-
-	mux.HandleFunc("/home", handler.Home)
-
-	mux.HandleFunc("/photos", handler.Photos)
-	mux.HandleFunc("/photos/view", handler.ListPhotos(photoStore))
-	mux.HandleFunc("/photos/upload", handler.UpdatePhoto(photoStore))
-	mux.HandleFunc("/photos/search", handler.SearchPhotos(photoStore))
-
-	// Static file server for serving local photos
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
-
-	mux.HandleFunc("/skills", handler.ListSkills(skillStore))
-	mux.HandleFunc("/skills/", handler.GetSkill(skillStore, noteStore))
-	mux.HandleFunc("/skills/edit", handler.EditSkill(skillStore))
-	mux.HandleFunc("/skills/notes/add", handler.AddNote(noteStore))
-	mux.HandleFunc("/skills/notes/delete", handler.DeleteNote(noteStore))
-	mux.HandleFunc("/skills/notes/append", handler.AppendNotesToSkill(skillStore, noteStore, sidecarClient))
-	mux.HandleFunc("/skills/preview", handler.PreviewSkillUpdate(skillStore, noteStore, sidecarClient))
-	mux.HandleFunc("/skills/save", handler.SaveSkillUpdate(skillStore, noteStore))
-	mux.HandleFunc("/skills/preview-render", handler.RenderMarkdownPreview())
-	mux.HandleFunc("/skills/sync", handler.SyncSkills(skillStore))
 
 	// ── Start HTTP server with graceful shutdown ──────────────────────
 	srv := &http.Server{
