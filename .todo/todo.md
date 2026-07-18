@@ -9,51 +9,60 @@ But this page except for the chat interface is currently blank and has nothing i
 - [x] I need to convert the catagory on the card to tags instead and have them below like linear
 - [x] I need to preview card below to show the preview mode first instead of edit mode and i need the save to work.
 - [ ] Make sure the github action is using bun so it have faster build time
-- [x] Generate a new agent.md for lifeos so its 
+- [x] Generate a new agent.md for lifeos so its
 - [ ] Add the ability to pause/disable the timer on each panel
   - [ ] Maybe also add it in settings
 - [ ] Add notification (discord/telegram)
 - [ ] i need a better way to integrate the agent chat below with each of these days
   - [ ] It need to have context of each card and also knowledge base in case it wants to go deeper into what the context board gives.
-- [ ] Add filtering option to panel types 
-
+- [ ] Add filtering option to panel types
 
 ### Plan: `/doc/smartboard-plan.md`
 
-### Implementation Progress
+## Backend Code Smells (from review)
 
-#### Phase 1: Backend Foundation ✅ COMMITTED
-- [x] 1.1 Database schema - Add migration to sqlite.go
-- [x] 1.2 Model - Create server/internal/model/smartboard.go
-- [x] 1.3 Store - Create server/internal/store/smartboard.go
-- [x] 1.4 Service - Create server/internal/services/smartboard.go
-- [x] 1.5 Handlers - Create server/internal/api/smartboard/smartboard.go
-- [x] 1.6 Routes - Wire up in server/cmd/server/main.go
+### Bugs
+- [ ] `store/chat_message.go:11-12` — fix malformed JSON tags (missing closing `"`, caught by `go vet`)
+- [ ] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today)
+- [ ] `api/skills/skill.go:138` — remove no-op `strings.ReplaceAll(id, "_", "_")`
+- [ ] `handler/photo.go:42-43` — add missing `return` after `http.Error`
+- [ ] `handler/photo.go:110` — check `r.ParseMultipartForm` error
+- [ ] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`)
 
-#### Phase 2: Frontend Components
-- [x] 2.1 Create reusable SmartBoardPanel component
-- [x] 2.2 Implement panel-specific components (ThingsToRemember, Suggestions, Achievements, Blockers)
-- [x] 2.3 Create useSmartBoardPanel hook
-- [x] 2.4 Build CanvasEditor component
-- [x] 2.5 Update API client with smartboard methods
+### Duplication (~400 lines removable)
+- [ ] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
+- [ ] Extract `stripMarkdownFrontMatter` once to `internal/utils/markdown.go` (exists in 2+ files today)
+- [ ] Delete `api/skills/skill.go:18-63` duplicates of `respondJSON`, `NoteResponse` etc. — use `api/` versions
+- [ ] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
 
-#### Phase 3: Layout Integration
-- [x] 3.1 Create new AgentSmartBoard page with grid layout
-- [x] 3.2 Wire up all panels with hooks and state management
-- [x] 3.3 Integrate CanvasEditor with edit functionality
-- [x] 3.4 Extract and integrate FloatingChat component
-- [x] 3.5 Update route to use new AgentSmartBoard page
+### Config leaks (survived the refactor)
+- [ ] `mcp/server.go:22-31, 90-92` — hardcoded absolute paths `/home/thein3rovert/Documents/...`, move to `MCP_ALLOWED_DIRS` env
+- [ ] `services/smartboard.go:141-146, 223, 256, 288, 319` — same paths baked into 5 prompt strings, parameterize via config
+- [ ] `main.go:63` — hardcoded `"lifeos.db"`, add `cfg.DBPath` (env `LIFEOS_DB_PATH`)
+- [ ] `main.go:182` — MCP SSE `http://localhost:` hardcoded, add `cfg.PublicBaseURL`
 
-#### Phase 4: AI Integration
-- [ ] 4.1 Test prompts with real Obsidian data
-- [ ] 4.2 Refine prompts based on results
-- [ ] 4.3 Handle edge cases (empty data, malformed JSON)
-- [ ] 4.4 Add retry logic for failed AI calls
+### Structural
+- [ ] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
+- [ ] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
+- [ ] Add `ChatMessageStore` interface in `store/store.go`
+- [ ] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
+- [ ] `ALTER TABLE` errors silently swallowed in `skills.go:64` + `files.go:37-49` — check for "duplicate column name" only
+- [ ] Two `AgentHandler` structs in different packages → rename to `SkillChatHandler` and `AgentChatHandler`
+- [ ] `api/skills/skill.go:329-373` — move `SkillPusher`/`SingleSkillPusher` interfaces to `store/store.go`
 
-#### Phase 5: Polish & Features
-- [ ] 5.1 Add item editing via canvas
-- [ ] 5.2 Implement status changes for suggestions
-- [ ] 5.3 Add manual item deletion
-- [ ] 5.4 Implement "Run Daily" and "Run Weekly" automation triggers
-- [ ] 5.5 Add keyboard shortcuts
-- [ ] 5.6 Performance optimization
+### Store layer gaps
+- [ ] `SkillStore` interface doesn't cover file operations → add `SkillFileStore` interface
+- [ ] `store/skills/skills.go:172-179` — `upsertSkillFromGitHub` silently drops pending local changes (TODO: conflict resolution)
+- [ ] Delete unused `store/github/skill_store.go:101-106` `InvalidateCache`
+
+### Nits
+- [ ] Replace `fmt.Printf` with `log.Printf` in ~20 places (scheduler.go, smartboard.go, agent.go, skills.go, chat.go, main.go)
+- [ ] Fix template `err` swallowing in `handler/skills.go` and `handler/photo.go` (blank page on template failure)
+- [ ] Delete commented-out blocks in `api/agents/agent.go:11-42, 104-137`
+- [ ] Delete empty `store/skills/files.go:11-13` `init()`
+- [ ] Delete stale `store/chat_messages.sql` (migration is embedded in `sqlite.go`)
+- [ ] Fix receiver name `createSkillHandler` → `h` in `api/skills/skill.go:123`
+- [ ] Promote inline anonymous request structs to named types in `models/`
+- [ ] Downgrade or drop `log.Printf("SavePhoto Successfully")` per-save log in `store/photo.go:35`
+- [ ] Update outdated `api/README.md` (missing push/create/agent/smartboard endpoints)
+- [ ] Fix comment typos: "Mocw", "businesss", "Secureity", "decorder", "retuern", "funtion"
