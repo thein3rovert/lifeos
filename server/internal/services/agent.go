@@ -4,23 +4,34 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
-	"github.com/thein3rovert/lifeos/server/internal/store/notes"
-	"github.com/thein3rovert/lifeos/server/internal/store/skills"
 )
+
+// skillSessionStore is what AgentChatService needs from the skill store:
+// the usual read methods plus per-skill session tracking.
+type skillSessionStore interface {
+	store.SkillStore
+	store.SkillSessionStore
+}
 
 // AgentChatService orchestrates agent chat: session management, message
 // persistence, and dispatch to the sidecar. All sidecar I/O goes through
 // the injected sidecar.Client so this service stays transport-agnostic.
 type AgentChatService struct {
-	skillStore *skills.SQLSkillStore
-	msgStore   *store.ChatMessageStore
-	noteStore  *notes.NoteStore
+	skillStore skillSessionStore
+	msgStore   store.ChatMessageStore
+	noteStore  store.NoteStore
 	sidecar    *sidecar.Client
 }
 
-func NewAgentChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatMessageStore, noteStore *notes.NoteStore, sc *sidecar.Client) *AgentChatService {
+func NewAgentChatService(
+	skillStore skillSessionStore,
+	msgStore store.ChatMessageStore,
+	noteStore store.NoteStore,
+	sc *sidecar.Client,
+) *AgentChatService {
 	return &AgentChatService{
 		skillStore: skillStore,
 		msgStore:   msgStore,
@@ -124,7 +135,7 @@ func (s *AgentChatService) SendSkillChatMessage(skillID, message string, noteIds
 }
 
 // GetSkillChatMessages retrieves all messages for a skill's session.
-func (s *AgentChatService) GetSkillChatMessages(skillID string) ([]store.ChatMessage, error) {
+func (s *AgentChatService) GetSkillChatMessages(skillID string) ([]model.ChatMessage, error) {
 	skill, err := s.skillStore.GetSkill(skillID)
 	if err != nil {
 		return nil, fmt.Errorf("skill not found: %w", err)

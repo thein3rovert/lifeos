@@ -6,15 +6,15 @@ import (
 	"strings"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
-	"github.com/thein3rovert/lifeos/server/internal/store/skills"
+	"github.com/thein3rovert/lifeos/server/internal/store"
 )
 
 type SkillFileHandler struct {
-	skillStore *skills.SQLSkillStore
+	skillStore store.SkillFileStore
 }
 
 // Return new instance of the skill file handler
-func NewSkillFileHandler(skillStore *skills.SQLSkillStore) *SkillFileHandler {
+func NewSkillFileHandler(skillStore store.SkillFileStore) *SkillFileHandler {
 	return &SkillFileHandler{skillStore: skillStore}
 }
 

@@ -22,12 +22,12 @@ But this page except for the chat interface is currently blank and has nothing i
 ## Backend Code Smells (from review)
 
 ### Bugs
-- [ ] `store/chat_message.go:11-12` — fix malformed JSON tags (missing closing `"`, caught by `go vet`)
-- [ ] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today)
+- [x] `store/chat_message.go:11-12` — fix malformed JSON tags (missing closing `"`, caught by `go vet`)
+- [ ] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today) — N/A, handler/skills.go deleted
 - [ ] `api/skills/skill.go:138` — remove no-op `strings.ReplaceAll(id, "_", "_")`
-- [ ] `handler/photo.go:42-43` — add missing `return` after `http.Error`
-- [ ] `handler/photo.go:110` — check `r.ParseMultipartForm` error
-- [ ] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`)
+- [x] `handler/photo.go:42-43` — add missing `return` after `http.Error` — N/A, photo.go deleted
+- [x] `handler/photo.go:110` — check `r.ParseMultipartForm` error — N/A, photo.go deleted
+- [x] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`) — N/A, photo.go deleted
 
 ### Duplication (~400 lines removable)
 - [x] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
@@ -43,8 +43,8 @@ But this page except for the chat interface is currently blank and has nothing i
 
 ### Structural
 - [ ] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
-- [ ] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
-- [ ] Add `ChatMessageStore` interface in `store/store.go`
+- [x] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
+- [x] Add `ChatMessageStore` interface in `store/store.go`
 - [x] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
 - [x] `ALTER TABLE` errors silently swallowed in `skills.go:64` + `files.go:37-49` — check for "duplicate column name" only
 - [x] Two `AgentHandler` structs in different packages → rename to `SkillChatHandler` and `AgentChatHandler`
