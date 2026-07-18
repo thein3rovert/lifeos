@@ -3,55 +3,54 @@ package store
 import (
 	"database/sql"
 	"time"
+
+	"github.com/thein3rovert/lifeos/server/internal/model"
 )
 
-// TODO: Move this to the model folder
-type ChatMessage struct {
-	ID        int       `json:"id"`
-	SkillID   string    `json:"skill_id`
-	SessionID string    `json:"session_id`
-	Role      string    `json:"role"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+// ChatMessageStore is the interface consumers depend on. The concrete
+// SQL-backed implementation is SQLChatMessageStore below.
+type ChatMessageStore interface {
+	SaveChatMessage(skillID, sessionID, role, content string) error
+	GetChatMessages(skillID, sessionID string) ([]model.ChatMessage, error)
+	DeleteChatMessages(skillID, sessionID string) error
 }
 
-type ChatMessageStore struct {
+// SQLChatMessageStore is the SQLite-backed ChatMessageStore.
+type SQLChatMessageStore struct {
 	db *sql.DB
 }
 
-// Create a new instance of chat message store
-func NewChatMessageStore(db *sql.DB) *ChatMessageStore {
-	return &ChatMessageStore{db: db}
+// NewChatMessageStore returns a new SQLite-backed ChatMessageStore.
+// Returns the interface type so callers can substitute mocks in tests.
+func NewChatMessageStore(db *sql.DB) ChatMessageStore {
+	return &SQLChatMessageStore{db: db}
 }
 
-// Save Messages saves chat message to the database
-func (store *ChatMessageStore) SaveChatMessage(skillID, sessionID, role, content string) error {
-	// Query database forchat message
+// SaveChatMessage inserts a message into the chat_messages table.
+func (s *SQLChatMessageStore) SaveChatMessage(skillID, sessionID, role, content string) error {
 	query := `INSERT INTO chat_messages(skill_id, session_id, role, content, created_at)
-	VALUES (?, ?, ?, ?, ?)`
-
-	_, err := store.db.Exec(query, skillID, sessionID, role, content, time.Now())
+	          VALUES (?, ?, ?, ?, ?)`
+	_, err := s.db.Exec(query, skillID, sessionID, role, content, time.Now())
 	return err
 }
 
-// Get messages retrived all messages for a skill's session
-func (store *ChatMessageStore) GetChatMessages(skillID, sessionID string) ([]ChatMessage, error) {
+// GetChatMessages returns all messages for a skill's session in insertion order.
+func (s *SQLChatMessageStore) GetChatMessages(skillID, sessionID string) ([]model.ChatMessage, error) {
 	query := `SELECT id, skill_id, session_id, role, content, created_at
 	          FROM chat_messages
 	          WHERE skill_id = ? AND session_id = ?
 	          ORDER BY created_at ASC`
 
-	rows, err := store.db.Query(query, skillID, sessionID)
+	rows, err := s.db.Query(query, skillID, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var messages []ChatMessage
+	var messages []model.ChatMessage
 	for rows.Next() {
-		var msg ChatMessage
-		err := rows.Scan(&msg.ID, &msg.SkillID, &msg.SessionID, &msg.Role, &msg.Content, &msg.CreatedAt)
-		if err != nil {
+		var msg model.ChatMessage
+		if err := rows.Scan(&msg.ID, &msg.SkillID, &msg.SessionID, &msg.Role, &msg.Content, &msg.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)
@@ -59,9 +58,9 @@ func (store *ChatMessageStore) GetChatMessages(skillID, sessionID string) ([]Cha
 	return messages, rows.Err()
 }
 
-// deleteMessages helps to delete all message for a specific skills session
-func (store *ChatMessageStore) DeleteChatMessages(skillID, sessionID string) error {
+// DeleteChatMessages removes all messages for a skill's session.
+func (s *SQLChatMessageStore) DeleteChatMessages(skillID, sessionID string) error {
 	query := `DELETE FROM chat_messages WHERE skill_id = ? AND session_id = ?`
-	_, err := store.db.Exec(query, skillID, sessionID)
+	_, err := s.db.Exec(query, skillID, sessionID)
 	return err
 }

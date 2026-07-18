@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -17,53 +16,14 @@ type SQLSkillStore struct {
 	githubStore store.SkillStore // GitHub store for sync operations
 }
 
-// NewSQLSkillStore creates a SQLite-backed skill store
+// NewSQLSkillStore creates a SQLite-backed skill store. Schema migrations
+// live in the parent store package (store.NewSQLiteStore) — this constructor
+// just wires up the store, no DDL.
 func NewSQLSkillStore(db *sql.DB, githubStore store.SkillStore) (*SQLSkillStore, error) {
-	s := &SQLSkillStore{
+	return &SQLSkillStore{
 		db:          db,
 		githubStore: githubStore,
-	}
-
-	if err := s.createTable(); err != nil {
-		return nil, fmt.Errorf("failed to create skills table: %w", err)
-	}
-
-	if err := s.createSkillFilesTable(); err != nil {
-		return nil, fmt.Errorf("failed to create skill_files table: %w", err)
-	}
-
-	return s, nil
-}
-
-// createTable creates the skills table with sync tracking
-func (s *SQLSkillStore) createTable() error {
-	query := `
-	CREATE TABLE IF NOT EXISTS skills (
-		id TEXT PRIMARY KEY,
-		title TEXT NOT NULL,
-		format TEXT,
-		author TEXT,
-		content TEXT NOT NULL,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		synced_at DATETIME,
-		pending_sync BOOLEAN DEFAULT FALSE,
-		github_sha TEXT,
-		opencode_session_id TEXT
-	);
-
-	CREATE INDEX IF NOT EXISTS idx_skills_pending ON skills(pending_sync);
-	CREATE INDEX IF NOT EXISTS idx_skills_synced ON skills(synced_at);
-	`
-
-	_, err := s.db.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	// Add column if table already exists (migration)
-	_, _ = s.db.Exec(`ALTER TABLE skills ADD COLUMN opencode_session_id TEXT`)
-
-	return nil
+	}, nil
 }
 
 // ListSkills returns all skills from SQLite
@@ -155,26 +115,40 @@ func (s *SQLSkillStore) Sync() error {
 
 		if err := s.upsertSkillFromGitHub(&skill); err != nil {
 			// Log but continue - don't fail entire sync for one skill
-			fmt.Printf("Warning: failed to sync skill %s: %v\n", skill.ID, err)
+			log.Printf("Warning: failed to sync skill %s: %v", skill.ID, err)
 			continue
 		}
 
 		// Sync skill files (references folder)
 		if err := s.syncSkillFiles(skill.ID); err != nil {
-			fmt.Printf("Warning: failed to sync files for skill %s: %v\n", skill.ID, err)
+			log.Printf("Warning: failed to sync files for skill %s: %v", skill.ID, err)
 		}
 	}
 
 	return nil
 }
 
-// upsertSkillFromGitHub inserts or updates skill from GitHub (preserves local pending changes)
+// upsertSkillFromGitHub inserts or updates a skill from GitHub.
+//
+// When the local row has PendingSync=true (unpushed local edits), we do
+// NOT clobber the local content. Instead we update the read-only
+// GitHub-side metadata (github_sha, synced_at) so the pending-push flow
+// still has an up-to-date SHA to base its PR on.
+//
+// A proper 3-way conflict resolution is deferred (see TODO).
 func (s *SQLSkillStore) upsertSkillFromGitHub(skill *model.Skill) error {
-	// Check if we have pending local changes
 	existing, err := s.GetSkill(skill.ID)
 	if err == nil && existing.PendingSync {
-		// Local has pending changes - don't overwrite, just update metadata
-		// TODO: Implement conflict resolution
+		// Local has unpushed changes — preserve them but refresh remote metadata
+		// so the next push knows the correct base SHA.
+		// TODO: Implement proper 3-way conflict resolution + user-visible surface.
+		log.Printf("[sync] skill %q has pending local changes; keeping local content, refreshing SHA only", skill.ID)
+		if _, err := s.db.Exec(
+			`UPDATE skills SET github_sha = ?, synced_at = ? WHERE id = ?`,
+			skill.GitHubSHA, skill.SyncedAt, skill.ID,
+		); err != nil {
+			return fmt.Errorf("failed to refresh SHA for %q: %w", skill.ID, err)
+		}
 		return nil
 	}
 
@@ -453,33 +427,6 @@ func (s *SQLSkillStore) scanSkillFromRows(rows *sql.Rows) (model.Skill, error) {
 	return skill, nil
 }
 
-// ParseFrontmatter extracts title, format, author from markdown content
-func ParseFrontmatter(content string) (title, format, author string) {
-	if !strings.HasPrefix(content, "---") {
-		return
-	}
-
-	lines := strings.Split(content, "\n")
-	for _, line := range lines[1:] {
-		if strings.HasPrefix(line, "title:") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
-		}
-		if strings.HasPrefix(line, "name:") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
-		}
-		if strings.HasPrefix(line, "format:") {
-			format = strings.TrimSpace(strings.TrimPrefix(line, "format:"))
-		}
-		if strings.HasPrefix(line, "compatibility:") {
-			format = strings.TrimSpace(strings.TrimPrefix(line, "compatibility:"))
-		}
-		if strings.HasPrefix(line, "author:") {
-			author = strings.TrimSpace(strings.TrimPrefix(line, "author:"))
-		}
-		if line == "---" {
-			break
-		}
-	}
-
-	return
-}
+// ParseFrontmatter removed — was exported but never referenced.
+// See internal/utils.StripFrontmatter for the stripping equivalent,
+// or reintroduce a proper YAML parser (gopkg.in/yaml.v3) when needed.

@@ -2,25 +2,37 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
-	"github.com/thein3rovert/lifeos/server/internal/store/notes"
-	"github.com/thein3rovert/lifeos/server/internal/store/skills"
 )
+
+// skillSessionStore is what AgentChatService needs from the skill store:
+// the usual read methods plus per-skill session tracking.
+type skillSessionStore interface {
+	store.SkillStore
+	store.SkillSessionStore
+}
 
 // AgentChatService orchestrates agent chat: session management, message
 // persistence, and dispatch to the sidecar. All sidecar I/O goes through
 // the injected sidecar.Client so this service stays transport-agnostic.
 type AgentChatService struct {
-	skillStore *skills.SQLSkillStore
-	msgStore   *store.ChatMessageStore
-	noteStore  *notes.NoteStore
+	skillStore skillSessionStore
+	msgStore   store.ChatMessageStore
+	noteStore  store.NoteStore
 	sidecar    *sidecar.Client
 }
 
-func NewAgentChatService(skillStore *skills.SQLSkillStore, msgStore *store.ChatMessageStore, noteStore *notes.NoteStore, sc *sidecar.Client) *AgentChatService {
+func NewAgentChatService(
+	skillStore skillSessionStore,
+	msgStore store.ChatMessageStore,
+	noteStore store.NoteStore,
+	sc *sidecar.Client,
+) *AgentChatService {
 	return &AgentChatService{
 		skillStore: skillStore,
 		msgStore:   msgStore,
@@ -114,17 +126,17 @@ func (s *AgentChatService) SendSkillChatMessage(skillID, message string, noteIds
 
 	// Save user message (original, not with context)
 	if err := s.msgStore.SaveChatMessage(skillID, skill.OpenCodeSessionID, "user", message); err != nil {
-		fmt.Printf("Warning: failed to save user message: %v\n", err)
+		log.Printf("Warning: failed to save user message: %v", err)
 	}
 	// Save assistant response
 	if err := s.msgStore.SaveChatMessage(skillID, skill.OpenCodeSessionID, "assistant", response); err != nil {
-		fmt.Printf("Warning: failed to save assistant message: %v\n", err)
+		log.Printf("Warning: failed to save assistant message: %v", err)
 	}
 	return response, nil
 }
 
 // GetSkillChatMessages retrieves all messages for a skill's session.
-func (s *AgentChatService) GetSkillChatMessages(skillID string) ([]store.ChatMessage, error) {
+func (s *AgentChatService) GetSkillChatMessages(skillID string) ([]model.ChatMessage, error) {
 	skill, err := s.skillStore.GetSkill(skillID)
 	if err != nil {
 		return nil, fmt.Errorf("skill not found: %w", err)

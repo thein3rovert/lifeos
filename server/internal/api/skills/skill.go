@@ -1,66 +1,32 @@
 package skills
 
 import (
-	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/thein3rovert/lifeos/server/internal/httpjson"
 	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/store"
 )
 
 // ===============================
-// HELPER FUNCTIONS
+// LOCAL SHORT ALIASES
 // ===============================
+// Keep call sites compact. The real implementations live in internal/httpjson
+// so both the parent api package and this one share them without cycles.
 
-// respondJSON writes a JSON response
-func respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if data != nil {
-		json.NewEncoder(w).Encode(data)
-	}
-}
+var (
+	respondJSON   = httpjson.RespondJSON
+	respondError  = httpjson.RespondError
+	decodeJSON    = httpjson.DecodeJSON
+	noteToResponse = httpjson.NoteToResponse
+)
 
-// respondError writes a JSON error response
-func respondError(w http.ResponseWriter, status int, message string) {
-	respondJSON(w, status, map[string]string{"error": message})
-}
-
-// decodeJSON decodes request body
-func decodeJSON(r *http.Request, dst interface{}) error {
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(dst)
-}
-
-// NoteResponse for JSON serialization
-type NoteResponse struct {
-	ID        int     `json:"id"`
-	SkillID   string  `json:"skill_id"`
-	Title     string  `json:"title"`
-	Content   string  `json:"content"`
-	Type      string  `json:"type"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt *string `json:"updated_at,omitempty"`
-}
-
-func noteToResponse(n *model.Note) NoteResponse {
-	var updatedAt *string
-	if n.UpdatedAt != nil {
-		updatedAtStr := n.UpdatedAt.String()
-		updatedAt = &updatedAtStr
-	}
-	return NoteResponse{
-		ID:        n.ID,
-		SkillID:   n.SkillID,
-		Title:     n.Title,
-		Content:   n.Content,
-		Type:      n.Type,
-		CreatedAt: n.CreatedAt.String(),
-		UpdatedAt: updatedAt,
-	}
-}
+// NoteResponse is aliased so downstream types in this file can continue to
+// use the local name without redefining the shape.
+type NoteResponse = httpjson.NoteResponse
 
 // ===============================
 // TYPES
@@ -120,7 +86,7 @@ type CreateNewSkillRequest struct {
 // Create new skills
 // POST /api/skills/create
 
-func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r *http.Request) {
+func (h *SkillHandler) CreateNewSkill(w http.ResponseWriter, r *http.Request) {
 	var createSkillRequest CreateNewSkillRequest
 
 	if err := decodeJSON(r, &createSkillRequest); err != nil {
@@ -134,12 +100,11 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 		return
 	}
 
-	//Generate skill id from title
-	skillID := strings.ToLower(strings.ReplaceAll(createSkillRequest.Title, " ", "_"))
-	skillID = strings.ReplaceAll(skillID, "_", "_")
+	// Generate skill id from title: lower-case, spaces -> hyphens
+	skillID := strings.ToLower(strings.ReplaceAll(createSkillRequest.Title, " ", "-"))
 
-	//Check if skill already exists in the database
-	existingSkills, _ := createSkillHandler.skillStore.GetSkill(skillID)
+	// Check if skill already exists in the database
+	existingSkills, _ := h.skillStore.GetSkill(skillID)
 	if existingSkills != nil {
 		respondError(w, http.StatusConflict, "skill with this name already exists")
 		return
@@ -156,14 +121,13 @@ func (createSkillHandler *SkillHandler) CreateNewSkill(w http.ResponseWriter, r 
 	}
 
 	// Save skill to database
-	if err := createSkillHandler.skillStore.SaveSkill(newSkill); err != nil {
+	if err := h.skillStore.SaveSkill(newSkill); err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to create new skills: "+err.Error())
 		return
 	}
 
 	// Return the created skill after creation
 	respondJSON(w, http.StatusCreated, SkillToResponse(newSkill))
-
 }
 
 // skillToResponse converts a model.Skill to a SkillResponse
@@ -306,7 +270,8 @@ func (h *SkillHandler) EditSkill(w http.ResponseWriter, r *http.Request) {
 // GET /api/skills/sync
 func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 	if err := h.skillStore.Sync(); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to sync skills")
+		log.Printf("[sync] failed: %v", err)
+		respondError(w, http.StatusInternalServerError, "failed to sync skills: "+err.Error())
 		return
 	}
 
@@ -325,16 +290,10 @@ func (h *SkillHandler) SyncSkills(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
-// Pusher interface for skills that support pushing to GitHub
-type SkillPusher interface {
-	PushToGitHub() error
-	GetPendingSkills() ([]model.Skill, error)
-}
-
 // PushSkills pushes pending local changes to GitHub
 // POST /api/skills/push
 func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
-	pusher, ok := h.skillStore.(SkillPusher)
+	pusher, ok := h.skillStore.(store.SkillPusher)
 	if !ok {
 		respondError(w, http.StatusNotImplemented, "push not supported by current skill store")
 		return
@@ -367,11 +326,6 @@ func (h *SkillHandler) PushSkills(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Pusher interface extension for single skill push
-type SingleSkillPusher interface {
-	PushSingleSkill(skillID string) error
-}
-
 // PushSingleSkill pushes a single skill to GitHub
 // POST /api/skills/{id}/push
 func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
@@ -381,7 +335,7 @@ func (h *SkillHandler) PushSingleSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pusher, ok := h.skillStore.(SingleSkillPusher)
+	pusher, ok := h.skillStore.(store.SingleSkillPusher)
 	if !ok {
 		respondError(w, http.StatusNotImplemented, "single skill push not supported")
 		return

@@ -2,6 +2,7 @@ package chats
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -10,13 +11,13 @@ import (
 )
 
 // ChatHandler handles persistent chat with OpenCode
-type AgentHandler struct {
+type SkillChatHandler struct {
 	agentChatService *service.AgentChatService
 }
 
 // NewAgentChatHandler creates a new chat handler
-func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandler {
-	return &AgentHandler{
+func NewSkillChatHandler(agentChatService *service.AgentChatService) *SkillChatHandler {
+	return &SkillChatHandler{
 		agentChatService: agentChatService,
 	}
 }
@@ -43,7 +44,7 @@ type GetOrCreateSessionResponse struct {
 
 // GetOrCreateSession gets or creates an OpenCode session for a skill
 // POST /api/skills/{id}/session
-func (h *AgentHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
+func (h *SkillChatHandler) GetOrCreateSession(w http.ResponseWriter, r *http.Request) {
 	skillID, ok := getSkillID(w, r)
 	if !ok {
 		return
@@ -69,7 +70,7 @@ type ChatMessageResponse struct {
 
 // SendChatMessage sends a message to the skill's chat session
 // POST /api/skills/{id}/chat
-func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
+func (h *SkillChatHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 	var req ChatMessageRequest
 	if err := api.DecodeJSON(r, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, "invalid request body")
@@ -86,7 +87,7 @@ func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call the chat service to handle the businesss logic
+	// Call the chat service to handle the business logic
 	response, err := h.agentChatService.SendSkillChatMessage(skillID, req.Message, req.NoteIds)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, err.Error())
@@ -108,7 +109,7 @@ type GetMessagesResponse struct {
 
 // GetChatMessages gets the chat history for a skill
 // GET /api/skills/{id}/messages
-func (h *AgentHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
+func (h *SkillChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 
 	skillID, ok := getSkillID(w, r)
 	if !ok {
@@ -117,7 +118,7 @@ func (h *AgentHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	messages, err := h.agentChatService.GetSkillChatMessages(skillID)
 
 	if err != nil {
-		fmt.Printf("[GetChatMessages] Error: %v\n", err)
+		log.Printf("[GetChatMessages] Error: %v", err)
 		api.RespondError(w, http.StatusInternalServerError, "failed to get messages")
 
 		return

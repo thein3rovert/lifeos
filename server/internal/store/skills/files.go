@@ -7,50 +7,10 @@ import (
 	"github.com/thein3rovert/lifeos/server/internal/model"
 )
 
-// Add this at the start of the file
-func init() {
-	// Migration: add pending_sync column to skill_files table
-}
+// Schema for skill_files (including pending_sync + github_sha columns and
+// their idempotent add-column migrations) lives in store/sqlite.go.
+// See store.SQLiteStore.migrate().
 
-// CreateSkillFilesTable creates the skill_files table with pending_sync
-func (s *SQLSkillStore) createSkillFilesTable() error {
-	// First create table (IF NOT EXISTS handles existing tables)
-	query := `
-	CREATE TABLE IF NOT EXISTS skill_files (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		skill_id TEXT NOT NULL,
-		path TEXT NOT NULL,
-		type TEXT,
-		name TEXT,
-		content TEXT,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		pending_sync BOOLEAN DEFAULT FALSE,
-		github_sha TEXT,
-		UNIQUE(skill_id, path)
-	)`
-	_, err := s.db.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	// Create index separately (only runs if table was newly created or already has column)
-	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_skill_files_pending ON skill_files(pending_sync)`)
-
-	// Migration: add pending_sync column if it doesn't exist
-	var count int
-	row := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'pending_sync'")
-	if err := row.Scan(&count); err == nil && count == 0 {
-		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN pending_sync BOOLEAN DEFAULT FALSE`)
-	}
-
-	// Migration: add github_sha column if it doesn't exist
-	row = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('skill_files') WHERE name = 'github_sha'")
-	if err := row.Scan(&count); err == nil && count == 0 {
-		_, _ = s.db.Exec(`ALTER TABLE skill_files ADD COLUMN github_sha TEXT`)
-	}
-
-	return nil
-}
 
 // SaveSkillFile inserts or updates a skill file
 func (s *SQLSkillStore) SaveSkillFile(file *model.SkillFile) error {

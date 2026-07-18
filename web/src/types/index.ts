@@ -74,25 +74,6 @@ export interface AIPreviewResponse {
 }
 
 // -----------------------------------------------------------------------------
-// Photo Types (for future use)
-// -----------------------------------------------------------------------------
-
-export interface Photo {
-  id: number;
-  filename: string;
-  path: string;
-  caption?: string;
-  description?: string;
-  created_at: string;
-  tags?: string[];
-}
-
-export interface PhotoTag {
-  id: number;
-  name: string;
-}
-
-// -----------------------------------------------------------------------------
 // Smart Board Types
 // -----------------------------------------------------------------------------
 

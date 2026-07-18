@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -126,12 +127,12 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 
 	// Set initial next-refresh time
 	s.setNextTime(sched.panelType, time.Now().Add(sched.interval))
-	fmt.Printf("[scheduler] %s: refreshing every %s\n", sched.panelType, sched.interval)
+	log.Printf("[scheduler] %s: refreshing every %s", sched.panelType, sched.interval)
 
 	for {
 		select {
 		case <-s.ctx.Done():
-			fmt.Printf("[scheduler] %s: stopped\n", sched.panelType)
+			log.Printf("[scheduler] %s: stopped", sched.panelType)
 			return
 		case <-ticker.C:
 		// Refresh if panel is not paused
@@ -145,21 +146,21 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 
 // runWeekly refreshes a panel once per week at a specific day and hour.
 func (s *Scheduler) runWeekly(sched panelSchedule) {
-	fmt.Printf("[scheduler] %s: refreshing weekly on %s at %02d:00\n",
+	log.Printf("[scheduler] %s: refreshing weekly on %s at %02d:00",
 		sched.panelType, sched.weeklyDay, sched.weeklyHr)
 
 	for {
 		wait := durationUntil(sched.weeklyDay, sched.weeklyHr, 0)
 		nextTime := time.Now().Add(wait)
 		s.setNextTime(sched.panelType, nextTime)
-		fmt.Printf("[scheduler] %s: next refresh in %s\n",
+		log.Printf("[scheduler] %s: next refresh in %s",
 			sched.panelType, wait.Round(time.Minute))
 
 		timer := time.NewTimer(wait)
 		select {
 		case <-s.ctx.Done():
 			timer.Stop()
-			fmt.Printf("[scheduler] %s: stopped\n", sched.panelType)
+			log.Printf("[scheduler] %s: stopped", sched.panelType)
 			return
 		case <-timer.C:
 			if !s.IsPaused(sched.panelType) {
@@ -171,12 +172,12 @@ func (s *Scheduler) runWeekly(sched panelSchedule) {
 
 // refresh triggers a forced panel refresh (bypasses cache TTL).
 func (s *Scheduler) refresh(panelType string) {
-	fmt.Printf("[scheduler] refreshing %s...\n", panelType)
+	log.Printf("[scheduler] refreshing %s...", panelType)
 	if _, err := s.svc.RefreshPanel(panelType, true); err != nil {
-		fmt.Printf("[scheduler] ERROR refreshing %s: %v\n", panelType, err)
+		log.Printf("[scheduler] ERROR refreshing %s: %v", panelType, err)
 		s.setError(panelType, err.Error())
 	} else {
-		fmt.Printf("[scheduler] %s refreshed successfully\n", panelType)
+		log.Printf("[scheduler] %s refreshed successfully", panelType)
 		s.setError(panelType, "") // clear error on success
 	}
 }
@@ -241,7 +242,7 @@ func (s *Scheduler) loadSchedules() {
 	for _, def := range defaultSchedules {
 		existing, err := s.store.GetPanelSchedule(def.panelType)
 		if err != nil {
-			fmt.Printf("[scheduler] error loading schedule for %s: %v\n", def.panelType, err)
+			log.Printf("[scheduler] error loading schedule for %s: %v", def.panelType, err)
 			continue
 		}
 		if existing == nil {
@@ -255,7 +256,7 @@ func (s *Scheduler) loadSchedules() {
 				WeeklyHour:      def.weeklyHour,
 			}
 			if err := s.store.SavePanelSchedule(schedule); err != nil {
-				fmt.Printf("[scheduler] error seeding schedule for %s: %v\n", def.panelType, err)
+				log.Printf("[scheduler] error seeding schedule for %s: %v", def.panelType, err)
 			}
 		}
 	}
@@ -263,7 +264,7 @@ func (s *Scheduler) loadSchedules() {
 	// Load all schedules
 	dbSchedules, err := s.store.GetAllPanelSchedules()
 	if err != nil {
-		fmt.Printf("[scheduler] error loading schedules: %v\n", err)
+		log.Printf("[scheduler] error loading schedules: %v", err)
 		return
 	}
 
@@ -339,7 +340,7 @@ func (s *Scheduler) PauseAll() error {
 		}
 		schedule.Paused = true
 		if err := s.store.SavePanelSchedule(schedule); err != nil {
-			fmt.Printf("[scheduler] error pausing %s: %v\n", sched.panelType, err)
+			log.Printf("[scheduler] error pausing %s: %v", sched.panelType, err)
 		}
 	}
 	return nil
@@ -358,7 +359,7 @@ func (s *Scheduler) ResumeAll() error {
 		}
 		schedule.Paused = false
 		if err := s.store.SavePanelSchedule(schedule); err != nil {
-			fmt.Printf("[scheduler] error resuming %s: %v\n", sched.panelType, err)
+			log.Printf("[scheduler] error resuming %s: %v", sched.panelType, err)
 		}
 	}
 	return nil

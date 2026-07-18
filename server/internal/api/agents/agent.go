@@ -7,45 +7,22 @@ import (
 	service "github.com/thein3rovert/lifeos/server/internal/services"
 )
 
-// AgentHandler proxies/send agent chat requests to the sidecar
-// type AgentHandler struct {
-// 	sidecarURL string
-// }
-
-// ChatHandler handles persistent chat with OpenCode
-type AgentHandler struct {
+// AgentChatHandler handles the general-purpose agent chat endpoints
+// (as opposed to per-skill chat sessions, which live in api/chats).
+type AgentChatHandler struct {
 	agentChatService *service.AgentChatService
 }
 
-// NewAgentChatHandler creates a new chat handler
-func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentHandler {
-	return &AgentHandler{
+// NewAgentChatHandler creates a new agent chat handler.
+func NewAgentChatHandler(agentChatService *service.AgentChatService) *AgentChatHandler {
+	return &AgentChatHandler{
 		agentChatService: agentChatService,
 	}
 }
 
-// // NewAgentHandler creates a new agent handler
-// func NewAgentHandler(sidecarURL string) *AgentHandler {
-// 	return &AgentHandler{
-// 		sidecarURL: sidecarURL,
-// 	}
-// }
-
-// type AgentChatRequest struct {
-// 	Message   string  `json:"message"`
-// 	SessionID *string `json:"sessionId,omitempty"`
-// }
-
-// type AgentChatResponse struct {
-// 	Response  string `json:"response"`
-// 	SessionID string `json:"sessionId"`
-// }
-
-// Chat send/proxies chat messages to the sidecar's /agent/chat endpoint
+// AgentChatMessage sends/proxies a chat message to the sidecar's /agent/chat.
 // POST /api/agent/chat
-func (h *AgentHandler) AgentChatMessage(w http.ResponseWriter, r *http.Request) {
-
-	// Creater var req of type struct
+func (h *AgentChatHandler) AgentChatMessage(w http.ResponseWriter, r *http.Request) {
 	var req service.AgentChatRequest
 
 	if err := api.DecodeJSON(r, &req); err != nil {
@@ -70,9 +47,9 @@ func (h *AgentHandler) AgentChatMessage(w http.ResponseWriter, r *http.Request) 
 	api.RespondJSON(w, http.StatusOK, chatResp)
 }
 
-// AbortRequest aborts a running agent request
+// AbortRequest aborts a running agent request.
 // POST /api/agent/abort
-func (h *AgentHandler) AbortRequest(w http.ResponseWriter, r *http.Request) {
+func (h *AgentChatHandler) AbortRequest(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RequestID string `json:"requestId"`
 	}
@@ -87,8 +64,7 @@ func (h *AgentHandler) AbortRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.agentChatService.AbortAgentRequest(req.RequestID)
-	if err != nil {
+	if err := h.agentChatService.AbortAgentRequest(req.RequestID); err != nil {
 		api.RespondError(w, http.StatusBadGateway, err.Error())
 		return
 	}
@@ -98,40 +74,3 @@ func (h *AgentHandler) AbortRequest(w http.ResponseWriter, r *http.Request) {
 		"requestId": req.RequestID,
 	})
 }
-
-// Events streams real-time agent events via SSE
-// GET /api/agent/events
-// func (h *AgentHandler) Events(w http.ResponseWriter, r *http.Request) {
-// 	// Set SSE headers
-// 	w.Header().Set("Content-Type", "text/event-stream")
-// 	w.Header().Set("Cache-Control", "no-cache")
-// 	w.Header().Set("Connection", "keep-alive")
-// 	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-// 	// Stream events from sidecar
-// 	resp, err := http.Get(fmt.Sprintf("%s/agent/events", h.sidecarURL))
-// 	if err != nil {
-// 		http.Error(w, fmt.Sprintf("Failed to connect to event stream: %v", err), http.StatusBadGateway)
-// 		return
-// 	}
-// 	defer resp.Body.Close()
-
-// 	// Forward SSE stream to client
-// 	flusher, ok := w.(http.Flusher)
-// 	if !ok {
-// 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	buf := make([]byte, 4096)
-// 	for {
-// 		n, err := resp.Body.Read(buf)
-// 		if n > 0 {
-// 			w.Write(buf[:n])
-// 			flusher.Flush()
-// 		}
-// 		if err != nil {
-// 			break
-// 		}
-// 	}
-// }

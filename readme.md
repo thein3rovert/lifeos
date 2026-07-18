@@ -1,6 +1,6 @@
 # LifeOS
 
-Personal life management system - photos, skills/knowledge base, and notes. Built with Go backend and TanStack Start frontend.
+Personal life management system - skills/knowledge base and notes. Built with Go backend and TanStack Start frontend.
 
 **Architecture Evolution:**
 - ✅ Started: Go + HTML Templates + HTMX
@@ -15,7 +15,7 @@ Personal life management system - photos, skills/knowledge base, and notes. Buil
 |-------|------------|
 | **Frontend** | TanStack Start (React + Vite + Tailwind CSS) |
 | **Backend** | Go 1.26 (stdlib http + Chi router) |
-| **Database** | SQLite (photos, notes, tags, skills cache) |
+| **Database** | SQLite (skills, notes, chats, smart board) |
 | **Skills Storage** | GitHub (thein3rovert/polis repo) |
 | **AI Sidecar** | Node.js + Express |
 

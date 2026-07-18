@@ -51,8 +51,6 @@ web/               # TanStack Start frontend
 sidecar/           # Node.js sidecar
 skills/            # Local skill markdown files
   atlas/           # Atlas design system reference
-photos/            # Uploaded photo storage
-static/            # Go serves photos from here via /static/
 dev/               # Old practice code — not part of the app
 doc/               # Architecture notes, roadmap
 ```
@@ -103,7 +101,6 @@ No automated tests yet. Manual workflow:
 ## Notes
 
 - Frontend: 3000, Backend: 6060, Sidecar: 3001.
-- Photos are stored as `photos/<unix_nano>_<original_filename>` and served via `/static/`.
 - Go dates (`"2026-04-24 ... +0100 BST"`) need regex parsing in the frontend.
 - `dev/` is old practice code, not part of the app.
 - Roadmap lives in `doc/minimal-plan.md`.
