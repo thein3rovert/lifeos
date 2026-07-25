@@ -90,6 +90,7 @@ func runHTTPServer() {
 
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
+	smartBoardStore := store.NewSmartBoardStore(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -97,12 +98,9 @@ func runHTTPServer() {
 	sidecarClient := sidecar.New(cfg.SidecarURL)
 
 	// ── Initialize services ─────────────────────────────────────
-	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, sidecarClient)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, smartBoardStore, sidecarClient)
 	noteService := service.NewNoteService(noteStore, skillStore)
 	skillAIService := service.NewSkillAIService(skillStore, noteStore, sidecarClient)
-
-	// Smart board store and service
-	smartBoardStore := store.NewSmartBoardStore(db.DB())
 	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService, cfg.MeetingsPath, cfg.JournalPath)
 	defer smartBoardService.Stop()
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/thein3rovert/lifeos/server/internal/api/smartboard"
 	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
@@ -21,23 +22,26 @@ type skillSessionStore interface {
 // persistence, and dispatch to the sidecar. All sidecar I/O goes through
 // the injected sidecar.Client so this service stays transport-agnostic.
 type AgentChatService struct {
-	skillStore skillSessionStore
-	msgStore   store.ChatMessageStore
-	noteStore  store.NoteStore
-	sidecar    *sidecar.Client
+	skillStore      skillSessionStore
+	msgStore        store.ChatMessageStore
+	noteStore       store.NoteStore
+	smartBoardStore store.SmartBoardStore
+	sidecar         *sidecar.Client
 }
 
 func NewAgentChatService(
 	skillStore skillSessionStore,
 	msgStore store.ChatMessageStore,
 	noteStore store.NoteStore,
+	smartBoardStore store.SmartBoardStore,
 	sc *sidecar.Client,
 ) *AgentChatService {
 	return &AgentChatService{
-		skillStore: skillStore,
-		msgStore:   msgStore,
-		noteStore:  noteStore,
-		sidecar:    sc,
+		skillStore:      skillStore,
+		msgStore:        msgStore,
+		noteStore:       noteStore,
+		smartBoardStore: smartBoardStore,
+		sidecar:         sc,
 	}
 }
 
