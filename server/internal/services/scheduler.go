@@ -171,14 +171,14 @@ func (s *Scheduler) runWeekly(sched panelSchedule) {
 }
 
 // refresh triggers a forced panel refresh (bypasses cache TTL).
+// Success/failure error state is recorded by SmartBoardService.RefreshPanel
+// itself so both manual and scheduled refreshes converge.
 func (s *Scheduler) refresh(panelType string) {
 	log.Printf("[scheduler] refreshing %s...", panelType)
 	if _, err := s.svc.RefreshPanel(panelType, true); err != nil {
 		log.Printf("[scheduler] ERROR refreshing %s: %v", panelType, err)
-		s.setError(panelType, err.Error())
 	} else {
 		log.Printf("[scheduler] %s refreshed successfully", panelType)
-		s.setError(panelType, "") // clear error on success
 	}
 }
 

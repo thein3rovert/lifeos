@@ -102,7 +102,24 @@ func (s *SmartBoardService) SetPanelSchedule(panelType string, mode string, inte
 // RefreshPanel fetches new data from AI and updates cache(db).
 // If force is false and the cached panel is younger than cacheTTL, returns
 // the cached panel without calling AI (instant, no token cost).
-func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (*model.SmartBoardPanel, error) {
+//
+// Also mirrors the outcome into the scheduler's per-panel error state, so
+// manual UI refreshes clear stale error banners left over from earlier
+// auto-refresh failures.
+func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (panel *model.SmartBoardPanel, err error) {
+	// Record success/failure into scheduler state on the way out so the UI
+	// stays consistent regardless of which path (manual/auto) triggered us.
+	defer func() {
+		if s.scheduler == nil {
+			return
+		}
+		if err != nil {
+			s.scheduler.setError(panelType, err.Error())
+		} else {
+			s.scheduler.setError(panelType, "")
+		}
+	}()
+
 	existingPanel, _ := s.store.GetLatestPanel(panelType)
 
 	// Cache hit: have data, recently refreshed, and not forced → skip AI entirely.
