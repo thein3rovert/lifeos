@@ -11,7 +11,6 @@ import (
 // their idempotent add-column migrations) lives in store/sqlite.go.
 // See store.SQLiteStore.migrate().
 
-
 // SaveSkillFile inserts or updates a skill file
 func (s *SQLSkillStore) SaveSkillFile(file *model.SkillFile) error {
 	query := `

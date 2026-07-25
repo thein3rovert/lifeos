@@ -135,7 +135,7 @@ func (s *Scheduler) runInterval(sched panelSchedule) {
 			log.Printf("[scheduler] %s: stopped", sched.panelType)
 			return
 		case <-ticker.C:
-		// Refresh if panel is not paused
+			// Refresh if panel is not paused
 			if !s.IsPaused(sched.panelType) {
 				s.refresh(sched.panelType)
 			}

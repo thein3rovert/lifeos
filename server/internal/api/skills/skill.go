@@ -18,9 +18,9 @@ import (
 // so both the parent api package and this one share them without cycles.
 
 var (
-	respondJSON   = httpjson.RespondJSON
-	respondError  = httpjson.RespondError
-	decodeJSON    = httpjson.DecodeJSON
+	respondJSON    = httpjson.RespondJSON
+	respondError   = httpjson.RespondError
+	decodeJSON     = httpjson.DecodeJSON
 	noteToResponse = httpjson.NoteToResponse
 )
 

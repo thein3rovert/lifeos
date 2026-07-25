@@ -6,8 +6,8 @@ import "time"
 type SmartBoardPanel struct {
 	ID                int       `json:"id"`
 	PanelType         string    `json:"panel_type"`
-	Data              string    `json:"data"` // JSON blob
-	SessionID         string    `json:"session_id"` // OpenCode session ID for reuse
+	Data              string    `json:"data"`               // JSON blob
+	SessionID         string    `json:"session_id"`         // OpenCode session ID for reuse
 	SourceFingerprint string    `json:"source_fingerprint"` // hash of source files at last refresh
 	LastRefreshed     time.Time `json:"last_refreshed"`
 	CreatedAt         time.Time `json:"created_at"`
@@ -78,7 +78,7 @@ type PanelSchedule struct {
 	Paused          bool      `json:"paused"`
 	Mode            string    `json:"mode"` // "interval" or "weekly"
 	IntervalMinutes int       `json:"intervalMinutes,omitempty"`
-	WeeklyDay       int       `json:"weeklyDay,omitempty"` // 0-6 (Sunday-Saturday)
+	WeeklyDay       int       `json:"weeklyDay,omitempty"`  // 0-6 (Sunday-Saturday)
 	WeeklyHour      int       `json:"weeklyHour,omitempty"` // 0-23
 	UpdatedAt       time.Time `json:"updatedAt"`
 }

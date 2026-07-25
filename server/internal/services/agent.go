@@ -123,7 +123,7 @@ func (s *AgentChatService) latestPanelsContext(days int) string {
 	cutoff := time.Now().AddDate(0, 0, -days)
 
 	var b strings.Builder
-	b.WriteString("### Current Smart Board state\n")
+	fmt.Fprintf(&b, "### Smart Board (items from last %d days)\n", days)
 	b.WriteString("(Cached - use these panels before scanning filesl)\n\n")
 
 	found := 0
