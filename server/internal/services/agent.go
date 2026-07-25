@@ -85,6 +85,18 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	if req.Message == "" {
 		return AgentChatResponse{}, fmt.Errorf("message is required")
 	}
+
+	// Inject panel state(data) as extra context, this help to prevent
+	// qureying the knowledge base (mcp) for every message, if some already
+	// in context then use that
+	// If no panel exist we skip
+	if panels := s.latestPanelsContext(); panels != "" {
+		if req.Context == "" {
+			req.Context = panels
+		} else {
+			req.Context = panels + "\n---\n" + req.Context
+		}
+	}
 	return s.sidecar.SendAgentChat(req)
 }
 
