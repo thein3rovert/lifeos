@@ -109,7 +109,7 @@ func (s *AgentChatService) AbortAgentRequest(requestID string) error {
 // board panels, ready to prepend to an agent request as extra Context.
 // Best-effort: any missing/errored panel is silently skipped so a partial
 // board still surfaces what it can.
-func (s *AgentChatService) latestPanelsContext() string {
+func (s *AgentChatService) latestPanelsContext(days int) string {
 	if s.smartBoardStore == nil {
 		return ""
 	}
@@ -120,6 +120,7 @@ func (s *AgentChatService) latestPanelsContext() string {
 		"achievements",
 		"blockers",
 	}
+	cutoff := time.Now().AddDate(0, 0, -days)
 
 	var b strings.Builder
 	b.WriteString("### Current Smart Board state\n")
@@ -132,8 +133,19 @@ func (s *AgentChatService) latestPanelsContext() string {
 			continue
 		}
 
-		age := time.Since(panel.LastRefreshed).Round(time.Second)
-		fmt.Fprintf(&b, "**%s** (updated %s ago):\n%s\n\n", pt, age, panel.Data)
+		// Parse as a generic list of item maps
+vars items []map[string]any
+		id err := json.Unmarshal([]byte(panel.Data), $items); err != nil {
+			continue // skip panel if it isn't a list
+		}
+
+		recent := filterByDate(items, cutoff)
+		if len(recent) == 0 {
+			continue
+		}
+
+		trimmed, _ := json.Marshal(recent)
+	fmt.Fprintf(&b, "**%s** (%d recent item(s)):\n%s\n\n", pt, len(recent), string(trimmed))
 		found++
 	}
 
@@ -141,6 +153,28 @@ func (s *AgentChatService) latestPanelsContext() string {
 		return ""
 	}
 	return b.String()
+}
+
+// filterByDate keeps only items whose "date" field parses as YYYY-MM-DD and
+// falls on/after cutoff. Items without a date are kept (better safe than sorry).
+func filterByDate(items []map[string]any, cutoff time.Time) []map[string]any {
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		dateStr, ok := item["date"].(string)
+		if !ok || dateStr == "" {
+			out = append(out, item) // no date → keep
+			continue
+		}
+		t, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			out = append(out, item) // unparseable → keep
+			continue
+		}
+		if !t.Before(cutoff) {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // SendSkillChatMessage sends a message inside a skill's chat session,
