@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
-	"github.com/thein3rovert/lifeos/server/internal/api/smartboard"
 	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
@@ -78,7 +78,9 @@ func (s *AgentChatService) CreateOrResumeSession(skillID string) (string, error)
 	return sessionID, nil
 }
 
-// SendAgentChatMessage forwards a chat request to the general agent endpoint.
+// SendAgentChatMessage forwards a chat request to the general agent endpoint(use for flowating chat)
+// prepending the latest smart board panels to Context so the agent can
+// answer "what's blocking me" etc. without triggering fresh MCP file scans.
 func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChatResponse, error) {
 	if req.Message == "" {
 		return AgentChatResponse{}, fmt.Errorf("message is required")
@@ -89,6 +91,44 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 // AbortAgentRequest aborts a running agent request via sidecar.
 func (s *AgentChatService) AbortAgentRequest(requestID string) error {
 	return s.sidecar.AbortAgentRequest(requestID)
+}
+
+// latestPanelsContext returns a plain-text summary of the four current smart
+// board panels, ready to prepend to an agent request as extra Context.
+// Best-effort: any missing/errored panel is silently skipped so a partial
+// board still surfaces what it can.
+func (s *AgentChatService) latestPanelsContext() string {
+	if s.smartBoardStore == nil {
+		return ""
+	}
+
+	panelTypes := []string{
+		"things-to-remember",
+		"suggestions",
+		"achievements",
+		"blockers",
+	}
+
+	var b strings.Builder
+	b.WriteString("### Current Smart Board state\n")
+	b.WriteString("(Cached - use these panels before scanning filesl)\n\n")
+
+	found := 0
+	for _, pt := range panelTypes {
+		panel, err := s.smartBoardStore.GetLatestPanel(pt)
+		if err != nil || panel == nil || panel.Data == "" {
+			continue
+		}
+
+		age := time.Since(panel.LastRefreshed).Round(time.Second)
+		fmt.Fprintf(&b, "**%s** (updated %s ago):\n%s\n\n", pt, age, panel.Data)
+		found++
+	}
+
+	if found == 0 {
+		return ""
+	}
+	return b.String()
 }
 
 // SendSkillChatMessage sends a message inside a skill's chat session,
