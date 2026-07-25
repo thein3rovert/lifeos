@@ -124,7 +124,7 @@ func (s *AgentChatService) latestPanelsContext(days int) string {
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "### Smart Board (items from last %d days)\n", days)
-	b.WriteString("(Cached - use these panels before scanning filesl)\n\n")
+	b.WriteString("(Cached - use these panels before scanning files)\n\n")
 
 	found := 0
 	for _, pt := range panelTypes {
@@ -134,8 +134,8 @@ func (s *AgentChatService) latestPanelsContext(days int) string {
 		}
 
 		// Parse as a generic list of item maps
-vars items []map[string]any
-		id err := json.Unmarshal([]byte(panel.Data), $items); err != nil {
+		var items []map[string]any
+		if err := json.Unmarshal([]byte(panel.Data), &items); err != nil {
 			continue // skip panel if it isn't a list
 		}
 
@@ -145,7 +145,7 @@ vars items []map[string]any
 		}
 
 		trimmed, _ := json.Marshal(recent)
-	fmt.Fprintf(&b, "**%s** (%d recent item(s)):\n%s\n\n", pt, len(recent), string(trimmed))
+		fmt.Fprintf(&b, "**%s** (%d recent item(s)):\n%s\n\n", pt, len(recent), string(trimmed))
 		found++
 	}
 
