@@ -13,9 +13,26 @@ But this page except for the chat interface is currently blank and has nothing i
 - x[ ] Add the ability to pause/disable the timer on each panel
   x [ ] Maybe also add it in settings
 - [ ] Add notification (discord/telegram)
-- [ ] i need a better way to integrate the agent chat below with each of these days
+- [ ] I need a better way to integrate the agent chat below with each of these days
   - [ ] It need to have context of each card and also knowledge base in case it wants to go deeper into what the context board gives.
 - [ ] Add filtering option to panel types
+
+- Panel data in DB — yes, smartboard_panels table has the latest JSON blob per panel (1-8KB each). Cheap, reusable.
+  Ideas ranked by effort/value:
+
+# 25-07-2026
+
+- x Pre-fill panels as context (easiest, biggest win)  
+   Before calling sidecar, backend fetches the 4 latest panels + injects them into the agent's context. Agent answers "what's blocking me?" instantly with 0 MCP calls.
+
+- [ ] Panel-item mention (Linear-style)  
+       User picks a specific card from the board via @blockers/1 and it gets attached as context. Explicit intent, minimal token waste.
+
+- [ ] New MCP tool get_smartboard_panel(type) (cleanest)  
+       Agent decides when to query DB vs when to scan files. E.g., "any recent achievements?" → DB. "What did I write yesterday?" → MCP.
+
+- [ ] Session pre-fill (once per session)  
+       Inject panel JSON when creating the session; agent has it for the whole convo. Fast, mildly stale.
 
 ### Plan: `/doc/smartboard-plan.md`
 

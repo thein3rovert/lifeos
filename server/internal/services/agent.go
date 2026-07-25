@@ -134,10 +134,27 @@ func (s *AgentChatService) latestPanelsContext(days int) string {
 			continue
 		}
 
-		// Parse as a generic list of item maps
+		// Panel data is wrapped in an object with a single array key that
+		// varies per panel ("items" / "blockers" / "suggestions" /
+		// "achievements"). Unmarshal into a generic map and pluck the first
+		// array we find.
+		var wrapper map[string]any
+		if err := json.Unmarshal([]byte(panel.Data), &wrapper); err != nil {
+			continue
+		}
+
 		var items []map[string]any
-		if err := json.Unmarshal([]byte(panel.Data), &items); err != nil {
-			continue // skip panel if it isn't a list
+		for _, v := range wrapper {
+			raw, ok := v.([]any)
+			if !ok {
+				continue
+			}
+			for _, r := range raw {
+				if m, ok := r.(map[string]any); ok {
+					items = append(items, m)
+				}
+			}
+			break // one array per panel — stop at the first
 		}
 
 		recent := filterByDate(items, cutoff)
