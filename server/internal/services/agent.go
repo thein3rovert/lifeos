@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -90,7 +91,7 @@ func (s *AgentChatService) SendAgentChatMessage(req AgentChatRequest) (AgentChat
 	// qureying the knowledge base (mcp) for every message, if some already
 	// in context then use that
 	// If no panel exist we skip
-	if panels := s.latestPanelsContext(); panels != "" {
+	if panels := s.latestPanelsContext(7); panels != "" {
 		if req.Context == "" {
 			req.Context = panels
 		} else {
