@@ -172,6 +172,8 @@ func runHTTPServer() {
 	}
 	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL(baseURL))
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
+	// Message endpoint for JSON-RPC requests (handles MCP initialize, tools, etc.)
+	mux.Handle("/message", middleware.MCPAuth(sse))
 
 	// Health check
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
