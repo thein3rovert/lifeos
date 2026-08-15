@@ -17,6 +17,7 @@ services:
       - LIFEOS_PORT=6060
       - SIDECAR_URL=http://sidecar:3002
       - MCP_API_KEY=${MCP_API_KEY}
+      - LIFEOS_PUBLIC_URL=${LIFEOS_PUBLIC_URL}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:7001}
     volumes:
       - lifeos-data:/app

@@ -25,6 +25,12 @@ But this page except for the chat interface is currently blank and has nothing i
 - x Pre-fill panels as context (easiest, biggest win)  
    Before calling sidecar, backend fetches the 4 latest panels + injects them into the agent's context. Agent answers "what's blocking me?" instantly with 0 MCP calls.
 
+- [ ] Add the features to expand/zoom any soecific panel
+  - Add a zoom icon and when click on will pop up and float the panel, my aim is for this to help with better visibility and maybe further functionalities
+
+- [ ] I need to add the feature to go back in time in each panel..
+  - For example if i want to see previous blockers either by date or by updated date..not sure yet but there should be a way to see and filter previous blockers...same with other panels since they are all been fetched from the database
+
 - [ ] Panel-item mention (Linear-style)  
        User picks a specific card from the board via @blockers/1 and it gets attached as context. Explicit intent, minimal token waste.
 
@@ -34,58 +40,10 @@ But this page except for the chat interface is currently blank and has nothing i
 - [ ] Session pre-fill (once per session)  
        Inject panel JSON when creating the session; agent has it for the whole convo. Fast, mildly stale.
 
-### Plan: `/doc/smartboard-plan.md`
+- [ ] I want to understand what is the lifecycle of this floating chat..does it delete each session after refresh
+  - Does it delete each session after refresh or just keep it and reuse it for future request.
 
-## Backend Code Smells (from review)
+- [ ] Looking to replace skill Note section to skill review note section
+- Currently i update my skills from hy agent harnes itself, because this is quite convenient, when i start workong on a project i do say "oh by the way can you update the skill with this context" and it does that with ease..i feel updating it through lifeos ui will just ad extra work for me.. so instead i will do a weekly review..i will have the agent go through the skills and suggest improvement to them and best practise those suggestion will be the one in thew skill notes section and ranked by priority.
 
-### Bugs
-
-- [x] `store/chat_message.go:11-12` — fix malformed JSON tags (missing closing `"`, caught by `go vet`)
-- [x] `handler/skills.go:304-308` — check `sc.UpdateSkill` error before overwriting `skill.Content` (silent empty writes today) — N/A, handler/skills.go deleted
-- [x] `api/skills/skill.go:138` — remove no-op `strings.ReplaceAll(id, "_", "_")`
-- [x] `handler/photo.go:42-43` — add missing `return` after `http.Error` — N/A, photo.go deleted
-- [x] `handler/photo.go:110` — check `r.ParseMultipartForm` error — N/A, photo.go deleted
-- [x] `store/photo.go:82` — add `defer rows.Close()` (resource leak in `ListTags`) — N/A, photo.go deleted
-
-### Duplication (~400 lines removable)
-
-- [x] Delete duplicate HTML handlers in `handler/skills.go` (522 lines duplicates `api/ai.go` + `api/skills/`; already marked Phase 4 removal in `main.go`)
-- [x] Extract `stripMarkdownFrontMatter` once to `internal/utils/markdown.go` (exists in 2+ files today)
-- [x] Delete `api/skills/skill.go:18-63` duplicates of `respondJSON`, `NoteResponse` etc. — use `api/` versions
-- [x] Consolidate 3 frontmatter parsers into one place; delete unused exported `ParseFrontmatter` in `store/skills/skills.go`
-
-### Config leaks (survived the refactor)
-
-- [x] `mcp/server.go:22-31, 90-92` — hardcoded absolute paths `/home/thein3rovert/Documents/...`, move to `MCP_ALLOWED_DIRS` env
-- [x] `services/smartboard.go:141-146, 223, 256, 288, 319` — same paths baked into 5 prompt strings, parameterize via config
-- [x] `main.go:63` — hardcoded `"lifeos.db"`, add `cfg.DBPath` (env `LIFEOS_DB_PATH`)
-- [x] `main.go:182` — MCP SSE `http://localhost:` hardcoded, add `cfg.PublicBaseURL`
-
-### Structural
-
-- [x] Move sidecar orchestration + note joining out of HTTP handlers into `services.SkillAIService`
-- [x] Services use concrete store types (`*skills.SQLSkillStore` etc.); define + inject interfaces so they're testable
-- [x] Add `ChatMessageStore` interface in `store/store.go`
-- [x] Consolidate schema — currently split across `sqlite.go`, `store/skills/skills.go`, `store/skills/files.go` (race risk)
-- [x] `ALTER TABLE` errors silently swallowed in `skills.go:64` + `files.go:37-49` — check for "duplicate column name" only
-- [x] Two `AgentHandler` structs in different packages → rename to `SkillChatHandler` and `AgentChatHandler`
-- [x] `api/skills/skill.go:329-373` — move `SkillPusher`/`SingleSkillPusher` interfaces to `store/store.go`
-
-### Store layer gaps
-
-- [x] `SkillStore` interface doesn't cover file operations → add `SkillFileStore` interface
-- [x] `store/skills/skills.go:172-179` — `upsertSkillFromGitHub` silently drops pending local changes (TODO: conflict resolution)
-- [x] Delete unused `store/github/skill_store.go:101-106` `InvalidateCache`
-
-### Nits
-
-- [x] Replace `fmt.Printf` with `log.Printf` in ~20 places (scheduler.go, smartboard.go, agent.go, skills.go, chat.go, main.go)
-- [x] Fix template `err` swallowing in `handler/skills.go` and `handler/photo.go` — N/A, handler pkg gone
-- [x] Delete commented-out blocks in `api/agents/agent.go:11-42, 104-137`
-- [x] Delete empty `store/skills/files.go:11-13` `init()`
-- [x] Delete stale `store/chat_messages.sql` (migration is embedded in `sqlite.go`)
-- [x] Fix receiver name `createSkillHandler` → `h` in `api/skills/skill.go:123`
-- [ ] Promote inline anonymous request structs to named types in `models/`
-- [x] Downgrade or drop `log.Printf("SavePhoto Successfully")` per-save log in `store/photo.go:35` — N/A, deleted
-- [x] Update outdated `api/README.md` (missing push/create/agent/smartboard endpoints)
-- [x] Fix comment typos: "Mocw", "businesss", "Secureity", "decorder", "retuern", "funtion"
+- [ ] I am thinking of moving my mcp to a diff dedicated server alongside my notes so it know where to pull from and can also write to it.
