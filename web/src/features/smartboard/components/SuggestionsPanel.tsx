@@ -1,4 +1,5 @@
 import { CategoryMenu } from '@/components/ui/CategoryMenu';
+import { getStateOptions } from '@/features/smartboard/constants';
 import type { SuggestionsData } from '@/types';
 import { SmartBoardItemCard } from './SmartBoardItemCard';
 import { SmartBoardPanel } from './SmartBoardPanel';
@@ -77,11 +78,7 @@ export function SuggestionsPanel({
           {items.map((item, idx) => (
             <CategoryMenu
               key={item.id}
-              options={[
-                { value: 'active', label: 'Active' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'dismissed', label: 'Dismissed' },
-              ]}
+              options={getStateOptions('suggestions')!}
               onSelect={(value) =>
                 onChangeStatus(item.id, value as 'active' | 'dismissed' | 'completed')
               }

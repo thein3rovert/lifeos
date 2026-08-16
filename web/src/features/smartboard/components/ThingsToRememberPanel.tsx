@@ -1,4 +1,5 @@
 import { CategoryMenu } from '@/components/ui/CategoryMenu';
+import { getStateOptions } from '@/features/smartboard/constants';
 import type { ThingsToRememberData } from '@/types';
 import { SmartBoardItemCard } from './SmartBoardItemCard';
 import { SmartBoardPanel } from './SmartBoardPanel';
@@ -77,11 +78,7 @@ export function ThingsToRememberPanel({
           {items.map((item, idx) => (
             <CategoryMenu
               key={item.id}
-              options={[
-                { value: 'urgent', label: 'Urgent' },
-                { value: 'important', label: 'Important' },
-                { value: 'not-important', label: 'Not Important' },
-              ]}
+              options={getStateOptions('things-to-remember')!}
               onSelect={(value) =>
                 onChangeCategory(item.id, value as 'urgent' | 'important' | 'not-important')
               }

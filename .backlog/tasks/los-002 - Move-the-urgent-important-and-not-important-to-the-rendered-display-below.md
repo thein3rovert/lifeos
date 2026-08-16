@@ -1,9 +1,11 @@
 ---
 id: LOS-002
 title: 'Move the urgent, important and not important to the rendered display below'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - thein3rovert
 created_date: '2026-08-01 20:15'
+updated_date: '2026-08-16 00:00'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -14,3 +16,50 @@ ordinal: 2000
 <!-- SECTION:DESCRIPTION:BEGIN -->
 I am having issue easily changing the state of the card in each panel, as i havw to move back and fort the render display where i get the full imformation and also the card display to chages the state but if the render display makes it easy for me to just switch the state in maybe a the button of the render displaycard then that alot more convienent like after reading i can just switch the display
 <!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 State-switch control renders at the bottom (footer) of the InlineCanvasEditor rendered display for things-to-remember and suggestions items
+- [ ] #2 Control uses a CategoryMenu dropdown (same primitive as the card) so the editor and card switchers feel identical
+- [ ] #3 Control shows a Badge of the current state (urgent/important/not-important for things-to-remember; active/completed/dismissed for suggestions)
+- [ ] #4 Switching state fires PATCH /api/smartboard/item/{itemId} with the correct panelType and new state, and the editor stays open after the switch
+- [ ] #5 Achievements and Blockers panels (no state) do not render the state-switch control in the editor
+- [ ] #6 State options are sourced from a single shared module (no duplication between card menu and editor control)
+- [ ] #7 State change re-fetches panel data and toasts success/error (reuses useSmartBoardPanel.updateItemStatus)
+- [ ] #8 New control uses Atlas token-backed classes (bg-raised/bg-input/bg-hover/border-default) so colors actually render
+<!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+## LOS-002 — Inline State-Switching in the Rendered Display
+
+### Goal
+Add state-switching controls to the bottom of the `InlineCanvasEditor` (the rendered display) so the user can change a card's state after reading it — without going back to the card panel.
+
+### Architecture finding (research)
+- **Card display** = `SmartBoardItemCard` (compact). **Rendered display** = `InlineCanvasEditor` (Preview mode renders full markdown).
+- Two panel types carry state: `things-to-remember` (category: urgent/important/not-important) and `suggestions` (status: active/completed/dismissed). Achievements & Blockers have no state.
+- **No backend change needed.** `PATCH /api/smartboard/item/{itemId}` with `{ panelType, status }` already mutates both `category` (things-to-remember) and `status` (suggestions).
+- `AgentSmartBoard` already keeps `editorContext = { panelType, itemId }` — the data needed to drive a switcher is one level up; `InlineCanvasEditor` just doesn't receive it yet.
+- Existing state-switcher primitive = `CategoryMenu` (`web/src/components/ui/CategoryMenu.tsx`) — used on the card. Reuse it for parity. `Badge` variants already match the state enum.
+
+### Implementation steps
+1. **Hoist state options** — move the inline option arrays from `ThingsToRememberPanel.tsx:80-84` and `SuggestionsPanel.tsx:80-84` into a shared module (e.g., `web/src/features/smartboard/constants.ts`) keyed by panelType, so both the card menu and the new editor control use the same source.
+2. **Extend `InlineCanvasEditor` props** (`InlineCanvasEditor.tsx:5-10`) with optional: `panelType`, `itemId`, `currentState`, `stateOptions`, `onChangeState`. Render a state-switch row at the **bottom** (footer, alongside char count at lines 103-107) only when `stateOptions` is provided — keeps editor reusable for state-less panels.
+3. **Build the footer control** — a `Badge` showing current state + a `CategoryMenu` trigger for switching. Reuse `CategoryMenu` so the editor's switcher feels identical to the card's. Use Atlas token-backed classes (`bg-raised`, `bg-input`, `bg-hover`, `border-t border-default`); avoid blue for CTAs per Atlas guide.
+4. **Thread data from `AgentSmartBoard`** (`AgentSmartBoard.tsx:190-196`):
+   - Pass `editorContext.panelType` + `editorContext.itemId`.
+   - Compute `currentState` from the matching panel's data (find item by id).
+   - Add a generic `handleChangeState` that dispatches to `thingsToRemember.updateItemStatus` or `suggestions.updateItemStatus` based on `editorContext.panelType` (mirrors existing `handleChangeCategory`/`handleChangeSuggestionStatus` at 131-137). Hook already re-fetches + toasts.
+5. **Refresh after switch** — derive `currentState` from panel data after the hook's `fetchCachedData` resolves (matches existing pattern; no local optimistic state to avoid drift).
+
+### Open decisions (need your call before I build)
+- **A. Control placement**: footer row (bottom) — matches your request literally. Confirm.
+- **B. Control shape**: dropdown (`CategoryMenu`, parity with card) vs. segmented buttons (one click per state). Dropdown is the safe default; segmented is faster but more visual real estate. I recommend dropdown for parity.
+- **C. Highlights/keyboard**: non-goal for v1 — dropping states should keep the editor open for further edits?
+
+### Notes
+- `InlineCanvasEditor` currently uses `bg-tertiary/secondary/primary` classes that are NOT defined in `global.css` `@theme` (Tailwind v4 no-ops). Out of scope to fix all of them; the new control will use token-backed classes that actually render.
+- Consider a design doc at `doc/los-002-rendered-display-state-switch-plan.md` mirroring `doc/smartboard-scheduler-settings-plan.md` (optional).
+<!-- SECTION:PLAN:END -->
