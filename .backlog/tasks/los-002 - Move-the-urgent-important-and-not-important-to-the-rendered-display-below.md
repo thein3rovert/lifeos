@@ -1,11 +1,11 @@
 ---
 id: LOS-002
 title: 'Move the urgent, important and not important to the rendered display below'
-status: In Progress
+status: Done
 assignee:
   - thein3rovert
 created_date: '2026-08-01 20:15'
-updated_date: '2026-08-16 00:19'
+updated_date: '2026-08-16 00:20'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -19,14 +19,14 @@ I am having issue easily changing the state of the card in each panel, as i havw
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 State-switch control renders at the bottom (footer) of the InlineCanvasEditor rendered display for things-to-remember and suggestions items
-- [ ] #2 Editor footer uses a CategoryMenu dropdown to switch state
-- [ ] #3 Control shows a Badge of the current state (urgent/important/not-important for things-to-remember; active/completed/dismissed for suggestions)
-- [ ] #4 Switching state fires PATCH /api/smartboard/item/{itemId} with the correct panelType and new state, and the editor stays open after the switch
-- [ ] #5 Achievements and Blockers panels (no state) do not render the state-switch control in the editor
-- [ ] #6 State options are sourced from a single shared module (no duplication between card menu and editor control)
-- [ ] #7 State change re-fetches panel data and toasts success/error (reuses useSmartBoardPanel.updateItemStatus)
-- [ ] #8 New control uses Atlas token-backed classes (bg-raised/bg-input/bg-hover/border-default) so colors actually render
+- [x] #1 State-switch control renders at the bottom (footer) of the InlineCanvasEditor rendered display for things-to-remember and suggestions items
+- [x] #2 Editor footer uses a CategoryMenu dropdown to switch state
+- [x] #3 Control shows a Badge of the current state (urgent/important/not-important for things-to-remember; active/completed/dismissed for suggestions)
+- [x] #4 Switching state fires PATCH /api/smartboard/item/{itemId} with the correct panelType and new state, and the editor stays open after the switch
+- [x] #5 Achievements and Blockers panels (no state) do not render the state-switch control in the editor
+- [x] #6 State options are sourced from a single shared module (no duplication between card menu and editor control)
+- [x] #7 State change re-fetches panel data and toasts success/error (reuses useSmartBoardPanel.updateItemStatus)
+- [x] #8 New control uses Atlas token-backed classes (bg-raised/bg-input/bg-hover/border-default) so colors actually render
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -63,6 +63,37 @@ Add state-switching controls to the bottom of the `InlineCanvasEditor` (the rend
 - `InlineCanvasEditor` currently uses `bg-tertiary/secondary/primary` classes that are NOT defined in `global.css` `@theme` (Tailwind v4 no-ops). Out of scope to fix all of them; the new control will use token-backed classes that actually render.
 - Consider a design doc at `doc/los-002-rendered-display-state-switch-plan.md` mirroring `doc/smartboard-scheduler-settings-plan.md` (optional).
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## Implementation notes (finalization)
+
+**What was built:** Inline state switcher in the `InlineCanvasEditor` footer. The user opens a card from the Things-to-Remember or Suggestions panel, reads its full content in the rendered display, and switches state from a dropdown in the editor footer — without going back to the card. The editor stays open after each switch so the user can switch again.
+
+**Final approach (after mid-stream design change):**
+- State options live in `web/src/features/smartboard/constants.ts` (single source of truth, keyed by PanelType). Only `things-to-remember` and `suggestions` have entries; `achievements` and `blockers` are stateless and return `undefined` from `getStateOptions`, so the editor renders without the switcher for those panels.
+- `InlineCanvasEditor` got three optional props: `stateOptions`, `currentState`, `onChangeState`. When all three are provided, the footer renders a `CategoryMenu` dropdown with a trigger composed of a colored `Badge` (current state) + `ChevronDown`. Footer `bg-tertiary` → `bg-raised` (token-backed Atlas class that actually renders under Tailwind v4).
+- `AgentSmartBoard` derives `editorStateOptions` and `editorCurrentState` from `editorContext` + the matching panel's data, and dispatches `handleChangeState(newState)` to the existing panel hook's `updateItemStatus`. The hook already does `PATCH /api/smartboard/item/{itemId}` + re-fetch + toast.
+- Cards in `ThingsToRememberPanel` and `SuggestionsPanel` no longer wrap each `SmartBoardItemCard` in a `CategoryMenu` — they show the same `Badge` + dot indicator but clicking opens the editor. The old `onChangeCategory` / `onChangeStatus` panel props and `handleChangeCategory` / `handleChangeSuggestionStatus` handlers in `AgentSmartBoard` were removed as dead code.
+
+**Why the card dropdown was removed (mid-stream):** Originally Phase 1 hoisted the option arrays so the card dropdown and the editor dropdown could share them. After live testing, the user decided the card dropdown was redundant — the whole point of the feature is to read full content first, then switch state from the editor. Keeping the dropdown on the card defeated that intent. So the card-dropdown was removed and the editor footer dropdown became the singular state-change path.
+
+**Backend:** no changes. The existing `PATCH /api/smartboard/item/{itemId}` with `{ panelType, status }` already handled both `things-to-remember` (sets `category`) and `suggestions` (sets `status`) via the `UpdateItemStatus` handler and the store method in `server/internal/store/smartboard.go`.
+
+**Styling note for future work:** `InlineCanvasEditor` still uses `bg-tertiary` / `bg-secondary` / `bg-primary` in the toolbar and content area — these tokens are NOT defined in `global.css` `@theme` and render as no-ops under Tailwind v4. Out of scope for this task; flagged for a future Atlas-consistency pass.
+
+**Verification evidence:**
+- `vite build` succeeded (527ms)
+- `tsc --noEmit` clean for all touched files (only pre-existing `ScheduleCard.tsx` error remains, untouched)
+- `biome lint` clean for touched files (fixed 2 self-introduced `noNonNullAssertion` errors during finalization by switching `!` → `?? []`)
+- Live PATCH smoke test against item `e83d12be6d7d71e8` via curl: `urgent` → `important` → restored to `urgent`; HTTP 200 + `smartboard_panels.data` JSON mutated and confirmed via sqlite queries
+- User live smoke test in browser: confirmed footer dropdown appears, switches state, toasts, editor stays open, badge updates; clicked an Achievement/Blocker card and confirmed no switcher in editor footer
+
+**Follow-ups (not started — ask user before creating tasks):**
+- Inline editor Atlas token cleanup (replace `bg-tertiary`/`bg-secondary`/`bg-primary` no-ops in `InlineCanvasEditor.tsx` with real tokens)
+- Persist editor state across page navigation (currently the editor closes on navigation)
+<!-- SECTION:NOTES:END -->
 
 ## Comments
 
@@ -123,4 +154,57 @@ created: 2026-08-16 00:11
 
 **Phase 4 (next):** Finalization — verify each AC with behavior-level evidence (manual smoke test / build), write final summary, and check off acceptance criteria per the Backlog Task Finalization guide. Then optionally move the task to Done.
 ---
+
+author: thein3rovert
+created: 2026-08-16 00:20
+---
+**Design change mid-finalization (user request):** Removed the CategoryMenu dropdown from the panel cards. The cards now show only the colored Badge + dot indicator (no inline state-switcher on the card). State changes now happen **exclusively** via the editor footer dropdown — which is the point of this task (read full content first, then switch state).
+
+**Files:**
+- `ThingsToRememberPanel.tsx` — unwrapped `CategoryMenu`, renders `SmartBoardItemCard` directly. Removed `onChangeCategory` prop + `CategoryMenu`/`getStateOptions` imports.
+- `SuggestionsPanel.tsx` — same treatment (removed `onChangeStatus` prop).
+- `AgentSmartBoard.tsx` — removed dead `handleChangeCategory` + `handleChangeSuggestionStatus` handlers and their prop wiring. `handleChangeState` (the editor footer dispatcher) is now the singular state-change path.
+
+**AC #2 revised:** "Editor footer uses a CategoryMenu dropdown to switch state" — no longer references the card since the dropdown no longer lives on the card. (Old wording implied parity with the card dropdown, which no longer applies.)
+
+**Verification:** user confirmed via live smoke test ("it works fine now"). `tsc` clean, lint clean, `vite build` succeeded.
+---
 <!-- COMMENTS:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+## Summary
+
+Adds inline state-switching to the **rendered display** of Smart Board items. Users can now read a card's full content and switch its state from a dropdown in the editor footer, without navigating back to the panel card.
+
+### What changed
+
+**New file:**
+- `web/src/features/smartboard/constants.ts` — `STATE_OPTIONS`, `STATEFUL_PANELS`, `getStateOptions()`, `formatStateLabel()`. Single source of truth for panel state options keyed by `PanelType`. Only `things-to-remember` and `suggestions` have entries; `achievements`/`blockers` are stateless.
+
+**`web/src/components/agent/InlineCanvasEditor.tsx`** — three new optional props (`stateOptions`, `currentState`, `onChangeState`). When all three are present, the footer renders a `CategoryMenu` dropdown with a trigger composed of a colored `Badge` (current state) + `ChevronDown`. Footer background switched from the non-rendering `bg-tertiary` no-op to the Atlas token `bg-raised`. Editor is panel-agnostic: omitted props → no switcher (achievements/blockers unaffected).
+
+**`web/src/components/agent/AgentSmartBoard.tsx`** — derives `editorStateOptions` and `editorCurrentState` from `editorContext` plus the matching panel's data; dispatches `handleChangeState(newState)` to the existing panel hook's `updateItemStatus` (which already does `PATCH /api/smartboard/item/{itemId}` + re-fetch + toast). Removed dead `handleChangeCategory` / `handleChangeSuggestionStatus` handlers and their prop wiring.
+
+**Panel components** (`ThingsToRememberPanel.tsx`, `SuggestionsPanel.tsx`) — unwrapped the `CategoryMenu` so each `SmartBoardItemCard` renders directly with its `Badge` + dot indicator. Clicking opens the editor (where state is now switched). Removed now-unused `onChangeCategory` / `onChangeStatus` props + imports.
+
+**`web/src/components/ui/Badge.tsx`** — exported `BadgeProps` type so the editor can derive the `BadgeVariant` union.
+
+### Backend
+No changes — the existing `PATCH /api/smartboard/item/{itemId}` with `{ panelType, status }` already handled both `things-to-remember` (sets `category`) and `suggestions` (sets `status`).
+
+### Design decision mid-stream
+Originally Phase 1 hoisted option arrays so the card dropdown and the editor dropdown could share them. After live testing, the user decided the card dropdown was redundant with the editor dropdown — that was the point of the feature (read full content, then switch). The card dropdown was removed; the editor footer dropdown is now the singular state-change path.
+
+### Tests / verification
+- `vite build` succeeded (~527ms)
+- `tsc --noEmit` clean for all touched files (only pre-existing unresolved `ScheduleCard.tsx` warning)
+- `biome lint` clean for touched files (fixed 2 self-introduced `noNonNullAssertion` errors during finalization)
+- Live `curl` PATCH smoke test against item `e83d12be6d7d71e8`: `urgent` → `important` → restored to `urgent`; HTTP 200; `smartboard_panels.data` JSON mutated and confirmed via sqlite queries
+- User live UI smoke test: footer dropdown appears, switches state, toasts, editor stays open, badge updates; Achievement/Blocker editor shows no switcher in footer
+
+### Known follow-ups (not started)
+- Inline editor Atlas token cleanup (replace remaining `bg-tertiary` / `bg-secondary` / `bg-primary` no-ops in `InlineCanvasEditor.tsx` toolbar and content area)
+- Persist editor state across page navigation
+<!-- SECTION:FINAL_SUMMARY:END -->
