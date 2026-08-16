@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import {
   AchievementsPanel,
@@ -9,6 +8,7 @@ import {
   useScheduleStatus,
   useSmartBoardPanel,
 } from '@/features/smartboard';
+import { usePersistentState } from '@/hooks/usePersistentState';
 import { api } from '@/lib/api';
 import { toError } from '@/lib/errors';
 import type {
@@ -31,14 +31,16 @@ export default function AgentSmartBoard() {
   // Scheduler status (next refresh, last error per panel)
   const schedule = useScheduleStatus();
 
-  // Canvas editor state
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editorContent, setEditorContent] = useState('');
-  const [editorTitle, setEditorTitle] = useState('');
-  const [editorContext, setEditorContext] = useState<{
+  // Canvas editor state — persisted to sessionStorage so the editor
+  // survives nav away/back and same-tab hard refresh. Content is the
+  // controlled draft (InlineCanvasEditor is controlled).
+  const [editorOpen, setEditorOpen] = usePersistentState('lifeos:editor:open', false);
+  const [editorContent, setEditorContent] = usePersistentState('lifeos:editor:content', '');
+  const [editorTitle, setEditorTitle] = usePersistentState('lifeos:editor:title', '');
+  const [editorContext, setEditorContext] = usePersistentState<{
     panelType: PanelType;
     itemId: string;
-  } | null>(null);
+  } | null>('lifeos:editor:context', null);
 
   // Edit handlers
   const handleEditThingsToRemember = (itemId: string, text: string, title?: string) => {
@@ -74,11 +76,12 @@ export default function AgentSmartBoard() {
     setEditorOpen(true);
   };
 
-  // Save handler - updates the item content
-  const handleSaveEdit = async (content: string) => {
+  // Save handler - updates the item content using the current draft
+  const handleSaveEdit = async () => {
     if (!editorContext) return;
 
     try {
+      const content = editorContent;
       // Parse content based on panel type
       let fields: Record<string, string> = {};
 
@@ -120,12 +123,24 @@ export default function AgentSmartBoard() {
           break;
       }
 
+      // Close = discard: clear the draft so reopening starts fresh
       setEditorOpen(false);
+      setEditorContent('');
+      setEditorTitle('');
+      setEditorContext(null);
     } catch (error) {
       const normalized = toError(error);
       console.error('Failed to save edit:', normalized);
       toast(normalized.message, 'error');
     }
+  };
+
+  // Close editor = discard the draft
+  const handleCloseEditor = () => {
+    setEditorOpen(false);
+    setEditorContent('');
+    setEditorTitle('');
+    setEditorContext(null);
   };
 
   // inline state switcher for the rendered display (InlineCanvasEditor)
@@ -207,8 +222,9 @@ export default function AgentSmartBoard() {
                   <InlineCanvasEditor
                     title={editorTitle}
                     content={editorContent}
+                    onContentChange={setEditorContent}
                     onSave={handleSaveEdit}
-                    onClose={() => setEditorOpen(false)}
+                    onClose={handleCloseEditor}
                     stateOptions={editorStateOptions}
                     currentState={editorCurrentState}
                     onChangeState={handleChangeState}

@@ -1,5 +1,5 @@
 import { ChevronDown, Edit3, Eye, Save, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { CategoryMenu } from '@/components/ui/CategoryMenu';
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
@@ -8,8 +8,10 @@ import type { StateOption } from '@/features/smartboard/constants';
 
 type InlineCanvasEditorProps = {
   title?: string;
+  // Controlled. Parent owns the draft so it's persisted across navigation.
   content: string;
-  onSave: (newContent: string) => void;
+  onContentChange: (newContent: string) => void;
+  onSave: () => void;
   onClose: () => void;
   // Optional. Renders a state switcher in the footer when provided.
   stateOptions?: StateOption[];
@@ -30,24 +32,15 @@ const STATE_TO_BADGE_VARIANT: Record<string, StateBadgeVariant> = {
 
 export function InlineCanvasEditor({
   title,
-  content: initialContent,
+  content,
+  onContentChange,
   onSave,
   onClose,
   stateOptions,
   currentState,
   onChangeState,
 }: InlineCanvasEditorProps) {
-  const [content, setContent] = useState(initialContent);
   const [isPreview, setIsPreview] = useState(true);
-
-  // Update content when prop changes
-  useEffect(() => {
-    setContent(initialContent);
-  }, [initialContent]);
-
-  const handleSave = () => {
-    onSave(content);
-  };
 
   return (
     <div className="h-full flex flex-col">
@@ -85,7 +78,7 @@ export function InlineCanvasEditor({
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
-            onClick={handleSave}
+            onClick={onSave}
             className="px-3 py-1 bg-highlight text-white hover:bg-highlight-hover rounded text-xs font-medium transition-colors flex items-center gap-1.5"
           >
             <Save className="w-3 h-3" strokeWidth={1.5} />
@@ -114,7 +107,7 @@ export function InlineCanvasEditor({
           // Edit mode
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => onContentChange(e.target.value)}
             className="w-full h-full bg-base border-none p-4 text-sm text-primary font-mono resize-none focus:outline-none focus:ring-0"
             placeholder="Edit content in Markdown..."
           />
