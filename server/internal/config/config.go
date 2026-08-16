@@ -43,6 +43,10 @@ type Config struct {
 	GoogleClientID     string // GOOGLE_CLIENT_ID
 	GoogleClientSecret string // GOOGLE_CLIENT_SECRET
 	GoogleRedirectURI  string // GOOGLE_REDIRECT_URI
+
+	// Frontend URL the backend redirects the browser to (OAuth callback, etc.)
+	// Mirror of API_URL: API_URL is frontend → backend, FRONTEND_URL is backend → browser.
+	FrontendURL string // FRONTEND_URL
 }
 
 // Load reads configuration from environment variables.
@@ -66,6 +70,7 @@ func Load() *Config {
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:6060/api/calendar/oauth/callback"),
+		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:3001"),
 	}
 
 	if cfg.GitHubToken == "" || cfg.GitHubOwner == "" || cfg.GitHubRepo == "" {

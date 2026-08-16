@@ -13,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/thein3rovert/lifeos/server/internal/api"
 	agents "github.com/thein3rovert/lifeos/server/internal/api/agents"
+	calendarapi "github.com/thein3rovert/lifeos/server/internal/api/calendar"
 	chats "github.com/thein3rovert/lifeos/server/internal/api/chats"
 	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
 	smartboardapi "github.com/thein3rovert/lifeos/server/internal/api/smartboard"
@@ -91,6 +92,7 @@ func runHTTPServer() {
 	noteStore := notes.New(db.DB())
 	chatMsgStore := store.NewChatMessageStore(db.DB())
 	smartBoardStore := store.NewSmartBoardStore(db.DB())
+	calendarStore := store.NewCalendarStore(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -112,6 +114,15 @@ func runHTTPServer() {
 	chatAPI := chats.NewSkillChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
+
+	// Calendar (Google OAuth + events)
+	calendarAPI := calendarapi.NewCalendarHandler(
+		calendarStore,
+		cfg.GoogleClientID,
+		cfg.GoogleClientSecret,
+		cfg.GoogleRedirectURI,
+		cfg.FrontendURL+"/calendar",
+	)
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Skills
@@ -160,6 +171,12 @@ func runHTTPServer() {
 	mux.HandleFunc("GET /api/smartboard/{panelType}", smartBoardAPI.GetPanel)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)
+
+	// Calendar (Google OAuth — full CRUD endpoints added in Phase 4)
+	mux.HandleFunc("GET /api/calendar/oauth/start", calendarAPI.StartAuth)
+	mux.HandleFunc("GET /api/calendar/oauth/callback", calendarAPI.Callback)
+	mux.HandleFunc("POST /api/calendar/oauth/disconnect", calendarAPI.Disconnect)
+	mux.HandleFunc("GET /api/calendar/oauth/status", calendarAPI.HasConnection)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
