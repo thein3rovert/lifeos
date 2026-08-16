@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-08-16 00:23'
-updated_date: '2026-08-16 00:33'
+updated_date: '2026-08-16 00:36'
 labels: []
 dependencies:
   - LOS-002
@@ -122,3 +122,22 @@ B also answers AC #4 cleanly: **sessionStorage survives hard refresh within the 
 
 TanStack Start SSR is on (routeTree.gen.ts `ssr: true`). The hydrate-via-useEffect pattern means the editor will render closed (placeholder) for one frame on remount, then flip to open via a `useEffect`. Tiny flash; acceptable for Low priority. Future follow-up if flicker is bothersome: skip SSR on /agent or add a NotRendered gate.
 <!-- SECTION:PLAN:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: thein3rovert
+created: 2026-08-16 00:36
+---
+**Implementation done.** Approach B (usePersistentState hook + sessionStorage + close=discard).
+
+**Files:**
+- `web/src/hooks/usePersistentState.ts` (new) — generic hook mirroring state to sessionStorage, SSR-safe.
+- `web/src/components/agent/InlineCanvasEditor.tsx` — now controlled: content prop drives textarea, onContentChange prop, onSave no longer takes content arg.
+- `web/src/components/agent/AgentSmartBoard.tsx` — 4 useState -> usePersistentState; new handleCloseEditor that discards the draft (clears content/title/context); onSave reads editorContent directly.
+
+**Decisions:** sessionStorage (survives nav + F5 in tab); close = clear all 4 fields (option a).
+
+**Verification:** tsc clean, biome lint clean, vite build ok. Needs user browser smoke test for ACs #1-#5.
+---
+<!-- COMMENTS:END -->
