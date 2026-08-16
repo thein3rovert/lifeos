@@ -9,7 +9,7 @@ type BadgeVariant =
   | 'dismissed'
   | 'default';
 
-type BadgeProps = {
+export type BadgeProps = {
   children: ReactNode;
   variant?: BadgeVariant;
   onClick?: () => void;
