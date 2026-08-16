@@ -116,13 +116,13 @@ func runHTTPServer() {
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
 
 	// Calendar (Google OAuth + events)
-	calendarAPI := calendarapi.NewCalendarHandler(
+	calendarService := service.NewCalendarService(
 		calendarStore,
 		cfg.GoogleClientID,
 		cfg.GoogleClientSecret,
 		cfg.GoogleRedirectURI,
-		cfg.FrontendURL+"/calendar",
 	)
+	calendarAPI := calendarapi.NewCalendarHandler(calendarService, cfg.FrontendURL+"/calendar")
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Skills

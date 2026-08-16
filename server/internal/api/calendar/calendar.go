@@ -7,51 +7,25 @@ import (
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/api"
-	"github.com/thein3rovert/lifeos/server/internal/store"
-	"golang.org/x/oauth2"
+	service "github.com/thein3rovert/lifeos/server/internal/services"
 )
-
-const calendarScope = "https://www.googleapis.com/auth/calendar.events"
 
 // CalendarHandler handles Google Calendar OAuth + event endpoints.
 type CalendarHandler struct {
-	store       store.CalendarStore
-	oauthConfig *oauth2.Config
+	service     *service.CalendarService
 	frontendURL string // where to send the user after OAuth callback
 }
 
 // NewCalendarHandler creates a new calendar handler.
-func NewCalendarHandler(store store.CalendarStore, clientID, clientSecret, redirectURI, frontendURL string) *CalendarHandler {
-	cfg := &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURI,
-		Scopes:       []string{calendarScope},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
-	return &CalendarHandler{
-		store:       store,
-		oauthConfig: cfg,
-		frontendURL: frontendURL,
-	}
+func NewCalendarHandler(svc *service.CalendarService, frontendURL string) *CalendarHandler {
+	return &CalendarHandler{service: svc, frontendURL: frontendURL}
 }
 
 // StartAuth redirects the user to Google's OAuth consent screen.
 // GET /api/calendar/oauth/start
 func (h *CalendarHandler) StartAuth(w http.ResponseWriter, r *http.Request) {
-	state := "lifeos"
-
-	// access_type=offline so we get a refresh token.
-	// prompt=consent forces re-grant so the refresh token is always returned.
-	authURL := h.oauthConfig.AuthCodeURL(state,
-		oauth2.AccessTypeOffline,
-		oauth2.SetAuthURLParam("prompt", "consent"),
-	)
-
-	log.Println("Starting Google OAuth flow, redirecting to consent screen")
+	authURL := h.service.AuthURL("lifeos")
+	log.Println("Starting Google OAuth flow")
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
@@ -69,34 +43,12 @@ func (h *CalendarHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Exchange the auth code for tokens
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	token, err := h.oauthConfig.Exchange(ctx, code)
-	if err != nil {
-		log.Printf("OAuth token exchange failed: %v", err)
-		api.RespondError(w, http.StatusBadGateway, "failed to exchange auth code for tokens")
-		return
-	}
-
-	if token.RefreshToken == "" {
-		// Google only returns the refresh token on the first consent approval
-		// (or when prompt=consent forces re-grant). If the user previously
-		// approved without offline access, they need to revoke + re-auth at
-		// https://myaccount.google.com/permissions.
-		log.Println("Warning: no refresh token returned. User may need to revoke access and retry.")
-	}
-
-	// Persist tokens to DB.
-	if err := h.store.SaveTokens(
-		token.AccessToken,
-		token.RefreshToken,
-		token.TokenType,
-		token.Expiry,
-	); err != nil {
-		log.Printf("Failed to save OAuth tokens: %v", err)
-		api.RespondError(w, http.StatusInternalServerError, "failed to save tokens")
+	if err := h.service.ExchangeCode(ctx, code); err != nil {
+		log.Printf("OAuth callback failed: %v", err)
+		api.RespondError(w, http.StatusBadGateway, "failed to exchange auth code")
 		return
 	}
 
@@ -107,25 +59,21 @@ func (h *CalendarHandler) Callback(w http.ResponseWriter, r *http.Request) {
 // Disconnect revokes Google access by clearing stored tokens.
 // POST /api/calendar/oauth/disconnect
 func (h *CalendarHandler) Disconnect(w http.ResponseWriter, r *http.Request) {
-	if err := h.store.ClearTokens(); err != nil {
-		log.Printf("Failed to clear OAuth tokens: %v", err)
+	if err := h.service.Disconnect(); err != nil {
+		log.Printf("Failed to disconnect: %v", err)
 		api.RespondError(w, http.StatusInternalServerError, "failed to disconnect")
 		return
 	}
 	api.RespondJSON(w, http.StatusOK, map[string]string{"message": "disconnected"})
 }
 
-// HasConnection returns 200 if tokens exist, 401 otherwise.
+// HasConnection returns whether Google is connected.
 // GET /api/calendar/oauth/status
 func (h *CalendarHandler) HasConnection(w http.ResponseWriter, r *http.Request) {
-	tokens, err := h.store.GetTokens()
+	connected, err := h.service.IsConnected()
 	if err != nil {
-		api.RespondError(w, http.StatusInternalServerError, "failed to check tokens")
+		api.RespondError(w, http.StatusInternalServerError, "failed to check connection")
 		return
 	}
-	if tokens == nil {
-		api.RespondJSON(w, http.StatusOK, map[string]bool{"connected": false})
-		return
-	}
-	api.RespondJSON(w, http.StatusOK, map[string]bool{"connected": true})
+	api.RespondJSON(w, http.StatusOK, map[string]bool{"connected": connected})
 }
