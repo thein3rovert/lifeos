@@ -78,7 +78,7 @@ export function ThingsToRememberPanel({
           {items.map((item, idx) => (
             <CategoryMenu
               key={item.id}
-              options={getStateOptions('things-to-remember')!}
+              options={getStateOptions('things-to-remember') ?? []}
               onSelect={(value) =>
                 onChangeCategory(item.id, value as 'urgent' | 'important' | 'not-important')
               }

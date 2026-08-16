@@ -78,7 +78,7 @@ export function SuggestionsPanel({
           {items.map((item, idx) => (
             <CategoryMenu
               key={item.id}
-              options={getStateOptions('suggestions')!}
+              options={getStateOptions('suggestions') ?? []}
               onSelect={(value) =>
                 onChangeStatus(item.id, value as 'active' | 'dismissed' | 'completed')
               }
