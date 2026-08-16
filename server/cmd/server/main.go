@@ -172,11 +172,15 @@ func runHTTPServer() {
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}", smartBoardAPI.UpdateItemStatus)
 	mux.HandleFunc("PATCH /api/smartboard/item/{itemId}/content", smartBoardAPI.UpdateItemContent)
 
-	// Calendar (Google OAuth — full CRUD endpoints added in Phase 4)
+	// Calendar (Google OAuth + events)
 	mux.HandleFunc("GET /api/calendar/oauth/start", calendarAPI.StartAuth)
 	mux.HandleFunc("GET /api/calendar/oauth/callback", calendarAPI.Callback)
 	mux.HandleFunc("POST /api/calendar/oauth/disconnect", calendarAPI.Disconnect)
 	mux.HandleFunc("GET /api/calendar/oauth/status", calendarAPI.HasConnection)
+	mux.HandleFunc("GET /api/calendar/events", calendarAPI.GetEvents)
+	mux.HandleFunc("POST /api/calendar/events", calendarAPI.CreateEvent)
+	mux.HandleFunc("PATCH /api/calendar/events/{eventId}", calendarAPI.UpdateEvent)
+	mux.HandleFunc("DELETE /api/calendar/events/{eventId}", calendarAPI.DeleteEvent)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
