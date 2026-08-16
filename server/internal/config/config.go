@@ -38,6 +38,11 @@ type Config struct {
 	// Smart-board content paths (Obsidian vault subfolders the AI reads)
 	MeetingsPath string // LIFEOS_MEETINGS_PATH
 	JournalPath  string // LIFEOS_JOURNAL_PATH
+
+	// Google Calendar OAuth (LOS-014)
+	GoogleClientID     string // GOOGLE_CLIENT_ID
+	GoogleClientSecret string // GOOGLE_CLIENT_SECRET
+	GoogleRedirectURI  string // GOOGLE_REDIRECT_URI
 }
 
 // Load reads configuration from environment variables.
@@ -56,6 +61,11 @@ func Load() *Config {
 		MCPAllowedDirs: splitCSV(os.Getenv("MCP_ALLOWED_DIRS")),
 		MeetingsPath:   os.Getenv("LIFEOS_MEETINGS_PATH"),
 		JournalPath:    os.Getenv("LIFEOS_JOURNAL_PATH"),
+
+		// Google Calendar OAuth (LOS-014)
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:6060/api/calendar/oauth/callback"),
 	}
 
 	if cfg.GitHubToken == "" || cfg.GitHubOwner == "" || cfg.GitHubRepo == "" {
