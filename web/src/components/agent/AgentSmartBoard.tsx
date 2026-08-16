@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { toast } from "@/components/ui/Toast";
+import { useState } from 'react';
+import { toast } from '@/components/ui/Toast';
 import {
   AchievementsPanel,
   BlockersPanel,
@@ -8,48 +8,43 @@ import {
   getStateOptions,
   useScheduleStatus,
   useSmartBoardPanel,
-} from "@/features/smartboard";
-import { api } from "@/lib/api";
-import { toError } from "@/lib/errors";
+} from '@/features/smartboard';
+import { api } from '@/lib/api';
+import { toError } from '@/lib/errors';
 import type {
   AchievementsData,
   BlockersData,
   PanelType,
   SuggestionsData,
   ThingsToRememberData,
-} from "@/types";
-import { FloatingChat } from "./FloatingChat";
-import { InlineCanvasEditor } from "./InlineCanvasEditor";
+} from '@/types';
+import { FloatingChat } from './FloatingChat';
+import { InlineCanvasEditor } from './InlineCanvasEditor';
 
 export default function AgentSmartBoard() {
   // Panel hooks
-  const thingsToRemember =
-    useSmartBoardPanel<ThingsToRememberData>("things-to-remember");
-  const suggestions = useSmartBoardPanel<SuggestionsData>("suggestions");
-  const achievements = useSmartBoardPanel<AchievementsData>("achievements");
-  const blockers = useSmartBoardPanel<BlockersData>("blockers");
+  const thingsToRemember = useSmartBoardPanel<ThingsToRememberData>('things-to-remember');
+  const suggestions = useSmartBoardPanel<SuggestionsData>('suggestions');
+  const achievements = useSmartBoardPanel<AchievementsData>('achievements');
+  const blockers = useSmartBoardPanel<BlockersData>('blockers');
 
   // Scheduler status (next refresh, last error per panel)
   const schedule = useScheduleStatus();
 
   // Canvas editor state
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editorContent, setEditorContent] = useState("");
-  const [editorTitle, setEditorTitle] = useState("");
+  const [editorContent, setEditorContent] = useState('');
+  const [editorTitle, setEditorTitle] = useState('');
   const [editorContext, setEditorContext] = useState<{
     panelType: PanelType;
     itemId: string;
   } | null>(null);
 
   // Edit handlers
-  const handleEditThingsToRemember = (
-    itemId: string,
-    text: string,
-    title?: string,
-  ) => {
+  const handleEditThingsToRemember = (itemId: string, text: string, title?: string) => {
     setEditorContent(text);
-    setEditorTitle(title || "Things to Remember");
-    setEditorContext({ panelType: "things-to-remember", itemId });
+    setEditorTitle(title || 'Things to Remember');
+    setEditorContext({ panelType: 'things-to-remember', itemId });
     setEditorOpen(true);
   };
 
@@ -57,34 +52,25 @@ export default function AgentSmartBoard() {
     itemId: string,
     suggestion: string,
     reasoning: string,
-    title?: string,
+    title?: string
   ) => {
     setEditorContent(`${suggestion}\n\n${reasoning}`);
-    setEditorTitle(title || "Suggestion");
-    setEditorContext({ panelType: "suggestions", itemId });
+    setEditorTitle(title || 'Suggestion');
+    setEditorContext({ panelType: 'suggestions', itemId });
     setEditorOpen(true);
   };
 
-  const handleEditAchievement = (
-    itemId: string,
-    achievement: string,
-    title?: string,
-  ) => {
+  const handleEditAchievement = (itemId: string, achievement: string, title?: string) => {
     setEditorContent(achievement);
-    setEditorTitle(title || "Achievement");
-    setEditorContext({ panelType: "achievements", itemId });
+    setEditorTitle(title || 'Achievement');
+    setEditorContext({ panelType: 'achievements', itemId });
     setEditorOpen(true);
   };
 
-  const handleEditBlocker = (
-    itemId: string,
-    blocker: string,
-    context: string,
-    title?: string,
-  ) => {
+  const handleEditBlocker = (itemId: string, blocker: string, context: string, title?: string) => {
     setEditorContent(`${blocker}\n\n${context}`);
-    setEditorTitle(title || "Blocker");
-    setEditorContext({ panelType: "blockers", itemId });
+    setEditorTitle(title || 'Blocker');
+    setEditorContext({ panelType: 'blockers', itemId });
     setEditorOpen(true);
   };
 
@@ -97,43 +83,39 @@ export default function AgentSmartBoard() {
       let fields: Record<string, string> = {};
 
       switch (editorContext.panelType) {
-        case "things-to-remember":
+        case 'things-to-remember':
           fields = { text: content };
           break;
-        case "suggestions": {
-          const [suggestion, ...reasoningParts] = content.split("\n\n");
-          fields = { suggestion, reasoning: reasoningParts.join("\n\n") };
+        case 'suggestions': {
+          const [suggestion, ...reasoningParts] = content.split('\n\n');
+          fields = { suggestion, reasoning: reasoningParts.join('\n\n') };
           break;
         }
-        case "achievements":
+        case 'achievements':
           fields = { achievement: content };
           break;
-        case "blockers": {
-          const [blocker, ...contextParts] = content.split("\n\n");
-          fields = { blocker, context: contextParts.join("\n\n") };
+        case 'blockers': {
+          const [blocker, ...contextParts] = content.split('\n\n');
+          fields = { blocker, context: contextParts.join('\n\n') };
           break;
         }
       }
 
       // Update via API
-      await api.smartboard.updateItemContent(
-        editorContext.itemId,
-        editorContext.panelType,
-        fields,
-      );
+      await api.smartboard.updateItemContent(editorContext.itemId, editorContext.panelType, fields);
 
       // Refresh the panel data
       switch (editorContext.panelType) {
-        case "things-to-remember":
+        case 'things-to-remember':
           await thingsToRemember.refresh();
           break;
-        case "suggestions":
+        case 'suggestions':
           await suggestions.refresh();
           break;
-        case "achievements":
+        case 'achievements':
           await achievements.refresh();
           break;
-        case "blockers":
+        case 'blockers':
           await blockers.refresh();
           break;
       }
@@ -141,8 +123,8 @@ export default function AgentSmartBoard() {
       setEditorOpen(false);
     } catch (error) {
       const normalized = toError(error);
-      console.error("Failed to save edit:", normalized);
-      toast(normalized.message, "error");
+      console.error('Failed to save edit:', normalized);
+      toast(normalized.message, 'error');
     }
   };
 
@@ -151,28 +133,19 @@ export default function AgentSmartBoard() {
     await thingsToRemember.updateItemStatus(itemId, category);
   };
 
-  const handleChangeSuggestionStatus = async (
-    itemId: string,
-    status: string,
-  ) => {
+  const handleChangeSuggestionStatus = async (itemId: string, status: string) => {
     await suggestions.updateItemStatus(itemId, status);
   };
 
-  // inline state switcher for the rendered display (InlineCanvasEditor).
-  const editorStateOptions = editorContext
-    ? getStateOptions(editorContext.panelType)
-    : undefined;
+  // inline state switcher for the rendered display (InlineCanvasEditor)
+  const editorStateOptions = editorContext ? getStateOptions(editorContext.panelType) : undefined;
   const editorCurrentState = (() => {
     if (!editorContext) return undefined;
     switch (editorContext.panelType) {
-      case "things-to-remember":
-        return thingsToRemember.data?.items.find(
-          (i) => i.id === editorContext.itemId,
-        )?.category;
-      case "suggestions":
-        return suggestions.data?.suggestions.find(
-          (i) => i.id === editorContext.itemId,
-        )?.status;
+      case 'things-to-remember':
+        return thingsToRemember.data?.items.find((i) => i.id === editorContext.itemId)?.category;
+      case 'suggestions':
+        return suggestions.data?.suggestions.find((i) => i.id === editorContext.itemId)?.status;
       default:
         return undefined;
     }
@@ -181,10 +154,10 @@ export default function AgentSmartBoard() {
   const handleChangeState = async (newState: string) => {
     if (!editorContext) return;
     switch (editorContext.panelType) {
-      case "things-to-remember":
+      case 'things-to-remember':
         await thingsToRemember.updateItemStatus(editorContext.itemId, newState);
         break;
-      case "suggestions":
+      case 'suggestions':
         await suggestions.updateItemStatus(editorContext.itemId, newState);
         break;
     }
@@ -209,12 +182,12 @@ export default function AgentSmartBoard() {
                   onEditItem={handleEditThingsToRemember}
                   onChangeCategory={handleChangeCategory}
                   nextRefresh={
-                    schedule?.["things-to-remember"]?.nextRefresh
-                      ? new Date(schedule["things-to-remember"].nextRefresh)
+                    schedule?.['things-to-remember']?.nextRefresh
+                      ? new Date(schedule['things-to-remember'].nextRefresh)
                       : null
                   }
-                  lastError={schedule?.["things-to-remember"]?.lastError}
-                  paused={schedule?.["things-to-remember"]?.paused}
+                  lastError={schedule?.['things-to-remember']?.lastError}
+                  paused={schedule?.['things-to-remember']?.paused}
                 />
               </div>
 
@@ -255,9 +228,7 @@ export default function AgentSmartBoard() {
                   /* Placeholder when nothing is being edited */
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-sm text-secondary mb-1">
-                        Edit Generated Content
-                      </p>
+                      <p className="text-sm text-secondary mb-1">Edit Generated Content</p>
                       <p className="text-xs text-tertiary">
                         Click "Edit" on any item above to modify its content
                       </p>
@@ -300,9 +271,7 @@ export default function AgentSmartBoard() {
                 onRefresh={blockers.refresh}
                 onEditItem={handleEditBlocker}
                 nextRefresh={
-                  schedule?.blockers?.nextRefresh
-                    ? new Date(schedule.blockers.nextRefresh)
-                    : null
+                  schedule?.blockers?.nextRefresh ? new Date(schedule.blockers.nextRefresh) : null
                 }
                 lastError={schedule?.blockers?.lastError}
                 paused={schedule?.blockers?.paused}

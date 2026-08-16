@@ -11,17 +11,12 @@ type InlineCanvasEditorProps = {
   content: string;
   onSave: (newContent: string) => void;
   onClose: () => void;
-  // --- Optional state-switch support (LOS-002) ---
-  // When provided, a state-switch control renders in the footer. Omit for
-  // panels that have no state (achievements, blockers).
+  // Optional. Renders a state switcher in the footer when provided.
   stateOptions?: StateOption[];
   currentState?: string;
   onChangeState?: (newState: string) => void;
 };
 
-// Badge accepts a fixed set of variants that already match the state enums
-// for things-to-remember and suggestions. Cast at the call site since the
-// editor stays deliberately string-typed to stay panel-agnostic.
 type StateBadgeVariant = NonNullable<BadgeProps['variant']>;
 
 const STATE_TO_BADGE_VARIANT: Record<string, StateBadgeVariant> = {
@@ -126,13 +121,13 @@ export function InlineCanvasEditor({
         )}
       </div>
 
-      {/* Footer info */}
+      {/* Footer */}
       <div className="px-4 py-2 border-t border-default bg-raised flex items-center justify-between gap-3">
         <span className="text-xs text-tertiary">
           {content.length} characters · Markdown supported
         </span>
 
-        {/* State switcher (LOS-002) — only for panels with state */}
+        {/* State switcher — only for panels with state */}
         {stateOptions && stateOptions.length > 0 && currentState && onChangeState && (
           <CategoryMenu
             options={stateOptions}
@@ -143,7 +138,10 @@ export function InlineCanvasEditor({
                 aria-label="Change state"
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border bg-input hover:bg-hover transition-colors text-primary border-default"
               >
-                <Badge variant={STATE_TO_BADGE_VARIANT[currentState] ?? 'default'} className="border-0 bg-transparent p-0">
+                <Badge
+                  variant={STATE_TO_BADGE_VARIANT[currentState] ?? 'default'}
+                  className="border-0 bg-transparent p-0"
+                >
                   {currentState.charAt(0).toUpperCase() + currentState.slice(1).replace('-', ' ')}
                 </Badge>
                 <ChevronDown className="w-3 h-3 text-secondary" strokeWidth={1.5} />

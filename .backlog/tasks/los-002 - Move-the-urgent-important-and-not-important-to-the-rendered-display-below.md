@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-08-01 20:15'
-updated_date: '2026-08-16 00:08'
+updated_date: '2026-08-16 00:11'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -99,5 +99,28 @@ created: 2026-08-16 00:08
 **Decisions honored:** (A) footer placement ✅ (B) dropdown `CategoryMenu` parity with card ✅ (C) editor stays open after switch — implementation doesn't close the editor on state change.
 
 **Not yet wired:** The state-change API call (`PATCH /api/smartboard/item/{itemId}`) happens in Phase 3 — `AgentSmartBoard` will thread `editorContext.panelType` + `itemId` and add a generic `handleChangeState` dispatcher that reuses the existing panel hooks (which already re-fetch + toast).
+---
+
+author: thein3rovert
+created: 2026-08-16 00:11
+---
+**Phase 3 complete & committed.** End-to-end wiring in AgentSmartBoard — feature is functionally complete.
+
+**File:** `web/src/components/agent/AgentSmartBoard.tsx` (+31)
+
+**Three additions:**
+1. Imported `getStateOptions` from the smartboard barrel.
+2. Added state derivation + dispatcher (after `handleChangeSuggestionStatus`):
+   - `editorStateOptions = getStateOptions(editorContext.panelType)` — returns options for things-to-remember/suggestions, `undefined` for achievements/blockers (so they render the editor without the switcher).
+   - `editorCurrentState` — finds the item by `editorContext.itemId` in the matching panel's data (reads `.category` or `.status`). Reactive: re-derives each render so the badge updates after the hook re-fetches.
+   - `handleChangeState(newState)` — dispatches to `thingsToRemember.updateItemStatus` or `suggestions.updateItemStatus` based on `editorContext.panelType`. No `setEditorOpen(false)` — editor stays open per decision C. Hook already does PATCH + re-fetch + toast.
+3. Passed the three props to `<InlineCanvasEditor>` (they're optional, so achievements/blockers render the editor unchanged).
+
+**Verification:** `tsc --noEmit` clean for `AgentSmartBoard.tsx` (only pre-existing `ScheduleCard.tsx` error remains, untouched).
+
+**All 8 acceptance criteria now wired end-to-end:**
+- AC #1 footer bottom · #2 CategoryMenu dropdown · #3 current-state Badge · #4 PATCH fires + editor stays open · #5 achievements/blockers → no switcher · #6 shared constants · #7 hook re-fetches + toasts · #8 Atlas token-backed classes
+
+**Phase 4 (next):** Finalization — verify each AC with behavior-level evidence (manual smoke test / build), write final summary, and check off acceptance criteria per the Backlog Task Finalization guide. Then optionally move the task to Done.
 ---
 <!-- COMMENTS:END -->
