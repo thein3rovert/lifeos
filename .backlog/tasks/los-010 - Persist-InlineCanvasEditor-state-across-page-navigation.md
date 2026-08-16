@@ -1,11 +1,11 @@
 ---
 id: LOS-010
 title: Persist InlineCanvasEditor state across page navigation
-status: In Progress
+status: Done
 assignee:
   - thein3rovert
 created_date: '2026-08-16 00:23'
-updated_date: '2026-08-16 00:36'
+updated_date: '2026-08-16 00:38'
 labels: []
 dependencies:
   - LOS-002
@@ -28,13 +28,13 @@ Persist the editor state so that navigating away from `/agent` and returning pre
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Open the editor on a /agent card, navigate to another route, return to /agent → editor is still open with the same content, title, panelType, and itemId
-- [ ] #2 Switching state from the editor footer (LOS-002), navigating away, and returning preserves the new state in the editor
-- [ ] #3 Closing the editor persists (navigating away after closing returns to a closed editor, not a stale open one)
-- [ ] #4 Hard refresh on /agent restores the editor to its last-open state, OR a documented decision that hard refresh intentionally resets (with reasoning)
-- [ ] #5 No regressions to existing editor open/close/save behavior
-- [ ] #6 vite build succeeds and tsc --noEmit is clean for affected files
-- [ ] #7 biome lint passes for affected files
+- [x] #1 Open the editor on a /agent card, navigate to another route, return to /agent → editor is still open with the same content, title, panelType, and itemId
+- [x] #2 Switching state from the editor footer (LOS-002), navigating away, and returning preserves the new state in the editor
+- [x] #3 Closing the editor persists (navigating away after closing returns to a closed editor, not a stale open one)
+- [x] #4 Hard refresh on /agent restores the editor to its last-open state, OR a documented decision that hard refresh intentionally resets (with reasoning)
+- [x] #5 No regressions to existing editor open/close/save behavior
+- [x] #6 vite build succeeds and tsc --noEmit is clean for affected files
+- [x] #7 biome lint passes for affected files
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -141,3 +141,43 @@ created: 2026-08-16 00:36
 **Verification:** tsc clean, biome lint clean, vite build ok. Needs user browser smoke test for ACs #1-#5.
 ---
 <!-- COMMENTS:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+## Summary
+
+Persist the InlineCanvasEditor's open state, content draft, title, and context across navigation away from `/agent` and back (and across same-tab hard refresh). Before this, navigating away from `/agent` lost all editor state and unsaved drafts.
+
+### What changed
+
+**New file:** `web/src/hooks/usePersistentState.ts` — generic hook mirroring `useState` but persisting value to `sessionStorage`. SSR-safe via `typeof window` guards; hydrates from storage in a mount `useEffect` so server and client render the same initial markup. Mirrors the existing `lib/cache.ts` sessionStorage convention. First persistent-state hook in the repo.
+
+**`web/src/components/agent/InlineCanvasEditor.tsx`** — became a **controlled** component:
+- Removed internal `useState(content)` and the `useEffect` that synced it with the prop
+- `content` prop now drives the textarea value, preview, and char count directly
+- New required `onContentChange` prop fires on textarea change
+- `onSave` no longer takes a `content` arg — the parent owns the draft and reads it from state
+
+**`web/src/components/agent/AgentSmartBoard.tsx`**:
+- Swapped the 4 `useState` calls → `usePersistentState('lifeos:editor:<field>', default)` for `editorOpen`, `editorContent`, `editorTitle`, `editorContext`
+- `handleSaveEdit` reads `editorContent` from state instead of an arg
+- New `handleCloseEditor` — **close = discard** (clears all 4 fields: `editorOpen=false`, `editorContent=''`, `editorTitle=''`, `editorContext=null`). Wired to `InlineCanvasEditor`'s `onClose`.
+- Wired `onContentChange={setEditorContent}` to the editor.
+
+### Design decisions
+- **Approach B (`usePersistentState` hook)** over URL search params — smallest diff, reuses the only in-repo storage convention (`lib/cache.ts`), no URL pollution.
+- **sessionStorage** over localStorage — editor session is transient (survives nav + F5 within tab, dies on tab close).
+- **Close = discard (option a)** — clicking the X clears all persisted fields so no stale draft lingers.
+- **Controlled editor** — `InlineCanvasEditor` no longer holds an internal draft; parent owns it via `editorContent` so the draft is persisted too (otherwise persisted `editorContent` would hold the original content, not unsaved edits).
+
+### Verification
+- `tsc --noEmit` clean for all 3 touched files (only pre-existing `ScheduleCard.tsx` error remains)
+- `biome lint` clean (resolved 1 self-introduced `useExhaustiveDependencies` error by adding `defaultValue` to the hydrate effect's dep array)
+- `vite build` succeeded (~509ms)
+- User live browser smoke test passed: nav away + back preserves editor + draft + footer switcher; close persists (no stale open); F5 restores editor.
+
+### Known follow-up (not started)
+- One-frame flash on remount where placeholder shows before hydrate effect runs (SSR-safe; documented in hook comment). Future fix: skip SSR on `/agent` or add a NotRendered gate.
+- Keystrokes update the parent's persisted `editorContent` on every change — fine for a small editor; for large content, debounce the sessionStorage write.
+<!-- SECTION:FINAL_SUMMARY:END -->

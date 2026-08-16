@@ -1,5 +1,5 @@
-import { Check, Loader2, Sparkles, X } from 'lucide-react';
-import type { AIPreviewResponse } from '@/types';
+import { Check, Loader2, Sparkles, X } from "lucide-react";
+import type { AIPreviewResponse } from "@/types";
 
 type SkillAIPreviewDialogProps = {
   isOpen: boolean;
@@ -24,17 +24,20 @@ export function SkillAIPreviewDialog({
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
         className="w-full max-w-dialog-2xl h-dialog bg-raised border border-default rounded-md flex flex-col"
-        style={{ boxShadow: 'var(--shadow-overlay)' }}
+        style={{ boxShadow: "var(--shadow-overlay)" }}
       >
         {/* Header */}
         <div className="h-10 flex items-center justify-between px-4 border-b border-default shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-highlight" strokeWidth={1.5} />
             <span className="text-base font-medium text-white">
-              {isLoading ? 'AI is updating...' : 'Review AI Changes'}
+              {isLoading ? "AI is updating..." : "Review AI Changes"}
             </span>
           </div>
-          <button onClick={onCancel} className="p-1.5 hover:bg-hover rounded transition-colors">
+          <button
+            onClick={onCancel}
+            className="p-1.5 hover:bg-hover rounded transition-colors"
+          >
             <X className="w-4 h-4 text-tertiary" strokeWidth={1.5} />
           </button>
         </div>
@@ -42,9 +45,16 @@ export function SkillAIPreviewDialog({
         {/* Loading State */}
         {isLoading && (
           <div className="flex-1 flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-highlight animate-spin mb-4" strokeWidth={1.5} />
-            <p className="text-base text-secondary">AI is analyzing your notes...</p>
-            <p className="text-xs text-muted mt-2">This may take a few seconds</p>
+            <Loader2
+              className="w-8 h-8 text-highlight animate-spin mb-4"
+              strokeWidth={1.5}
+            />
+            <p className="text-base text-secondary">
+              AI is analyzing your notes...
+            </p>
+            <p className="text-xs text-muted mt-2">
+              This may take a few seconds
+            </p>
           </div>
         )}
 
@@ -55,7 +65,9 @@ export function SkillAIPreviewDialog({
               {/* Original */}
               <div className="flex-1 flex flex-col border-r border-default">
                 <div className="h-8 flex items-center px-3 border-b border-default bg-input">
-                  <span className="text-xs text-muted uppercase tracking-wide">Original</span>
+                  <span className="text-xs text-muted uppercase tracking-wide">
+                    Original
+                  </span>
                 </div>
                 <div className="flex-1 overflow-auto p-4">
                   {/* biome-ignore lint/security/noDangerouslySetInnerHtml: AI-generated preview HTML rendered from sanitized markdown */}
@@ -69,7 +81,9 @@ export function SkillAIPreviewDialog({
               {/* Updated */}
               <div className="flex-1 flex flex-col">
                 <div className="h-8 flex items-center px-3 border-b border-default bg-input">
-                  <span className="text-xs text-highlight uppercase tracking-wide">AI Updated</span>
+                  <span className="text-xs text-highlight uppercase tracking-wide">
+                    AI Updated
+                  </span>
                 </div>
                 <div className="flex-1 overflow-auto p-4">
                   {/* biome-ignore lint/security/noDangerouslySetInnerHtml: AI-generated preview HTML rendered from sanitized markdown */}
