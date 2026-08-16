@@ -146,6 +146,17 @@ func (s *SQLiteStore) migrate() error {
 			weekly_hour INTEGER CHECK(weekly_hour >= 0 AND weekly_hour <= 23),
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+
+		// ── google_oauth_tokens ──────────────────────────────────
+		// Single-user app — one row, keyed by a fixed id of 1.
+		`CREATE TABLE IF NOT EXISTS google_oauth_tokens (
+			id INTEGER PRIMARY KEY DEFAULT 1,
+			access_token TEXT NOT NULL,
+			refresh_token TEXT NOT NULL,
+			token_type TEXT NOT NULL DEFAULT 'Bearer',
+			expiry DATETIME NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 	}
 
 	for _, q := range queries {
