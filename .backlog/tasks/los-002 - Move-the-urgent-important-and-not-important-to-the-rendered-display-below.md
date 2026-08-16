@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-08-01 20:15'
-updated_date: '2026-08-16 00:00'
+updated_date: '2026-08-16 00:08'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -63,3 +63,41 @@ Add state-switching controls to the bottom of the `InlineCanvasEditor` (the rend
 - `InlineCanvasEditor` currently uses `bg-tertiary/secondary/primary` classes that are NOT defined in `global.css` `@theme` (Tailwind v4 no-ops). Out of scope to fix all of them; the new control will use token-backed classes that actually render.
 - Consider a design doc at `doc/los-002-rendered-display-state-switch-plan.md` mirroring `doc/smartboard-scheduler-settings-plan.md` (optional).
 <!-- SECTION:PLAN:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: thein3rovert
+created: 2026-08-16 00:03
+---
+**Phase 1 complete & committed.** Hoisted state options to a shared module.
+
+**Files** (all in `web/src/features/smartboard/`):
+- `constants.ts` (new) — `STATE_OPTIONS`, `STATEFUL_PANELS`, `getStateOptions()`, `formatStateLabel()` keyed by PanelType
+- `index.ts` — re-exports the four helpers
+- `components/ThingsToRememberPanel.tsx` — inline options array replaced with `getStateOptions('things-to-remember')!`
+- `components/SuggestionsPanel.tsx` — same treatment for suggestions
+
+**Verification:** `grep` confirms the literals now live only in `constants.ts`; `tsc --noEmit` clean for all touched files (only pre-existing `ScheduleCard.tsx` error remains, unrelated). No user-facing behavior change — the card dropdown still renders the exact same options.
+
+Decisions locked for Phase 2: (A) footer placement ✅ (B) dropdown (CategoryMenu, parity with card) ✅ (C) keep editor open after switch ✅
+
+Next: Phase 2 — extend `InlineCanvasEditor` props + build the footer CategoryMenu control.
+---
+
+author: thein3rovert
+created: 2026-08-16 00:08
+---
+**Phase 2 complete & committed.** Extended InlineCanvasEditor to render an inline state switcher in the footer.
+
+**Files:**
+- `web/src/components/agent/InlineCanvasEditor.tsx` (+33) — added optional `stateOptions`, `currentState`, `onChangeState` props. When all three are provided, the footer renders a `CategoryMenu` dropdown (same primitive as the card) with a trigger composed of a colored `Badge` (current state) + `ChevronDown`. When omitted (achievements/blockers), footer renders unchanged. Added `STATE_TO_BADGE_VARIANT` lookup map so the current-state badge picks the right color per state. Footer `bg-tertiary` → `bg-raised` (token-backed, actually renders).
+- `web/src/components/ui/Badge.tsx` (+1 char) — `type BadgeProps` → `export type BadgeProps` so the editor can derive the variant union.
+
+**Verification:** `tsc --noEmit` clean for both files (only pre-existing `ScheduleCard.tsx` error remains). No editor behavior change when new props are omitted. Trigger uses Atlas token-backed classes (`bg-input`, `bg-hover`, `border-default`).
+
+**Decisions honored:** (A) footer placement ✅ (B) dropdown `CategoryMenu` parity with card ✅ (C) editor stays open after switch — implementation doesn't close the editor on state change.
+
+**Not yet wired:** The state-change API call (`PATCH /api/smartboard/item/{itemId}`) happens in Phase 3 — `AgentSmartBoard` will thread `editorContext.panelType` + `itemId` and add a generic `handleChangeState` dispatcher that reuses the existing panel hooks (which already re-fetch + toast).
+---
+<!-- COMMENTS:END -->
