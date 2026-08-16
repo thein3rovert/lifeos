@@ -1,5 +1,3 @@
-import { CategoryMenu } from '@/components/ui/CategoryMenu';
-import { getStateOptions } from '@/features/smartboard/constants';
 import type { ThingsToRememberData } from '@/types';
 import { SmartBoardItemCard } from './SmartBoardItemCard';
 import { SmartBoardPanel } from './SmartBoardPanel';
@@ -10,7 +8,6 @@ type ThingsToRememberPanelProps = {
   lastRefreshed: Date | null;
   onRefresh: () => void;
   onEditItem: (itemId: string, text: string, title?: string) => void;
-  onChangeCategory: (itemId: string, category: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
   paused?: boolean;
@@ -22,7 +19,6 @@ export function ThingsToRememberPanel({
   lastRefreshed,
   onRefresh,
   onEditItem,
-  onChangeCategory,
   nextRefresh,
   lastError,
   paused,
@@ -76,26 +72,18 @@ export function ThingsToRememberPanel({
       ) : (
         <div className="space-y-1">
           {items.map((item, idx) => (
-            <CategoryMenu
+            <SmartBoardItemCard
               key={item.id}
-              options={getStateOptions('things-to-remember') ?? []}
-              onSelect={(value) =>
-                onChangeCategory(item.id, value as 'urgent' | 'important' | 'not-important')
-              }
-              trigger={
-                <SmartBoardItemCard
-                  index={idx + 1}
-                  title={item.title || item.text.substring(0, 40)}
-                  date={item.date}
-                  description={item.text}
-                  badge={{
-                    label: formatCategoryLabel(item.category),
-                    variant: categoryToBadgeVariant(item.category),
-                  }}
-                  dotColor={categoryToDotColor(item.category)}
-                  onClick={() => onEditItem(item.id, item.text, item.title)}
-                />
-              }
+              index={idx + 1}
+              title={item.title || item.text.substring(0, 40)}
+              date={item.date}
+              description={item.text}
+              badge={{
+                label: formatCategoryLabel(item.category),
+                variant: categoryToBadgeVariant(item.category),
+              }}
+              dotColor={categoryToDotColor(item.category)}
+              onClick={() => onEditItem(item.id, item.text, item.title)}
             />
           ))}
         </div>

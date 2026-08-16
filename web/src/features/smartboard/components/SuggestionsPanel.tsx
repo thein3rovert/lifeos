@@ -1,5 +1,3 @@
-import { CategoryMenu } from '@/components/ui/CategoryMenu';
-import { getStateOptions } from '@/features/smartboard/constants';
 import type { SuggestionsData } from '@/types';
 import { SmartBoardItemCard } from './SmartBoardItemCard';
 import { SmartBoardPanel } from './SmartBoardPanel';
@@ -10,7 +8,6 @@ type SuggestionsPanelProps = {
   lastRefreshed: Date | null;
   onRefresh: () => void;
   onEditItem: (itemId: string, suggestion: string, reasoning: string, title?: string) => void;
-  onChangeStatus: (itemId: string, status: string) => void;
   nextRefresh?: Date | null;
   lastError?: string;
   paused?: boolean;
@@ -22,7 +19,6 @@ export function SuggestionsPanel({
   lastRefreshed,
   onRefresh,
   onEditItem,
-  onChangeStatus,
   nextRefresh,
   lastError,
   paused,
@@ -76,26 +72,18 @@ export function SuggestionsPanel({
       ) : (
         <div className="space-y-1">
           {items.map((item, idx) => (
-            <CategoryMenu
+            <SmartBoardItemCard
               key={item.id}
-              options={getStateOptions('suggestions') ?? []}
-              onSelect={(value) =>
-                onChangeStatus(item.id, value as 'active' | 'dismissed' | 'completed')
-              }
-              trigger={
-                <SmartBoardItemCard
-                  index={idx + 1}
-                  title={item.title || item.suggestion.substring(0, 40)}
-                  date={item.createdAt?.substring(0, 10) || ''}
-                  description={item.suggestion}
-                  badge={{
-                    label: formatStatusLabel(item.status),
-                    variant: statusToBadgeVariant(item.status),
-                  }}
-                  dotColor={statusToDotColor(item.status)}
-                  onClick={() => onEditItem(item.id, item.suggestion, item.reasoning, item.title)}
-                />
-              }
+              index={idx + 1}
+              title={item.title || item.suggestion.substring(0, 40)}
+              date={item.createdAt?.substring(0, 10) || ''}
+              description={item.suggestion}
+              badge={{
+                label: formatStatusLabel(item.status),
+                variant: statusToBadgeVariant(item.status),
+              }}
+              dotColor={statusToDotColor(item.status)}
+              onClick={() => onEditItem(item.id, item.suggestion, item.reasoning, item.title)}
             />
           ))}
         </div>

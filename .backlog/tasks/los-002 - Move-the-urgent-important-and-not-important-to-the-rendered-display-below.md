@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-08-01 20:15'
-updated_date: '2026-08-16 00:11'
+updated_date: '2026-08-16 00:19'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -20,7 +20,7 @@ I am having issue easily changing the state of the card in each panel, as i havw
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 State-switch control renders at the bottom (footer) of the InlineCanvasEditor rendered display for things-to-remember and suggestions items
-- [ ] #2 Control uses a CategoryMenu dropdown (same primitive as the card) so the editor and card switchers feel identical
+- [ ] #2 Editor footer uses a CategoryMenu dropdown to switch state
 - [ ] #3 Control shows a Badge of the current state (urgent/important/not-important for things-to-remember; active/completed/dismissed for suggestions)
 - [ ] #4 Switching state fires PATCH /api/smartboard/item/{itemId} with the correct panelType and new state, and the editor stays open after the switch
 - [ ] #5 Achievements and Blockers panels (no state) do not render the state-switch control in the editor

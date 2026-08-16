@@ -128,15 +128,6 @@ export default function AgentSmartBoard() {
     }
   };
 
-  // Status change handlers
-  const handleChangeCategory = async (itemId: string, category: string) => {
-    await thingsToRemember.updateItemStatus(itemId, category);
-  };
-
-  const handleChangeSuggestionStatus = async (itemId: string, status: string) => {
-    await suggestions.updateItemStatus(itemId, status);
-  };
-
   // inline state switcher for the rendered display (InlineCanvasEditor)
   const editorStateOptions = editorContext ? getStateOptions(editorContext.panelType) : undefined;
   const editorCurrentState = (() => {
@@ -180,7 +171,6 @@ export default function AgentSmartBoard() {
                   lastRefreshed={thingsToRemember.lastRefreshed}
                   onRefresh={thingsToRemember.refresh}
                   onEditItem={handleEditThingsToRemember}
-                  onChangeCategory={handleChangeCategory}
                   nextRefresh={
                     schedule?.['things-to-remember']?.nextRefresh
                       ? new Date(schedule['things-to-remember'].nextRefresh)
@@ -199,7 +189,6 @@ export default function AgentSmartBoard() {
                   lastRefreshed={suggestions.lastRefreshed}
                   onRefresh={suggestions.refresh}
                   onEditItem={handleEditSuggestion}
-                  onChangeStatus={handleChangeSuggestionStatus}
                   nextRefresh={
                     schedule?.suggestions?.nextRefresh
                       ? new Date(schedule.suggestions.nextRefresh)
