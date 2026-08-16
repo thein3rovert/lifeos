@@ -3,7 +3,7 @@ id: LOS-009
 title: >-
   Inline editor Atlas token cleanup (replace bg-tertiary/secondary/primary
   no-ops)
-status: In Progress
+status: Done
 assignee:
   - thein3rovert
 created_date: '2026-08-16 00:23'
@@ -29,13 +29,13 @@ Replace the no-op classes with the correct Atlas token-backed utilities so the e
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 InlineCanvasEditor toolbar background uses an Atlas token-backed class that renders (e.g. bg-raised, bg-input) instead of bg-tertiary
-- [ ] #2 InlineCanvasEditor content area (Preview and Edit modes) uses Atlas token-backed classes that render instead of bg-primary / bg-secondary
-- [ ] #3 Edit/Preview toggle button active and inactive states use Atlas token-backed classes (active state currently uses bg-secondary which renders nothing)
-- [ ] #4 No remaining bg-tertiary, bg-secondary, or bg-primary usages in InlineCanvasEditor.tsx
-- [ ] #5 vite build succeeds and tsc --noEmit is clean for the file
-- [ ] #6 biome lint passes for the file
-- [ ] #7 Visual spot-check: editor toolbar, content area, buttons all show correct Atlas-consistent colors
+- [x] #1 InlineCanvasEditor toolbar background uses an Atlas token-backed class that renders (e.g. bg-raised, bg-input) instead of bg-tertiary
+- [x] #2 InlineCanvasEditor content area (Preview and Edit modes) uses Atlas token-backed classes that render instead of bg-primary / bg-secondary
+- [x] #3 Edit/Preview toggle button active and inactive states use Atlas token-backed classes (active state currently uses bg-secondary which renders nothing)
+- [x] #4 No remaining bg-tertiary, bg-secondary, or bg-primary usages in InlineCanvasEditor.tsx
+- [x] #5 vite build succeeds and tsc --noEmit is clean for the file
+- [x] #6 biome lint passes for the file
+- [x] #7 Visual spot-check: editor toolbar, content area, buttons all show correct Atlas-consistent colors
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -96,3 +96,46 @@ Applied 7 token replacements to `InlineCanvasEditor.tsx` (toolbar bg, toggle act
 **Note for plan-of-record:** diverged from the planned Atlas-guide primary CTA pattern to match the app's existing convention in `Button.tsx`. The codebase convention (`bg-highlight text-white hover:bg-highlight-hover`) wins over the guide's recommendation (`bg-accent-primary text-inverse hover:bg-accent-primary-hover`) for consistency.
 ---
 <!-- COMMENTS:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+## Summary
+
+Replaced every no-op Tailwind class in `InlineCanvasEditor.tsx` with a real Atlas token-backed utility, so the editor's toolbar, content area, and buttons actually render colors consistent with the rest of the app.
+
+### What changed
+
+Single file: `web/src/components/agent/InlineCanvasEditor.tsx` (7 class changes).
+
+| Element | Before (no-op) | After (real Atlas token) |
+|---|---|---|
+| Toolbar container | `bg-tertiary` | `bg-raised` |
+| Edit/Preview toggle active | `bg-secondary text-primary` | `bg-tab-active text-primary` |
+| Edit/Preview toggle inactive hover | `hover:bg-secondary/50` | `hover:bg-active` |
+| Preview content area | `bg-primary` | `bg-base` |
+| Edit textarea | `bg-primary` | `bg-base` |
+| Save button | `bg-accent text-on-accent hover:bg-accent-hover` | `bg-highlight text-white hover:bg-highlight-hover` |
+| Close button hover | `hover:bg-secondary` | `hover:bg-active` |
+
+### Design decision (mid-stream adjustment)
+
+First attempt used the Atlas design guide's primary CTA pattern (`bg-accent-primary text-inverse hover:bg-accent-primary-hover`, near-white) for the Save button. User flagged it as too bright against the dark editor background. Reverted to match the app's existing `Button.tsx` primary variant (`bg-highlight text-white hover:bg-highlight-hover`, dark blue-gray `#556483`) — consistency with the codebase trumps the guide's recommendation.
+
+Hover alpha bumped from `bg-hover` (0.04, invisible) to `bg-active` (0.08, visible) based on user feedback during visual review.
+
+### Verification
+- `git grep` confirms no remaining `bg-tertiary` / `bg-secondary` / `bg-primary` / `bg-accent` (bare) / `text-on-accent` in the file
+- `vite build` succeeded (~520ms)
+- `tsc --noEmit` clean for the file (only pre-existing `ScheduleCard.tsx` error remains, unrelated)
+- `biome lint` clean for the file (only pre-existing button-type warnings)
+- User live visual spot-check passed
+
+### Known follow-up (separate task)
+While reviewing, found three global.css issues worth their own task:
+1. Duplicate `--color-accent-highlight` declaration (line 65-66) — second wins, leaves hover/muted siblings referencing the old blue
+2. Stale commented-out tokens left in (noise)
+3. Unused `--color-bg-surface: #000000` (zero usages) and `--color-text-accent: #ffff00` (single usage, looks like a placeholder)
+
+Out of scope here; will track separately.
+<!-- SECTION:FINAL_SUMMARY:END -->
