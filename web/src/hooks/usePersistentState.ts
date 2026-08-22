@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Like useState, but the value is mirrored to sessionStorage so it
@@ -39,13 +39,19 @@ export function usePersistentState<T>(
   const [state, setState] = useState<T>(defaultValue);
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate from storage on mount (client only). Re-runs if the key
-  // changes; the defaultValue is captured per key swap.
+  // Capture defaultValue by ref so the hydrate effect doesn't re-fire
+  // when the caller passes a fresh reference each render (e.g. a new
+  // Date object or object literal). The default is only used once, when
+  // there's nothing in storage.
+  const defaultRef = useRef(defaultValue);
+
+  // Hydrate from storage on mount (client only). Re-runs only if the
+  // key changes.
   useEffect(() => {
-    const stored = readStorage<T>(key, defaultValue);
+    const stored = readStorage<T>(key, defaultRef.current);
     setState(stored);
     setHydrated(true);
-  }, [key, defaultValue]);
+  }, [key]);
 
   // Mirror to storage on every change (after hydration so we don't
   // overwrite the stored value with the default before reading it).

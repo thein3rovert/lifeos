@@ -117,13 +117,26 @@ export function CalendarPage() {
     openCreateAt(now);
   };
 
+  const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date) => {
+    try {
+      await api.calendar.updateEvent(eventId, {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+      });
+      toast('Event moved', 'success');
+      refresh();
+    } catch {
+      toast('Failed to move event', 'error');
+    }
+  };
+
   const headerLabel =
     view === 'month'
       ? formatMonthYear(startOfMonth(viewDate))
       : formatWeekRange(startOfWeek(viewDate));
 
   return (
-    <div className="min-h-screen bg-base relative pb-32">
+    <div className="min-h-screen bg-base relative pb-40">
       <div className="container mx-auto px-6 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -215,6 +228,7 @@ export function CalendarPage() {
                   events={events}
                   onDayClick={handleDayClick}
                   onEventClick={handleEventClick}
+                  onEventMove={handleEventMove}
                 />
               ) : (
                 <WeekView
@@ -222,6 +236,7 @@ export function CalendarPage() {
                   events={events}
                   onSlotClick={handleSlotClick}
                   onEventClick={handleEventClick}
+                  onEventMove={handleEventMove}
                 />
               )
             )}

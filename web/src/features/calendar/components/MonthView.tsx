@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { buildMonthGrid, isToday } from '@/features/calendar';
 import type { CalendarEvent } from '@/types';
 
@@ -6,14 +7,25 @@ type MonthViewProps = {
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onEventMove: (eventId: string, newStart: Date, newEnd: Date) => void;
 };
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_VISIBLE_EVENTS = 3;
 
-export function MonthView({ viewDate, events, onDayClick, onEventClick }: MonthViewProps) {
+export function MonthView({
+  viewDate,
+  events,
+  onDayClick,
+  onEventClick,
+  onEventMove,
+}: MonthViewProps) {
   const grid = buildMonthGrid(viewDate);
   const currentMonth = viewDate.getMonth();
+
+  // Track which day is being hovered during a drag (for visual feedback).
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   // Group events by day (fast lookup).
   const eventsByDay = new Map<string, CalendarEvent[]>();
@@ -30,10 +42,7 @@ export function MonthView({ viewDate, events, onDayClick, onEventClick }: MonthV
       {/* Day headers */}
       <div className="grid grid-cols-7 border-b border-default">
         {DAY_HEADERS.map((day) => (
-          <div
-            key={day}
-            className="text-center text-xs font-medium text-tertiary py-2"
-          >
+          <div key={day} className="text-center text-xs font-medium text-tertiary py-2">
             {day}
           </div>
         ))}
@@ -47,15 +56,44 @@ export function MonthView({ viewDate, events, onDayClick, onEventClick }: MonthV
           const isCurrentMonth = date.getMonth() === currentMonth;
           const today = isToday(date);
           const hiddenCount = dayEvents.length - MAX_VISIBLE_EVENTS;
+          const isDragOver = dragOverKey === key;
 
           return (
             <button
               key={i}
               type="button"
               onClick={() => onDayClick(date)}
-              className={`text-left min-h-[100px] border-r border-b border-default p-1.5 hover:bg-hover transition-colors ${
+              onDragOver={(e) => {
+                if (!draggingId) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverKey(key);
+              }}
+              onDragLeave={() => setDragOverKey((k) => (k === key ? null : k))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverKey(null);
+                const eventId = e.dataTransfer.getData('eventId');
+                const durationMs = Number.parseInt(e.dataTransfer.getData('duration'), 10);
+                if (!eventId || !durationMs) return;
+                const source = events.find((ev) => ev.id === eventId);
+                if (!source) return;
+                const oldStart = new Date(source.start);
+                const newStart = new Date(date);
+                newStart.setHours(
+                  oldStart.getHours(),
+                  oldStart.getMinutes(),
+                  0,
+                  0
+                );
+                const newEnd = new Date(newStart.getTime() + durationMs);
+                onEventMove(eventId, newStart, newEnd);
+              }}
+              className={`text-left min-h-[100px] border-r border-b border-default p-1.5 transition-colors ${
                 isCurrentMonth ? 'bg-raised' : 'bg-base'
-              } ${today ? 'ring-1 ring-inset ring-highlight' : ''}`}
+              } ${today ? 'ring-1 ring-inset ring-highlight' : ''} ${
+                isDragOver ? 'bg-selected' : 'hover:bg-hover'
+              }`}
             >
               {/* Day number */}
               <div
@@ -71,21 +109,32 @@ export function MonthView({ viewDate, events, onDayClick, onEventClick }: MonthV
               </div>
 
               {/* Events */}
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {dayEvents.slice(0, MAX_VISIBLE_EVENTS).map((event) => (
                   <EventChip
                     key={event.id}
                     event={event}
+                    isDragging={draggingId === event.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       onEventClick(event);
                     }}
+                    onDragStart={(e) => {
+                      const durationMs =
+                        new Date(event.end).getTime() - new Date(event.start).getTime();
+                      e.dataTransfer.setData('eventId', event.id);
+                      e.dataTransfer.setData('duration', String(durationMs));
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggingId(event.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDragOverKey(null);
+                    }}
                   />
                 ))}
                 {hiddenCount > 0 && (
-                  <div className="text-xs text-tertiary pl-1">
-                    +{hiddenCount} more
-                  </div>
+                  <div className="text-xs text-tertiary pl-1 pt-0.5">+{hiddenCount} more</div>
                 )}
               </div>
             </button>
@@ -98,16 +147,27 @@ export function MonthView({ viewDate, events, onDayClick, onEventClick }: MonthV
 
 function EventChip({
   event,
+  isDragging,
   onClick,
+  onDragStart,
+  onDragEnd,
 }: {
   event: CalendarEvent;
+  isDragging: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: (e: React.DragEvent) => void;
 }) {
   return (
     <button
       type="button"
+      draggable
       onClick={onClick}
-      className="w-full text-left px-1.5 py-0.5 rounded text-xs bg-highlight/25 text-primary truncate hover:bg-highlight/40 transition-colors"
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`w-full text-left px-1.5 py-0.5 rounded text-xs bg-highlight/25 text-primary truncate hover:bg-highlight/40 transition-colors cursor-grab active:cursor-grabbing ${
+        isDragging ? 'opacity-40' : ''
+      }`}
     >
       {event.title || '(untitled)'}
     </button>
