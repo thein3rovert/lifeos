@@ -1,3 +1,4 @@
+export { CalendarPage } from './components/CalendarPage';
 export { useCalendarEvents } from './hooks/useCalendarEvents';
 export { useCalendarOAuthStatus } from './hooks/useCalendarOAuthStatus';
 export {

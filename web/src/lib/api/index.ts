@@ -1,4 +1,5 @@
 import { agentApi } from './agent';
+import { calendarApi } from './calendar';
 import { chatApi } from './chat';
 import { notesApi } from './notes';
 import { referencesApi } from './references';
@@ -12,6 +13,7 @@ export const api = {
   references: referencesApi,
   agent: agentApi,
   smartboard: smartboardApi,
+  calendar: calendarApi,
 };
 
 export { fetcher } from './client';

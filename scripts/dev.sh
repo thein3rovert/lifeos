@@ -9,8 +9,15 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/logs"
 
-# ── Load .env if present ────────────────────────────────────────
-if [[ -f "$PROJECT_ROOT/.env" ]]; then
+# ── Load .env.dev if present (falls back to .env) ────────────────
+# .env.dev holds dev-only values (API_URL → port 6060, etc).
+# .env is reserved for prod (docker-compose substitution).
+if [[ -f "$PROJECT_ROOT/.env.dev" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$PROJECT_ROOT/.env.dev"
+    set +a
+elif [[ -f "$PROJECT_ROOT/.env" ]]; then
     set -a
     # shellcheck disable=SC1091
     source "$PROJECT_ROOT/.env"

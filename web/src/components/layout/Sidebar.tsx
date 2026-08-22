@@ -2,6 +2,7 @@ import { Link, useRouter } from '@tanstack/react-router';
 import {
   Bell,
   BookOpen,
+  Calendar,
   ChevronLeft,
   LayoutDashboard,
   Menu,
@@ -20,6 +21,7 @@ const toolsNav = [
 
 const mainNav = [
   { to: '/agent', label: 'Smart Board', icon: Sparkles },
+  { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/skills', label: 'Skills', icon: BookOpen },
   { to: '/notes', label: 'Notes', icon: StickyNote },
   { to: '/settings', label: 'Settings', icon: Settings },

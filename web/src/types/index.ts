@@ -148,3 +148,36 @@ export interface PanelScheduleStatus {
 }
 
 export type ScheduleStatusMap = Record<PanelType, PanelScheduleStatus>;
+
+// -----------------------------------------------------------------------------
+// Calendar Types
+// -----------------------------------------------------------------------------
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  description?: string;
+  location?: string;
+}
+
+export interface CreateCalendarEventInput {
+  title: string;
+  start: string;
+  end: string;
+  description?: string;
+  location?: string;
+}
+
+export interface UpdateCalendarEventInput {
+  title?: string;
+  start?: string;
+  end?: string;
+  description?: string;
+  location?: string;
+}
+
+export interface CalendarOAuthStatus {
+  connected: boolean;
+}

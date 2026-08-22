@@ -25,6 +25,7 @@ type SQLCalendarStore struct {
 	db *sql.DB
 }
 
+// Create new instance of calender store
 func NewCalendarStore(db *sql.DB) *SQLCalendarStore {
 	return &SQLCalendarStore{db: db}
 }
@@ -49,6 +50,7 @@ func (s *SQLCalendarStore) GetTokens() (*OAuthTokens, error) {
 	var t OAuthTokens
 	err := s.db.QueryRow(`SELECT access_token, refresh_token, token_type, expiry FROM google_oauth_tokens WHERE id = 1`).
 		Scan(&t.AccessToken, &t.RefreshToken, &t.TokenType, &t.Expiry)
+	// if my id (1) does not exist
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
