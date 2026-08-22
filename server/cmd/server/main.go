@@ -184,10 +184,10 @@ func runHTTPServer() {
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
-	// Server sent event transport. Uses GetPublicBaseURL() which constructs
-	// the URL from BACKEND_PORT or falls back to LIFEOS_PUBLIC_URL (deprecated).
-	baseURL := cfg.GetPublicBaseURL()
-	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL(baseURL))
+	// Server sent event transport. No baseURL specified - let the library
+	// auto-detect from the incoming request's Host header. This allows
+	// access via localhost, Tailscale IP, LAN IP, etc.
+	sse := server.NewSSEServer(lifeosMCPServer)
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 	// Message endpoint for JSON-RPC requests (handles MCP initialize, tools, etc.)
 	mux.Handle("/message", middleware.MCPAuth(sse))
