@@ -4,6 +4,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -14,7 +15,12 @@ type Config struct {
 	// HTTP server
 	Port          string   // LIFEOS_PORT
 	CORSOrigins   []string // CORS_ORIGINS (comma-separated)
-	PublicBaseURL string   // LIFEOS_PUBLIC_URL (used for MCP SSE / share links)
+	PublicBaseURL string   // LIFEOS_PUBLIC_URL (used for MCP SSE / share links) - deprecated, use GetPublicBaseURL()
+
+	// Port configuration for URL construction
+	BackendPort  string // BACKEND_PORT (external docker port)
+	FrontendPort string // FRONTEND_PORT (external docker port)
+	PublicDomain string // PUBLIC_DOMAIN (optional, for Traefik/reverse proxy)
 
 	// Storage
 	DBPath string // LIFEOS_DB_PATH
@@ -46,6 +52,7 @@ type Config struct {
 
 	// Frontend URL the backend redirects the browser to (OAuth callback, etc.)
 	// Mirror of API_URL: API_URL is frontend → backend, FRONTEND_URL is backend → browser.
+	// Deprecated: use GetFrontendURL() instead
 	FrontendURL string // FRONTEND_URL
 }
 
@@ -57,6 +64,9 @@ func Load() *Config {
 		SidecarURL:     getEnv("SIDECAR_URL", "http://localhost:3002"),
 		CORSOrigins:    splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")),
 		PublicBaseURL:  getEnv("LIFEOS_PUBLIC_URL", ""),
+		BackendPort:    getEnv("BACKEND_PORT", ""),
+		FrontendPort:   getEnv("FRONTEND_PORT", ""),
+		PublicDomain:   getEnv("PUBLIC_DOMAIN", ""),
 		DBPath:         getEnv("LIFEOS_DB_PATH", "lifeos.db"),
 		GitHubToken:    os.Getenv("GITHUB_TOKEN"),
 		GitHubOwner:    os.Getenv("GITHUB_OWNER"),
@@ -98,4 +108,48 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+// GetPublicBaseURL constructs the public base URL for MCP SSE and share links.
+// Priority: PublicDomain > BackendPort > PublicBaseURL (deprecated) > default
+func (c *Config) GetPublicBaseURL() string {
+	// Future: Traefik/domain mode
+	if c.PublicDomain != "" {
+		return fmt.Sprintf("https://%s", c.PublicDomain)
+	}
+
+	// New approach: construct from port
+	if c.BackendPort != "" {
+		return fmt.Sprintf("http://localhost:%s", c.BackendPort)
+	}
+
+	// Backwards compatibility: use old field if set
+	if c.PublicBaseURL != "" {
+		return c.PublicBaseURL
+	}
+
+	// Default fallback: use internal port
+	return fmt.Sprintf("http://localhost:%s", c.Port)
+}
+
+// GetFrontendURL constructs the frontend URL for OAuth redirects.
+// Priority: PublicDomain > FrontendPort > FrontendURL (deprecated) > default
+func (c *Config) GetFrontendURL() string {
+	// Future: Traefik/domain mode
+	if c.PublicDomain != "" {
+		return fmt.Sprintf("https://%s", c.PublicDomain)
+	}
+
+	// New approach: construct from port
+	if c.FrontendPort != "" {
+		return fmt.Sprintf("http://localhost:%s", c.FrontendPort)
+	}
+
+	// Backwards compatibility: use old field if set
+	if c.FrontendURL != "" {
+		return c.FrontendURL
+	}
+
+	// Default fallback
+	return "http://localhost:3001"
 }
