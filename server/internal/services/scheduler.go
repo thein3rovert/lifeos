@@ -175,7 +175,8 @@ func (s *Scheduler) runWeekly(sched panelSchedule) {
 // itself so both manual and scheduled refreshes converge.
 func (s *Scheduler) refresh(panelType string) {
 	log.Printf("[scheduler] refreshing %s...", panelType)
-	if _, err := s.svc.RefreshPanel(panelType, true); err != nil {
+	// force=true to bypass cache, newSession=false to reuse existing session for auto-refresh
+	if _, err := s.svc.RefreshPanel(panelType, true, false); err != nil {
 		log.Printf("[scheduler] ERROR refreshing %s: %v", panelType, err)
 	} else {
 		log.Printf("[scheduler] %s refreshed successfully", panelType)

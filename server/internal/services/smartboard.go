@@ -102,11 +102,12 @@ func (s *SmartBoardService) SetPanelSchedule(panelType string, mode string, inte
 // RefreshPanel fetches new data from AI and updates cache(db).
 // If force is false and the cached panel is younger than cacheTTL, returns
 // the cached panel without calling AI (instant, no token cost).
+// If newSession is true, creates a fresh session instead of reusing existing one.
 //
 // Also mirrors the outcome into the scheduler's per-panel error state, so
 // manual UI refreshes clear stale error banners left over from earlier
 // auto-refresh failures.
-func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (panel *model.SmartBoardPanel, err error) {
+func (s *SmartBoardService) RefreshPanel(panelType string, force bool, newSession bool) (panel *model.SmartBoardPanel, err error) {
 	// Record success/failure into scheduler state on the way out so the UI
 	// stays consistent regardless of which path (manual/auto) triggered us.
 	defer func() {
@@ -145,9 +146,9 @@ func (s *SmartBoardService) RefreshPanel(panelType string, force bool) (panel *m
 		return nil, err
 	}
 
-	// Try to reuse existing session for this panel type
+	// Try to reuse existing session for this panel type (unless newSession requested)
 	var sessionID *string
-	if existingPanel != nil && existingPanel.SessionID != "" {
+	if !newSession && existingPanel != nil && existingPanel.SessionID != "" {
 		sid := existingPanel.SessionID
 		sessionID = &sid
 	}

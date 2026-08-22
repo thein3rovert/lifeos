@@ -43,10 +43,12 @@ func (h *SmartBoardHandler) RefreshPanel(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Optional ?force=true bypasses the source-fingerprint cache
+	// Optional ?new_session=true forces creation of a fresh session instead of reusing
 	force := r.URL.Query().Get("force") == "true"
+	newSession := r.URL.Query().Get("new_session") == "true"
 
 	// Refresh panel via service
-	panel, err := h.service.RefreshPanel(panelType, force)
+	panel, err := h.service.RefreshPanel(panelType, force, newSession)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
