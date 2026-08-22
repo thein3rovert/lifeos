@@ -162,6 +162,7 @@ func runHTTPServer() {
 
 	// Smart Board
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)
+	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}/reset", smartBoardAPI.ResetPanel)
 	mux.HandleFunc("GET /api/smartboard/schedule", smartBoardAPI.GetScheduleStatus)
 	mux.HandleFunc("POST /api/smartboard/schedule/pause-all", smartBoardAPI.PauseAllPanels)
 	mux.HandleFunc("POST /api/smartboard/schedule/resume-all", smartBoardAPI.ResumeAllPanels)

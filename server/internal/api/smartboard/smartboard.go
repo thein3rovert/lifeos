@@ -43,12 +43,55 @@ func (h *SmartBoardHandler) RefreshPanel(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Optional ?force=true bypasses the source-fingerprint cache
-	// Optional ?new_session=true forces creation of a fresh session instead of reusing
 	force := r.URL.Query().Get("force") == "true"
-	newSession := r.URL.Query().Get("new_session") == "true"
 
-	// Refresh panel via service
-	panel, err := h.service.RefreshPanel(panelType, force, newSession)
+	// Refresh panel via service (reuses existing session)
+	panel, err := h.service.RefreshPanel(panelType, force, false)
+	if err != nil {
+		api.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Parse JSON data for response
+	var data interface{}
+	if err := json.Unmarshal([]byte(panel.Data), &data); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, "failed to parse panel data")
+		return
+	}
+
+	response := map[string]interface{}{
+		"panelType":     panel.PanelType,
+		"data":          data,
+		"lastRefreshed": panel.LastRefreshed,
+	}
+
+	api.RespondJSON(w, http.StatusOK, response)
+}
+
+// ResetPanel refreshes a panel with a fresh OpenCode session
+// POST /api/smartboard/refresh/:panelType/reset
+func (h *SmartBoardHandler) ResetPanel(w http.ResponseWriter, r *http.Request) {
+	// Extract panel type from URL path
+	panelType := r.PathValue("panelType")
+	if panelType == "" {
+		api.RespondError(w, http.StatusBadRequest, "panelType is required")
+		return
+	}
+
+	// Validate panel type
+	validTypes := map[string]bool{
+		"things-to-remember": true,
+		"suggestions":        true,
+		"achievements":       true,
+		"blockers":           true,
+	}
+	if !validTypes[panelType] {
+		api.RespondError(w, http.StatusBadRequest, "invalid panelType")
+		return
+	}
+
+	// Reset panel via service (force=true, newSession=true)
+	panel, err := h.service.RefreshPanel(panelType, true, true)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
