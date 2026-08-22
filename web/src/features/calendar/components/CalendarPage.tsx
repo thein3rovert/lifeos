@@ -5,31 +5,47 @@ import { toast } from '@/components/ui/Toast';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { api } from '@/lib/api';
 import {
-  addDays,
-  buildMonthGrid,
-  buildWeekGrid,
-  formatMonthYear,
-  formatWeekRange,
   startOfMonth,
   startOfWeek,
+  addDays,
+  formatMonthYear,
+  formatWeekRange,
+  toRFC3339,
+  useCalendarEvents,
   useCalendarOAuthStatus,
 } from '@/features/calendar';
+import { MonthView } from './MonthView';
+import { WeekView } from './WeekView';
+import type { CalendarEvent } from '@/types';
 
 type CalendarView = 'month' | 'week';
 
 export function CalendarPage() {
-
-  // Persisted across nav — survives route unmount/remount + same-tab refresh.
-// Stored as ISO string (usePersistentState JSON-serializes, which turns Date into string).
+  // Persisted across nav — stored as ISO string (JSON-serializable).
   const [view, setView] = usePersistentState<CalendarView>('lifeos:calendar:view', 'month');
-  const [viewDateStr, setViewDateStr] = usePersistentState<string>('lifeos:calendar:date', new Date().toISOString());
+  const [viewDateStr, setViewDateStr] = usePersistentState<string>(
+    'lifeos:calendar:date',
+    new Date().toISOString()
+  );
   const viewDate = new Date(viewDateStr);
   const setViewDate = (d: Date) => setViewDateStr(d.toISOString());
 
-  // OAuth status — re-check after OAuth callback redirect.
-  // `oauthRefetchKey` bump forces a re-check after connect/disconnect.
   const [oauthRefetchKey, setOauthRefetchKey] = useState(0);
   const { connected, loading: oauthLoading } = useCalendarOAuthStatus(oauthRefetchKey);
+
+  // Compute the fetch range based on the current view.
+  const fetchRange = (() => {
+    if (view === 'month') {
+      const start = startOfMonth(viewDate);
+      const end = addDays(start, 42);
+      return { start: toRFC3339(start), end: toRFC3339(end) };
+    }
+    const start = startOfWeek(viewDate);
+    const end = addDays(start, 7);
+    return { start: toRFC3339(start), end: toRFC3339(end) };
+  })();
+
+  const { events, error, refresh } = useCalendarEvents(fetchRange.start, fetchRange.end);
 
   // Navigation
   const goPrev = () => {
@@ -58,14 +74,29 @@ export function CalendarPage() {
   const handleDisconnect = async () => {
     try {
       await api.calendar.disconnect();
-      setOauthRefetchKey(k => k + 1);
+      setOauthRefetchKey((k) => k + 1);
       toast('Disconnected from Google Calendar', 'success');
     } catch {
       toast('Failed to disconnect', 'error');
     }
   };
 
-  // Header label
+  // Calendar callbacks
+  const handleEventClick = (event: CalendarEvent) => {
+    // Phase 4: open edit dialog
+    console.log('edit event', event.id);
+  };
+
+  const handleDayClick = (_date: Date) => {
+    // Phase 4: open create dialog with prefilled date
+    console.log('create event on day');
+  };
+
+  const handleSlotClick = (_date: Date, _hour: number) => {
+    // Phase 4: open create dialog with prefilled date + hour
+    console.log('create event at hour');
+  };
+
   const headerLabel =
     view === 'month'
       ? formatMonthYear(startOfMonth(viewDate))
@@ -74,9 +105,8 @@ export function CalendarPage() {
   return (
     <div className="min-h-screen bg-base relative pb-32">
       <div className="container mx-auto px-6 py-6">
-        {/* Calendar header */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          {/* Left: navigation + title */}
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={goPrev} aria-label="Previous">
               <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
@@ -90,7 +120,6 @@ export function CalendarPage() {
             <h1 className="text-lg font-medium text-primary ml-2">{headerLabel}</h1>
           </div>
 
-          {/* Right: view toggle + Google connect */}
           <div className="flex items-center gap-2">
             {/* View toggle */}
             <div className="inline-flex rounded-md border border-default bg-raised">
@@ -98,9 +127,7 @@ export function CalendarPage() {
                 type="button"
                 onClick={() => setView('month')}
                 className={`px-3 py-1 text-xs rounded-l-md transition-colors ${
-                  view === 'month'
-                    ? 'bg-tab-active text-primary'
-                    : 'text-secondary hover:bg-active'
+                  view === 'month' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'
                 }`}
               >
                 Month
@@ -109,9 +136,7 @@ export function CalendarPage() {
                 type="button"
                 onClick={() => setView('week')}
                 className={`px-3 py-1 text-xs rounded-r-md transition-colors ${
-                  view === 'week'
-                    ? 'bg-tab-active text-primary'
-                    : 'text-secondary hover:bg-active'
+                  view === 'week' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'
                 }`}
               >
                 Week
@@ -122,11 +147,21 @@ export function CalendarPage() {
             {oauthLoading ? (
               <span className="text-xs text-tertiary">Checking…</span>
             ) : connected ? (
-              <Button variant="ghost" size="sm" onClick={handleDisconnect} leftIcon={<Unlink className="w-3.5 h-3.5" strokeWidth={1.5} />}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDisconnect}
+                leftIcon={<Unlink className="w-3.5 h-3.5" strokeWidth={1.5} />}
+              >
                 Disconnect
               </Button>
             ) : (
-              <Button variant="primary" size="sm" onClick={handleConnect} leftIcon={<Link2 className="w-3.5 h-3.5" strokeWidth={1.5} />}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConnect}
+                leftIcon={<Link2 className="w-3.5 h-3.5" strokeWidth={1.5} />}
+              >
                 Connect Google
               </Button>
             )}
@@ -136,10 +171,29 @@ export function CalendarPage() {
         {/* Calendar body */}
         {connected ? (
           <div className="bg-raised border border-default rounded-lg p-4">
-            {view === 'month' ? (
-              <MonthPlaceholder viewDate={viewDate} />
+            {error ? (
+              <div className="text-center py-12 text-error text-sm">
+                Failed to load events.{' '}
+                <button type="button" onClick={refresh} className="underline">
+                  Retry
+                </button>
+              </div>
             ) : (
-              <WeekPlaceholder viewDate={viewDate} />
+              view === 'month' ? (
+                <MonthView
+                  viewDate={viewDate}
+                  events={events}
+                  onDayClick={handleDayClick}
+                  onEventClick={handleEventClick}
+                />
+              ) : (
+                <WeekView
+                  viewDate={viewDate}
+                  events={events}
+                  onSlotClick={handleSlotClick}
+                  onEventClick={handleEventClick}
+                />
+              )
             )}
           </div>
         ) : (
@@ -149,43 +203,17 @@ export function CalendarPage() {
             <p className="text-tertiary text-xs mb-4">
               Connect your Google Calendar to see events
             </p>
-            <Button variant="primary" size="md" onClick={handleConnect} leftIcon={<Link2 className="w-4 h-4" strokeWidth={1.5} />}>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleConnect}
+              leftIcon={<Link2 className="w-4 h-4" strokeWidth={1.5} />}
+            >
               Connect Google Calendar
             </Button>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Placeholder renders — replaced in Phase 3
-function MonthPlaceholder({ viewDate }: { viewDate: Date }) {
-  const grid = buildMonthGrid(viewDate);
-  return (
-    <div className="grid grid-cols-7 gap-px bg-border-default">
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-        <div key={day} className="bg-raised text-center text-xs text-tertiary py-2">
-          {day}
-        </div>
-      ))}
-      {grid.map((date, i) => (
-        <div
-          key={i}
-          className="bg-base min-h-[80px] p-1.5 text-xs text-secondary"
-        >
-          {date.getDate()}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function WeekPlaceholder({ viewDate }: { viewDate: Date }) {
-  const week = buildWeekGrid(viewDate);
-  return (
-    <div className="text-center py-12 text-tertiary text-sm">
-      Week view placeholder — events render in Phase 3. Days: {week.map(d => d.getDate()).join(', ')}
     </div>
   );
 }

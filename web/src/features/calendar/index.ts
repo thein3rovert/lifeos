@@ -1,4 +1,6 @@
 export { CalendarPage } from './components/CalendarPage';
+export { MonthView } from './components/MonthView';
+export { WeekView } from './components/WeekView';
 export { useCalendarEvents } from './hooks/useCalendarEvents';
 export { useCalendarOAuthStatus } from './hooks/useCalendarOAuthStatus';
 export {
