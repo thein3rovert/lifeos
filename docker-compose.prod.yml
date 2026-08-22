@@ -9,7 +9,7 @@ services:
     image: docker.io/theintrovert/lifeos-backend:latest
     container_name: lifeos-backend
     ports:
-      - "7060:6060"
+      - "${BACKEND_PORT:-7060}:6060"
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_OWNER=${GITHUB_OWNER}
@@ -18,9 +18,13 @@ services:
       - SIDECAR_URL=http://sidecar:3002
       - MCP_API_KEY=${MCP_API_KEY}
       - LIFEOS_PUBLIC_URL=${LIFEOS_PUBLIC_URL}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:7001}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - MCP_ALLOWED_DIRS=${MCP_ALLOWED_DIRS}
+      - LIFEOS_MEETINGS_PATH=${LIFEOS_MEETINGS_PATH}
+      - LIFEOS_JOURNAL_PATH=${LIFEOS_JOURNAL_PATH}
     volumes:
       - lifeos-data:/app
+      - /home/thein3rovert/Documents/resources/work_Elanco:/home/thein3rovert/Documents/resources/work_Elanco:ro
     restart: unless-stopped
     networks:
       - lifeos-network
@@ -29,7 +33,7 @@ services:
     image: docker.io/theintrovert/lifeos-frontend:latest
     container_name: lifeos-frontend
     ports:
-      - "7001:3000"
+      - "${FRONTEND_PORT:-7001}:3000"
     environment:
       # Optional: override API URL. If unset, frontend auto-detects from
       # window.location (works for direct IP access on port 7001).
@@ -42,7 +46,7 @@ services:
     image: docker.io/theintrovert/lifeos-sidecar:latest
     container_name: lifeos-sidecar
     ports:
-      - "7002:3002"
+      - "${SIDECAR_PORT:-7002}:3002"
     environment:
       - NODE_ENV=production
       - OPENCODE_URL=${OPENCODE_URL:-http://host.containers.internal:4097}
