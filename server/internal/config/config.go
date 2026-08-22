@@ -13,9 +13,8 @@ import (
 // Config holds all runtime configuration for the LifeOS backend.
 type Config struct {
 	// HTTP server
-	Port          string   // LIFEOS_PORT
-	CORSOrigins   []string // CORS_ORIGINS (comma-separated)
-	PublicBaseURL string   // LIFEOS_PUBLIC_URL (used for MCP SSE / share links) - deprecated, use GetPublicBaseURL()
+	Port        string   // LIFEOS_PORT
+	CORSOrigins []string // CORS_ORIGINS (comma-separated)
 
 	// Port configuration for URL construction
 	BackendPort  string // BACKEND_PORT (external docker port)
@@ -49,25 +48,19 @@ type Config struct {
 	GoogleClientID     string // GOOGLE_CLIENT_ID
 	GoogleClientSecret string // GOOGLE_CLIENT_SECRET
 	GoogleRedirectURI  string // GOOGLE_REDIRECT_URI
-
-	// Frontend URL the backend redirects the browser to (OAuth callback, etc.)
-	// Mirror of API_URL: API_URL is frontend → backend, FRONTEND_URL is backend → browser.
-	// Deprecated: use GetFrontendURL() instead
-	FrontendURL string // FRONTEND_URL
 }
 
 // Load reads configuration from environment variables.
 // Missing required values cause a fatal error.
 func Load() *Config {
 	cfg := &Config{
-		Port:           getEnv("LIFEOS_PORT", "6060"),
-		SidecarURL:     getEnv("SIDECAR_URL", "http://localhost:3002"),
-		CORSOrigins:    splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")),
-		PublicBaseURL:  getEnv("LIFEOS_PUBLIC_URL", ""),
-		BackendPort:    getEnv("BACKEND_PORT", ""),
-		FrontendPort:   getEnv("FRONTEND_PORT", ""),
-		PublicDomain:   getEnv("PUBLIC_DOMAIN", ""),
-		DBPath:         getEnv("LIFEOS_DB_PATH", "lifeos.db"),
+		Port:         getEnv("LIFEOS_PORT", "6060"),
+		SidecarURL:   getEnv("SIDECAR_URL", "http://localhost:3002"),
+		CORSOrigins:  splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")),
+		BackendPort:  getEnv("BACKEND_PORT", "7060"),
+		FrontendPort: getEnv("FRONTEND_PORT", "7001"),
+		PublicDomain: getEnv("PUBLIC_DOMAIN", ""),
+		DBPath:       getEnv("LIFEOS_DB_PATH", "lifeos.db"),
 		GitHubToken:    os.Getenv("GITHUB_TOKEN"),
 		GitHubOwner:    os.Getenv("GITHUB_OWNER"),
 		GitHubRepo:     os.Getenv("GITHUB_REPO"),
@@ -80,7 +73,6 @@ func Load() *Config {
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:6060/api/calendar/oauth/callback"),
-		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:3001"),
 	}
 
 	if cfg.GitHubToken == "" || cfg.GitHubOwner == "" || cfg.GitHubRepo == "" {
@@ -111,45 +103,23 @@ func splitCSV(s string) []string {
 }
 
 // GetPublicBaseURL constructs the public base URL for MCP SSE and share links.
-// Priority: PublicDomain > BackendPort > PublicBaseURL (deprecated) > default
 func (c *Config) GetPublicBaseURL() string {
 	// Future: Traefik/domain mode
 	if c.PublicDomain != "" {
 		return fmt.Sprintf("https://%s", c.PublicDomain)
 	}
 
-	// New approach: construct from port
-	if c.BackendPort != "" {
-		return fmt.Sprintf("http://localhost:%s", c.BackendPort)
-	}
-
-	// Backwards compatibility: use old field if set
-	if c.PublicBaseURL != "" {
-		return c.PublicBaseURL
-	}
-
-	// Default fallback: use internal port
-	return fmt.Sprintf("http://localhost:%s", c.Port)
+	// Construct from external port
+	return fmt.Sprintf("http://localhost:%s", c.BackendPort)
 }
 
 // GetFrontendURL constructs the frontend URL for OAuth redirects.
-// Priority: PublicDomain > FrontendPort > FrontendURL (deprecated) > default
 func (c *Config) GetFrontendURL() string {
 	// Future: Traefik/domain mode
 	if c.PublicDomain != "" {
 		return fmt.Sprintf("https://%s", c.PublicDomain)
 	}
 
-	// New approach: construct from port
-	if c.FrontendPort != "" {
-		return fmt.Sprintf("http://localhost:%s", c.FrontendPort)
-	}
-
-	// Backwards compatibility: use old field if set
-	if c.FrontendURL != "" {
-		return c.FrontendURL
-	}
-
-	// Default fallback
-	return "http://localhost:3001"
+	// Construct from external port
+	return fmt.Sprintf("http://localhost:%s", c.FrontendPort)
 }
