@@ -23,6 +23,9 @@ services:
       - MCP_ALLOWED_DIRS=${MCP_ALLOWED_DIRS}
       - LIFEOS_MEETINGS_PATH=${LIFEOS_MEETINGS_PATH}
       - LIFEOS_JOURNAL_PATH=${LIFEOS_JOURNAL_PATH}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
     volumes:
       - lifeos-data:/app
       - /home/thein3rovert/Documents/resources/work_Elanco:/home/thein3rovert/Documents/resources/work_Elanco:ro
