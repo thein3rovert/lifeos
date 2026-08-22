@@ -34,10 +34,6 @@ services:
     container_name: lifeos-frontend
     ports:
       - "${FRONTEND_PORT:-7001}:3000"
-    environment:
-      # Optional: override API URL. If unset, frontend auto-detects from
-      # window.location (works for direct IP access on port 7001).
-      - API_URL=${API_URL:-}
     restart: unless-stopped
     networks:
       - lifeos-network
