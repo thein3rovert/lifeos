@@ -36,8 +36,19 @@ router.post('/chat', async (req, res) => {
 
     if (activeSessionId) {
       try {
-        await client.session.get({ path: { id: activeSessionId } });
-        console.log(`[Agent] ✅ Verified existing session: ${activeSessionId}`);
+        const session = await client.session.get({ path: { id: activeSessionId } });
+        
+        // Check if session is stuck processing (has an incomplete assistant message)
+        const messages = await client.session.messages({ path: { id: activeSessionId } });
+        const lastMessage = messages.data?.[messages.data.length - 1];
+        const isStuck = lastMessage?.info?.role === 'assistant' && !lastMessage?.info?.completed_at;
+        
+        if (isStuck) {
+          console.log(`[Agent] ⚠️  Session ${activeSessionId} appears stuck, creating new one`);
+          activeSessionId = null;
+        } else {
+          console.log(`[Agent] ✅ Verified existing session: ${activeSessionId}`);
+        }
       } catch (err) {
         console.log(`[Agent] ⚠️  Session ${activeSessionId} no longer exists, creating new one`);
         activeSessionId = null;
@@ -109,7 +120,20 @@ router.post('/chat', async (req, res) => {
       signal: abortController.signal,
     });
 
-    const result = await Promise.race([promptPromise, timeoutPromise]);
+    let result;
+    try {
+      result = await Promise.race([promptPromise, timeoutPromise]);
+    } catch (timeoutError) {
+      // Timeout occurred - abort the session to stop OpenCode from processing
+      console.log(`[Agent] ⏰ Timeout - aborting session ${activeSessionId}`);
+      try {
+        await client.session.abort({ path: { id: activeSessionId } });
+        console.log(`[Agent] ✅ Session aborted successfully`);
+      } catch (abortErr) {
+        console.log(`[Agent] ⚠️  Failed to abort session:`, abortErr.message);
+      }
+      throw timeoutError; // Re-throw to trigger error handling below
+    }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[Agent] ✅ Response received in ${duration}s`);
