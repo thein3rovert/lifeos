@@ -122,7 +122,7 @@ func runHTTPServer() {
 		cfg.GoogleClientSecret,
 		cfg.GoogleRedirectURI,
 	)
-	calendarAPI := calendarapi.NewCalendarHandler(calendarService, cfg.FrontendURL+"/calendar")
+	calendarAPI := calendarapi.NewCalendarHandler(calendarService, cfg.GetFrontendURL()+"/calendar")
 
 	// ── JSON API endpoints (Go 1.22+ method-based routing) ─────────
 	// Skills
@@ -184,13 +184,9 @@ func runHTTPServer() {
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
-	// Server sent event transport. Base URL falls back to localhost:PORT
-	// but should be set via LIFEOS_PUBLIC_URL when running behind a
-	// reverse proxy or a Tailscale hostname.
-	baseURL := cfg.PublicBaseURL
-	if baseURL == "" {
-		baseURL = "http://localhost:" + cfg.Port
-	}
+	// Server sent event transport. Uses GetPublicBaseURL() which constructs
+	// the URL from BACKEND_PORT or falls back to LIFEOS_PUBLIC_URL (deprecated).
+	baseURL := cfg.GetPublicBaseURL()
 	sse := server.NewSSEServer(lifeosMCPServer, server.WithBaseURL(baseURL))
 	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
 	// Message endpoint for JSON-RPC requests (handles MCP initialize, tools, etc.)
