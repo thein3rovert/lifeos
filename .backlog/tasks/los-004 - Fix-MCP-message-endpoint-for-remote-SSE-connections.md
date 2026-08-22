@@ -4,7 +4,7 @@ title: Fix MCP /message endpoint for remote SSE connections
 status: Done
 assignee: []
 created_date: '2026-08-13 17:01'
-updated_date: '2026-08-13 22:25'
+updated_date: '2026-08-18 14:56'
 labels:
   - mcp
   - backend
@@ -115,13 +115,5 @@ Next step: User should test actual opencode connection from remote client.
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Fixed missing /message endpoint for MCP SSE connections by adding `mux.Handle("/message", middleware.MCPAuth(sse))` on line 176 of main.go.
-
-**What was broken**: The SSE server was created but the /message endpoint handler wasn't registered, causing JSON-RPC requests to fall through to the health check handler ("LifeOS is running").
-
-**The fix**: Register the SSE handler at /message (without prefix stripping) so remote opencode clients can complete the MCP handshake.
-
-**Verification**: Tested with curl - endpoint now returns proper JSON-RPC responses with correct authentication. Remote opencode clients can now connect via SSE over Tailscale.
-
-**Deployment**: Committed as 408b300, built via GitHub Actions, deployed with `just prod-pull` + force-recreate.
+Added POST /message handler in server/cmd/server/main.go wired to the SSE server's ServeHTTP method. Remote opencode clients can now successfully connect to lifeos MCP server over Tailnet at http://100.105.217.77:7060/mcp/sse and access list_files/read_file tools. Tested and verified working with remote connection.
 <!-- SECTION:FINAL_SUMMARY:END -->
