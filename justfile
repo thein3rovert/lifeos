@@ -146,25 +146,25 @@ prod-pull:
     @podman pull docker.io/theintrovert/lifeos-sidecar:latest
     @echo "✓ All images pulled"
 
-# Start all services using registry images
+# Start all services using registry images (clean env to avoid direnv .env.dev)
 prod-up:
     @echo "🚀 Starting production services (registry images)..."
-    @podman compose -f docker-compose.prod.yml up -d
+    @env -i HOME="${HOME}" PATH="${PATH}" USER="${USER}" bash -c "podman compose -f docker-compose.prod.yml up -d"
 
 # Start specific service(s) using registry images
 prod-start *services:
     @echo "🚀 Starting production service(s): {{services}}..."
-    @podman compose -f docker-compose.prod.yml up -d {{services}}
+    @env -i HOME="${HOME}" PATH="${PATH}" USER="${USER}" bash -c "podman compose -f docker-compose.prod.yml up -d {{services}}"
 
 # Stop all production services
 prod-down:
     @echo "🛑 Stopping production services..."
     @podman compose -f docker-compose.prod.yml down
 
-# Restart production service(s)
+# Restart production service(s) (recreates to reload env vars, clean env)
 prod-restart *services:
     @echo "🔄 Restarting production service(s): {{services}}..."
-    @podman compose -f docker-compose.prod.yml restart {{services}}
+    @env -i HOME="${HOME}" PATH="${PATH}" USER="${USER}" bash -c "podman compose -f docker-compose.prod.yml up -d --force-recreate {{services}}"
 
 # View production logs
 prod-logs:
