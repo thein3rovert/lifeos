@@ -1,4 +1,5 @@
 export { CalendarPage } from './components/CalendarPage';
+export { EventForm } from './components/EventForm';
 export { MonthView } from './components/MonthView';
 export { WeekView } from './components/WeekView';
 export { useCalendarEvents } from './hooks/useCalendarEvents';

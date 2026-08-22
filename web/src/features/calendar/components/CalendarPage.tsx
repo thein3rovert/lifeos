@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CalendarDays, Link2, Unlink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Link2, Plus, Unlink } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
@@ -14,6 +14,7 @@ import {
   useCalendarEvents,
   useCalendarOAuthStatus,
 } from '@/features/calendar';
+import { EventForm } from './EventForm';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import type { CalendarEvent } from '@/types';
@@ -82,19 +83,38 @@ export function CalendarPage() {
   };
 
   // Calendar callbacks
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [formInitialStart, setFormInitialStart] = useState<Date | undefined>();
+
+  const openCreateAt = (start: Date) => {
+    setEditingEvent(null);
+    setFormInitialStart(start);
+    setFormOpen(true);
+  };
+
   const handleEventClick = (event: CalendarEvent) => {
-    // Phase 4: open edit dialog
-    console.log('edit event', event.id);
+    setEditingEvent(event);
+    setFormInitialStart(undefined);
+    setFormOpen(true);
   };
 
-  const handleDayClick = (_date: Date) => {
-    // Phase 4: open create dialog with prefilled date
-    console.log('create event on day');
+  const handleDayClick = (date: Date) => {
+    const start = new Date(date);
+    start.setHours(9, 0, 0, 0); // default 9 AM
+    openCreateAt(start);
   };
 
-  const handleSlotClick = (_date: Date, _hour: number) => {
-    // Phase 4: open create dialog with prefilled date + hour
-    console.log('create event at hour');
+  const handleSlotClick = (date: Date, hour: number) => {
+    const start = new Date(date);
+    start.setHours(hour, 0, 0, 0);
+    openCreateAt(start);
+  };
+
+  const handleAddEventClick = () => {
+    const now = new Date();
+    now.setHours(now.getHours() + 1, 0, 0, 0);
+    openCreateAt(now);
   };
 
   const headerLabel =
@@ -147,14 +167,24 @@ export function CalendarPage() {
             {oauthLoading ? (
               <span className="text-xs text-tertiary">Checking…</span>
             ) : connected ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDisconnect}
-                leftIcon={<Unlink className="w-3.5 h-3.5" strokeWidth={1.5} />}
-              >
-                Disconnect
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAddEventClick}
+                  leftIcon={<Plus className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                >
+                  Add event
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  leftIcon={<Unlink className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                >
+                  Disconnect
+                </Button>
+              </>
             ) : (
               <Button
                 variant="primary"
@@ -214,6 +244,15 @@ export function CalendarPage() {
           </div>
         )}
       </div>
+
+      {/* Event create/edit dialog */}
+      <EventForm
+        isOpen={formOpen}
+        event={editingEvent}
+        initialStart={formInitialStart}
+        onClose={() => setFormOpen(false)}
+        onSaved={refresh}
+      />
     </div>
   );
 }
