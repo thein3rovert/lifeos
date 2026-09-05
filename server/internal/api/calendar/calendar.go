@@ -2,6 +2,7 @@ package calendar
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -96,6 +97,13 @@ func (h *CalendarHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	events, err := h.service.GetEvents(ctx, start, end)
 	if err != nil {
 		log.Printf("Failed to fetch events: %v", err)
+		if errors.Is(err, service.ErrCalendarReauthorizationRequired) {
+			api.RespondJSON(w, http.StatusUnauthorized, map[string]string{
+				"error":   "google_calendar_reauthorization_required",
+				"message": "Google Calendar access expired or was revoked.",
+			})
+			return
+		}
 		api.RespondError(w, http.StatusBadGateway, err.Error())
 		return
 	}

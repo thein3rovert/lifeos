@@ -2,14 +2,19 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/thein3rovert/lifeos/server/internal/store"
+	"golang.org/x/oauth2"
 	calendar "google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
-	"golang.org/x/oauth2"
 )
+
+// ErrCalendarReauthorizationRequired indicates that Google rejected the saved
+// refresh token and the user must complete OAuth again.
+var ErrCalendarReauthorizationRequired = errors.New("google calendar reauthorization required")
 
 const calendarScope = "https://www.googleapis.com/auth/calendar.events"
 
@@ -81,6 +86,13 @@ type persistingTokenSource struct {
 func (p *persistingTokenSource) Token() (*oauth2.Token, error) {
 	token, err := p.inner.Token()
 	if err != nil {
+		var retrieveErr *oauth2.RetrieveError
+		if errors.As(err, &retrieveErr) && retrieveErr.ErrorCode == "invalid_grant" {
+			if clearErr := p.store.ClearTokens(); clearErr != nil {
+				log.Printf("Warning: failed to clear invalid Google Calendar tokens: %v", clearErr)
+			}
+			return nil, ErrCalendarReauthorizationRequired
+		}
 		return nil, err
 	}
 	// Persist only if the access token changed (i.e. a refresh happened).

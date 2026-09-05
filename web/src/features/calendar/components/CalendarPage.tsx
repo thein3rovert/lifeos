@@ -1,23 +1,24 @@
-import { ChevronLeft, ChevronRight, CalendarDays, Link2, Plus, Unlink } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Link2, Plus, Unlink } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
-import { usePersistentState } from '@/hooks/usePersistentState';
-import { api } from '@/lib/api';
 import {
-  startOfMonth,
-  startOfWeek,
   addDays,
   formatMonthYear,
   formatWeekRange,
+  startOfMonth,
+  startOfWeek,
   toRFC3339,
   useCalendarEvents,
   useCalendarOAuthStatus,
 } from '@/features/calendar';
+import { usePersistentState } from '@/hooks/usePersistentState';
+import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api/client';
+import type { CalendarEvent } from '@/types';
 import { EventForm } from './EventForm';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
-import type { CalendarEvent } from '@/types';
 
 type CalendarView = 'month' | 'week';
 
@@ -47,6 +48,8 @@ export function CalendarPage() {
   })();
 
   const { events, error, refresh } = useCalendarEvents(fetchRange.start, fetchRange.end);
+  const needsReconnect =
+    error instanceof ApiError && error.code === 'google_calendar_reauthorization_required';
 
   // Navigation
   const goPrev = () => {
@@ -215,39 +218,50 @@ export function CalendarPage() {
         {connected ? (
           <div className="bg-raised border border-default rounded-lg p-4">
             {error ? (
-              <div className="text-center py-12 text-error text-sm">
-                Failed to load events.{' '}
-                <button type="button" onClick={refresh} className="underline">
-                  Retry
-                </button>
+              <div className="flex flex-col items-center gap-3 py-12 text-center text-sm">
+                <p className="text-error">
+                  {needsReconnect
+                    ? 'Google Calendar access expired. Reconnect to continue.'
+                    : 'Failed to load events.'}
+                </p>
+                {needsReconnect ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleConnect}
+                    leftIcon={<Link2 className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                  >
+                    Reconnect Google Calendar
+                  </Button>
+                ) : (
+                  <button type="button" onClick={refresh} className="text-error underline">
+                    Retry
+                  </button>
+                )}
               </div>
+            ) : view === 'month' ? (
+              <MonthView
+                viewDate={viewDate}
+                events={events}
+                onDayClick={handleDayClick}
+                onEventClick={handleEventClick}
+                onEventMove={handleEventMove}
+              />
             ) : (
-              view === 'month' ? (
-                <MonthView
-                  viewDate={viewDate}
-                  events={events}
-                  onDayClick={handleDayClick}
-                  onEventClick={handleEventClick}
-                  onEventMove={handleEventMove}
-                />
-              ) : (
-                <WeekView
-                  viewDate={viewDate}
-                  events={events}
-                  onSlotClick={handleSlotClick}
-                  onEventClick={handleEventClick}
-                  onEventMove={handleEventMove}
-                />
-              )
+              <WeekView
+                viewDate={viewDate}
+                events={events}
+                onSlotClick={handleSlotClick}
+                onEventClick={handleEventClick}
+                onEventMove={handleEventMove}
+              />
             )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24">
             <CalendarDays className="w-12 h-12 text-tertiary mb-4" strokeWidth={1.5} />
             <p className="text-secondary text-sm mb-1">No calendar connected</p>
-            <p className="text-tertiary text-xs mb-4">
-              Connect your Google Calendar to see events
-            </p>
+            <p className="text-tertiary text-xs mb-4">Connect your Google Calendar to see events</p>
             <Button
               variant="primary"
               size="md"
