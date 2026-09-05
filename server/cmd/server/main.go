@@ -190,6 +190,9 @@ func runHTTPServer() {
 	// Habits
 	mux.HandleFunc("GET /api/habits", habitAPI.List)
 	mux.HandleFunc("POST /api/habits", habitAPI.Create)
+	mux.HandleFunc("GET /api/habits/completions", habitAPI.ListCompletions)
+	mux.HandleFunc("POST /api/habits/completions", habitAPI.ToggleCompletion)
+	mux.HandleFunc("GET /api/habits/{habitId}/completions", habitAPI.ListCompletionsForHabit)
 	mux.HandleFunc("PATCH /api/habits/{habitId}", habitAPI.Update)
 	mux.HandleFunc("DELETE /api/habits/{habitId}", habitAPI.Delete)
 

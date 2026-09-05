@@ -10,7 +10,10 @@ import (
 )
 
 type habitStoreStub struct {
-	habit *model.Habit
+	habit       *model.Habit
+	completions []model.HabitCompletion
+	completed   bool
+	err         error
 }
 
 func (s *habitStoreStub) ListHabits() ([]model.Habit, error) { return nil, nil }
@@ -31,6 +34,15 @@ func (s *habitStoreStub) UpdateHabit(habit *model.Habit) error {
 	return nil
 }
 func (s *habitStoreStub) ArchiveHabit(string, time.Time) error { return nil }
+func (s *habitStoreStub) ListHabitCompletions(string, string) ([]model.HabitCompletion, error) {
+	return s.completions, s.err
+}
+func (s *habitStoreStub) ListCompletionsForHabit(string, string, string) ([]model.HabitCompletion, error) {
+	return s.completions, s.err
+}
+func (s *habitStoreStub) ToggleHabitCompletion(string, string, string, time.Time) (bool, error) {
+	return s.completed, s.err
+}
 
 func TestHabitServiceCreateValidation(t *testing.T) {
 	tests := []struct {
@@ -79,6 +91,53 @@ func TestHabitServiceCreateAndUpdate(t *testing.T) {
 	}
 	if updated.Recurrence != "daily" || len(updated.Weekdays) != 0 || updated.EndDate != nil {
 		t.Fatalf("UpdateHabit() = %#v", updated)
+	}
+}
+
+func TestHabitServiceCompletionValidation(t *testing.T) {
+	svc := NewHabitService(&habitStoreStub{})
+	tests := []struct {
+		name  string
+		start string
+		end   string
+		want  string
+	}{
+		{name: "missing start", end: "2026-09-05", want: "start must be a valid YYYY-MM-DD date"},
+		{name: "noncanonical start", start: "2026-9-01", end: "2026-09-05", want: "start must be a valid YYYY-MM-DD date"},
+		{name: "impossible end", start: "2026-09-01", end: "2026-09-31", want: "end must be a valid YYYY-MM-DD date"},
+		{name: "reversed", start: "2026-09-06", end: "2026-09-05", want: "end must not be before start"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.ListHabitCompletions(tt.start, tt.end)
+			var validationErr *ValidationError
+			if !errors.As(err, &validationErr) || err.Error() != tt.want {
+				t.Fatalf("ListHabitCompletions() error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+
+	if _, err := svc.ToggleHabitCompletion(ToggleHabitCompletionInput{HabitID: "habit-1", Date: "2025-02-29"}); err == nil {
+		t.Fatal("ToggleHabitCompletion() accepted an impossible date")
+	}
+	if _, err := svc.ToggleHabitCompletion(ToggleHabitCompletionInput{Date: "2026-09-05"}); err == nil {
+		t.Fatal("ToggleHabitCompletion() accepted a missing habitId")
+	}
+}
+
+func TestHabitServiceCompletions(t *testing.T) {
+	stub := &habitStoreStub{
+		completions: []model.HabitCompletion{{HabitID: "habit-1", Date: "2026-09-05"}},
+		completed:   true,
+	}
+	svc := NewHabitService(stub)
+	completions, err := svc.ListCompletionsForHabit("habit-1", "2026-09-05", "2026-09-05")
+	if err != nil || len(completions) != 1 {
+		t.Fatalf("ListCompletionsForHabit() = %#v, %v", completions, err)
+	}
+	completed, err := svc.ToggleHabitCompletion(ToggleHabitCompletionInput{HabitID: "habit-1", Date: "2026-09-05"})
+	if err != nil || !completed {
+		t.Fatalf("ToggleHabitCompletion() = %v, %v", completed, err)
 	}
 }
 

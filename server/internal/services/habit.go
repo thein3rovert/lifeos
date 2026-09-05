@@ -35,6 +35,11 @@ type UpdateHabitInput struct {
 	EndDate     OptionalString `json:"endDate"`
 }
 
+type ToggleHabitCompletionInput struct {
+	HabitID string `json:"habitId"`
+	Date    string `json:"date"`
+}
+
 // OptionalString distinguishes an omitted PATCH field from an explicit null.
 type OptionalString struct {
 	Set   bool
@@ -106,6 +111,38 @@ func (s *HabitService) UpdateHabit(id string, input UpdateHabitInput) (*model.Ha
 
 func (s *HabitService) DeleteHabit(id string) error {
 	return s.store.ArchiveHabit(id, s.now().UTC())
+}
+
+func (s *HabitService) ListHabitCompletions(start, end string) ([]model.HabitCompletion, error) {
+	if err := validateDateRange(start, end); err != nil {
+		return nil, err
+	}
+	return s.store.ListHabitCompletions(start, end)
+}
+
+func (s *HabitService) ListCompletionsForHabit(habitID, start, end string) ([]model.HabitCompletion, error) {
+	if strings.TrimSpace(habitID) == "" {
+		return nil, &ValidationError{Message: "habitId is required"}
+	}
+	if err := validateDateRange(start, end); err != nil {
+		return nil, err
+	}
+	return s.store.ListCompletionsForHabit(habitID, start, end)
+}
+
+func (s *HabitService) ToggleHabitCompletion(input ToggleHabitCompletionInput) (bool, error) {
+	input.HabitID = strings.TrimSpace(input.HabitID)
+	if input.HabitID == "" {
+		return false, &ValidationError{Message: "habitId is required"}
+	}
+	if _, err := canonicalDate(input.Date); err != nil {
+		return false, &ValidationError{Message: "date must be a valid YYYY-MM-DD date"}
+	}
+	id, err := newHabitID()
+	if err != nil {
+		return false, fmt.Errorf("generate completion ID: %w", err)
+	}
+	return s.store.ToggleHabitCompletion(input.HabitID, input.Date, id, s.now().UTC())
 }
 
 func (input UpdateHabitInput) hasUpdates() bool {
@@ -193,6 +230,21 @@ func canonicalDate(value string) (time.Time, error) {
 		return time.Time{}, errors.New("invalid date")
 	}
 	return parsed, nil
+}
+
+func validateDateRange(startValue, endValue string) error {
+	start, err := canonicalDate(startValue)
+	if err != nil {
+		return &ValidationError{Message: "start must be a valid YYYY-MM-DD date"}
+	}
+	end, err := canonicalDate(endValue)
+	if err != nil {
+		return &ValidationError{Message: "end must be a valid YYYY-MM-DD date"}
+	}
+	if end.Before(start) {
+		return &ValidationError{Message: "end must not be before start"}
+	}
+	return nil
 }
 
 func newHabitID() (string, error) {

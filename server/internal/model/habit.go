@@ -17,3 +17,9 @@ type Habit struct {
 	UpdatedAt   time.Time  `json:"updatedAt"`
 	ArchivedAt  *time.Time `json:"archivedAt,omitempty"`
 }
+
+// HabitCompletion identifies a habit completed on a local calendar date.
+type HabitCompletion struct {
+	HabitID string `json:"habitId"`
+	Date    string `json:"date"`
+}

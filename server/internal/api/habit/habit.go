@@ -76,6 +76,46 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) ListCompletions(w http.ResponseWriter, r *http.Request) {
+	completions, err := h.service.ListHabitCompletions(r.URL.Query().Get("start"), r.URL.Query().Get("end"))
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	if completions == nil {
+		completions = []model.HabitCompletion{}
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]any{"completions": completions})
+}
+
+func (h *Handler) ListCompletionsForHabit(w http.ResponseWriter, r *http.Request) {
+	completions, err := h.service.ListCompletionsForHabit(
+		r.PathValue("habitId"), r.URL.Query().Get("start"), r.URL.Query().Get("end"),
+	)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	if completions == nil {
+		completions = []model.HabitCompletion{}
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]any{"completions": completions})
+}
+
+func (h *Handler) ToggleCompletion(w http.ResponseWriter, r *http.Request) {
+	var input service.ToggleHabitCompletionInput
+	if err := api.DecodeJSON(r, &input); err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	completed, err := h.service.ToggleHabitCompletion(input)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]bool{"completed": completed})
+}
+
 func respondServiceError(w http.ResponseWriter, err error) {
 	var validationErr *service.ValidationError
 	switch {
