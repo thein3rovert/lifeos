@@ -1,5 +1,38 @@
 // Native Date helpers for the calendar grid. No date library needed.
 
+export const CALENDAR_INCREMENT_MINUTES = 15;
+export const MIN_EVENT_DURATION_MINUTES = 15;
+
+export function snapMinutes(minutes: number, increment = CALENDAR_INCREMENT_MINUTES): number {
+  return Math.round(minutes / increment) * increment;
+}
+
+export function dateAtMinutes(day: Date, minutes: number): Date {
+  const result = new Date(day);
+  result.setHours(0, minutes, 0, 0);
+  return result;
+}
+
+export function resizedEventEnd(
+  start: Date,
+  originalEnd: Date,
+  deltaMinutes: number,
+  latestEnd: Date
+): Date {
+  const originalDuration = (originalEnd.getTime() - start.getTime()) / 60_000;
+  const duration = Math.max(
+    MIN_EVENT_DURATION_MINUTES,
+    snapMinutes(originalDuration + deltaMinutes)
+  );
+  return new Date(Math.min(start.getTime() + duration * 60_000, latestEnd.getTime()));
+}
+
+export function formatEventTimeRange(start: Date, end: Date): string {
+  const format = (date: Date) =>
+    date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${format(start)} – ${format(end)}`;
+}
+
 // Returns the Sunday at the start of the week containing `date`.
 export function startOfWeek(date: Date): Date {
   const d = new Date(date);

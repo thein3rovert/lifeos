@@ -47,7 +47,11 @@ export function CalendarPage() {
     return { start: toRFC3339(start), end: toRFC3339(end) };
   })();
 
-  const { events, error, refresh } = useCalendarEvents(fetchRange.start, fetchRange.end);
+  const { events, error, refresh, updateEventLocally } = useCalendarEvents(
+    fetchRange.start,
+    fetchRange.end,
+    !oauthLoading && connected
+  );
   const needsReconnect =
     error instanceof ApiError && error.code === 'google_calendar_reauthorization_required';
 
@@ -120,16 +124,42 @@ export function CalendarPage() {
     openCreateAt(now);
   };
 
-  const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date) => {
+  // Handle the timing off an event, this help during updating
+  // an event either locally or in the database
+  const handleEventTimingChange = async (
+    eventId: string,
+    newStart: Date,
+    newEnd: Date,
+    operation: 'move' | 'resize' = 'move'
+  ): Promise<boolean> => {
+    // Get the event id
+    const originalEvent = events.find((event) => event.id === eventId);
+    if (!originalEvent) return false;
+
+    // Update event local for faster update first
+    updateEventLocally(eventId, {
+      start: newStart.toISOString(),
+      end: newEnd.toISOString(),
+    });
+
+    // After event saved locally then update db
     try {
       await api.calendar.updateEvent(eventId, {
         start: newStart.toISOString(),
         end: newEnd.toISOString(),
       });
-      toast('Event moved', 'success');
-      refresh();
+      toast(operation === 'resize' ? 'Event resized' : 'Event moved', 'success');
+      void refresh();
+      return true;
     } catch {
-      toast('Failed to move event', 'error');
+      updateEventLocally(eventId, { start: originalEvent.start, end: originalEvent.end });
+      toast(
+        operation === 'resize'
+          ? 'Failed to resize event; the original duration was restored'
+          : 'Failed to move event; the original time was restored',
+        'error'
+      );
+      return false;
     }
   };
 
@@ -245,7 +275,7 @@ export function CalendarPage() {
                 events={events}
                 onDayClick={handleDayClick}
                 onEventClick={handleEventClick}
-                onEventMove={handleEventMove}
+                onEventTimingChange={handleEventTimingChange}
               />
             ) : (
               <WeekView
@@ -253,7 +283,7 @@ export function CalendarPage() {
                 events={events}
                 onSlotClick={handleSlotClick}
                 onEventClick={handleEventClick}
-                onEventMove={handleEventMove}
+                onEventTimingChange={handleEventTimingChange}
               />
             )}
           </div>

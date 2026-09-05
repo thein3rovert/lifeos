@@ -1,9 +1,10 @@
-import { Trash2 } from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { toast } from '@/components/ui/Toast';
+import { CALENDAR_INCREMENT_MINUTES } from '@/features/calendar/utils';
 import { api } from '@/lib/api';
 import type { CalendarEvent } from '@/types';
 
@@ -12,7 +13,7 @@ type EventFormProps = {
   event: CalendarEvent | null; // null = create, event = edit
   initialStart?: Date; // used in create mode for prefilled start time
   onClose: () => void;
-  onSaved: () => void; // called after successful save/delete so parent can refetch
+  onSaved: () => void | Promise<void>; // called after successful mutation so parent can refetch
 };
 
 // Format a Date as "YYYY-MM-DDTHH:mm" for <input type="datetime-local">.
@@ -37,6 +38,8 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const mutating = saving || deleting || duplicating;
 
   // Reset form whenever the dialog opens or the event/initialStart changes.
   useEffect(() => {
@@ -90,7 +93,7 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
         await api.calendar.createEvent(body);
         toast('Event created', 'success');
       }
-      onSaved();
+      await onSaved();
       onClose();
     } catch {
       toast(isEdit ? 'Failed to update event' : 'Failed to create event', 'error');
@@ -107,12 +110,33 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
     try {
       await api.calendar.deleteEvent(event.id);
       toast('Event deleted', 'success');
-      onSaved();
+      await onSaved();
       onClose();
     } catch {
       toast('Failed to delete event', 'error');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!event) return;
+    setDuplicating(true);
+    try {
+      await api.calendar.createEvent({
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        description: event.description,
+        location: event.location,
+      });
+      await onSaved();
+      toast('Event duplicated', 'success');
+      onClose();
+    } catch {
+      toast('Failed to duplicate event', 'error');
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -133,12 +157,14 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
               label="Start"
               type="datetime-local"
               value={startStr}
+              step={CALENDAR_INCREMENT_MINUTES * 60}
               onChange={(e) => setStartStr(e.target.value)}
             />
             <Input
               label="End"
               type="datetime-local"
               value={endStr}
+              step={CALENDAR_INCREMENT_MINUTES * 60}
               onChange={(e) => setEndStr(e.target.value)}
             />
           </div>
@@ -149,8 +175,14 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
             placeholder="Optional"
           />
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-primary block">Description</label>
+            <label
+              htmlFor="calendar-event-description"
+              className="text-xs font-medium text-primary block"
+            >
+              Description
+            </label>
             <textarea
+              id="calendar-event-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional"
@@ -163,23 +195,42 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
       <DialogFooter>
         <div className="flex items-center justify-between w-full">
           {isEdit ? (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleDelete}
-              isLoading={deleting}
-              leftIcon={<Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />}
-            >
-              Delete
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDelete}
+                isLoading={deleting}
+                disabled={mutating}
+                leftIcon={<Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDuplicate}
+                isLoading={duplicating}
+                disabled={mutating}
+                leftIcon={<Copy className="w-3.5 h-3.5" strokeWidth={1.5} />}
+              >
+                Duplicate
+              </Button>
+            </div>
           ) : (
             <div />
           )}
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={mutating}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleSave} isLoading={saving}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              isLoading={saving}
+              disabled={mutating}
+            >
               {isEdit ? 'Save' : 'Create'}
             </Button>
           </div>

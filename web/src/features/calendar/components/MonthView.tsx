@@ -7,7 +7,12 @@ type MonthViewProps = {
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
-  onEventMove: (eventId: string, newStart: Date, newEnd: Date) => void;
+  onEventTimingChange: (
+    eventId: string,
+    newStart: Date,
+    newEnd: Date,
+    operation?: 'move' | 'resize'
+  ) => Promise<boolean>;
 };
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -18,7 +23,7 @@ export function MonthView({
   events,
   onDayClick,
   onEventClick,
-  onEventMove,
+  onEventTimingChange,
 }: MonthViewProps) {
   const grid = buildMonthGrid(viewDate);
   const currentMonth = viewDate.getMonth();
@@ -50,7 +55,7 @@ export function MonthView({
 
       {/* Day grid — 6 rows × 7 cols */}
       <div className="grid grid-cols-7 grid-rows-6">
-        {grid.map((date, i) => {
+        {grid.map((date) => {
           const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
           const dayEvents = eventsByDay.get(key) ?? [];
           const isCurrentMonth = date.getMonth() === currentMonth;
@@ -60,7 +65,7 @@ export function MonthView({
 
           return (
             <button
-              key={i}
+              key={date.toISOString()}
               type="button"
               onClick={() => onDayClick(date)}
               onDragOver={(e) => {
@@ -80,14 +85,9 @@ export function MonthView({
                 if (!source) return;
                 const oldStart = new Date(source.start);
                 const newStart = new Date(date);
-                newStart.setHours(
-                  oldStart.getHours(),
-                  oldStart.getMinutes(),
-                  0,
-                  0
-                );
+                newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
                 const newEnd = new Date(newStart.getTime() + durationMs);
-                onEventMove(eventId, newStart, newEnd);
+                void onEventTimingChange(eventId, newStart, newEnd, 'move');
               }}
               className={`text-left min-h-[100px] border-r border-b border-default p-1.5 transition-colors ${
                 isCurrentMonth ? 'bg-raised' : 'bg-base'
