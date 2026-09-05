@@ -15,6 +15,7 @@ import (
 	agents "github.com/thein3rovert/lifeos/server/internal/api/agents"
 	calendarapi "github.com/thein3rovert/lifeos/server/internal/api/calendar"
 	chats "github.com/thein3rovert/lifeos/server/internal/api/chats"
+	habitapi "github.com/thein3rovert/lifeos/server/internal/api/habit"
 	skillsapi "github.com/thein3rovert/lifeos/server/internal/api/skills"
 	smartboardapi "github.com/thein3rovert/lifeos/server/internal/api/smartboard"
 	"github.com/thein3rovert/lifeos/server/internal/config"
@@ -93,6 +94,7 @@ func runHTTPServer() {
 	chatMsgStore := store.NewChatMessageStore(db.DB())
 	smartBoardStore := store.NewSmartBoardStore(db.DB())
 	calendarStore := store.NewCalendarStore(db.DB())
+	habitStore := store.NewHabitStore(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -104,6 +106,7 @@ func runHTTPServer() {
 	noteService := service.NewNoteService(noteStore, skillStore)
 	skillAIService := service.NewSkillAIService(skillStore, noteStore, sidecarClient)
 	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService, cfg.MeetingsPath, cfg.JournalPath)
+	habitService := service.NewHabitService(habitStore)
 	defer smartBoardService.Stop()
 
 	// ── Initialize API handlers ─────────────────────────────────────
@@ -114,6 +117,7 @@ func runHTTPServer() {
 	chatAPI := chats.NewSkillChatHandler(agentChatService)
 	agentAPI := agents.NewAgentChatHandler(agentChatService)
 	smartBoardAPI := smartboardapi.NewSmartBoardHandler(smartBoardService)
+	habitAPI := habitapi.NewHandler(habitService)
 
 	// Calendar (Google OAuth + events)
 	calendarService := service.NewCalendarService(
@@ -182,6 +186,12 @@ func runHTTPServer() {
 	mux.HandleFunc("POST /api/calendar/events", calendarAPI.CreateEvent)
 	mux.HandleFunc("PATCH /api/calendar/events/{eventId}", calendarAPI.UpdateEvent)
 	mux.HandleFunc("DELETE /api/calendar/events/{eventId}", calendarAPI.DeleteEvent)
+
+	// Habits
+	mux.HandleFunc("GET /api/habits", habitAPI.List)
+	mux.HandleFunc("POST /api/habits", habitAPI.Create)
+	mux.HandleFunc("PATCH /api/habits/{habitId}", habitAPI.Update)
+	mux.HandleFunc("DELETE /api/habits/{habitId}", habitAPI.Delete)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
