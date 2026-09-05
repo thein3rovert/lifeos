@@ -157,6 +157,39 @@ func (s *SQLiteStore) migrate() error {
 			expiry DATETIME NOT NULL,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+
+		// ── habits ────────────────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS habits (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			color TEXT NOT NULL DEFAULT '',
+			icon TEXT NOT NULL DEFAULT '',
+			recurrence TEXT NOT NULL DEFAULT 'daily' CHECK(recurrence IN ('daily', 'weekly')),
+			weekdays TEXT NOT NULL DEFAULT '',
+			start_date TEXT NOT NULL DEFAULT (date('now')),
+			end_date TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			archived_at DATETIME
+		);`,
+		`ALTER TABLE habits ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'daily';`,
+		`ALTER TABLE habits ADD COLUMN weekdays TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE habits ADD COLUMN start_date TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE habits ADD COLUMN end_date TEXT;`,
+		`CREATE INDEX IF NOT EXISTS idx_habits_active_created ON habits(archived_at, created_at);`,
+
+		// One completion per habit per local calendar date.
+		`CREATE TABLE IF NOT EXISTS habit_completions (
+			id TEXT PRIMARY KEY,
+			habit_id TEXT NOT NULL,
+			date TEXT NOT NULL,
+			completed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(habit_id, date),
+			FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_habit_completions_date ON habit_completions(date);`,
+		`CREATE INDEX IF NOT EXISTS idx_habit_completions_habit_date ON habit_completions(habit_id, date);`,
 	}
 
 	for _, q := range queries {

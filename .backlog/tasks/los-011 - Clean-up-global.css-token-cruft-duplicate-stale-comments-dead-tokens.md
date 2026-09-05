@@ -1,10 +1,10 @@
 ---
 id: LOS-011
 title: 'Clean up global.css token cruft (duplicate, stale comments, dead tokens)'
-status: In Progress
+status: To Do
 assignee: []
 created_date: '2026-08-16 00:29'
-updated_date: '2026-08-16 00:39'
+updated_date: '2026-08-22 19:50'
 labels: []
 dependencies: []
 references:
@@ -13,7 +13,7 @@ references:
   - doc/atlas-design-guide.md
 priority: low
 type: chore
-ordinal: 1000
+ordinal: 26000
 ---
 
 ## Description

@@ -1,15 +1,15 @@
 ---
 id: LOS-012
 title: Add background to panel preview editor
-status: In Progress
+status: To Do
 assignee: []
 created_date: '2026-08-16 00:42'
-updated_date: '2026-08-16 00:42'
+updated_date: '2026-08-22 19:50'
 labels: []
 dependencies: []
 priority: medium
 type: enhancement
-ordinal: 2000
+ordinal: 25000
 ---
 
 ## Description
