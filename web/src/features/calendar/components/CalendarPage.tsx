@@ -1,4 +1,14 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Link2, Plus, Unlink } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckSquare2,
+  ChevronLeft,
+  ChevronRight,
+  Link2,
+  List,
+  Plus,
+  Table2,
+  Unlink,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
@@ -17,12 +27,18 @@ import { api } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
 import type { CalendarEvent } from '@/types';
 import { EventForm } from './EventForm';
+import { HabitMonthView } from './HabitMonthView';
+import { HabitTableView } from './HabitTableView';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 
 type CalendarView = 'month' | 'week';
+type CalendarMode = 'calendar' | 'habits';
+type HabitView = 'month' | 'table';
 
 export function CalendarPage() {
+  const [mode, setMode] = usePersistentState<CalendarMode>('lifeos:calendar:mode', 'calendar');
+  const [habitView, setHabitView] = usePersistentState<HabitView>('lifeos:habits:view', 'month');
   // Persisted across nav — stored as ISO string (JSON-serializable).
   const [view, setView] = usePersistentState<CalendarView>('lifeos:calendar:view', 'month');
   const [viewDateStr, setViewDateStr] = usePersistentState<string>(
@@ -187,6 +203,22 @@ export function CalendarPage() {
   return (
     <div className="min-h-screen bg-base relative pb-40">
       <div className="container mx-auto px-6 py-6">
+        <div className="mb-4 inline-flex rounded-md border border-default bg-raised p-0.5">
+          <button
+            type="button"
+            onClick={() => setMode('calendar')}
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs ${mode === 'calendar' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-hover'}`}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Calendar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('habits')}
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs ${mode === 'habits' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-hover'}`}
+          >
+            <CheckSquare2 className="h-3.5 w-3.5" /> Habits
+          </button>
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -204,29 +236,57 @@ export function CalendarPage() {
 
           <div className="flex items-center gap-2">
             {/* View toggle */}
-            <div className="inline-flex rounded-md border border-default bg-raised">
-              <button
-                type="button"
-                onClick={() => setView('month')}
-                className={`px-3 py-1 text-xs rounded-l-md transition-colors ${
-                  view === 'month' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'
-                }`}
-              >
-                Month
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('week')}
-                className={`px-3 py-1 text-xs rounded-r-md transition-colors ${
-                  view === 'week' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'
-                }`}
-              >
-                Week
-              </button>
-            </div>
+            {mode === 'calendar' && (
+              <div className="inline-flex rounded-md border border-default bg-raised">
+                <button
+                  type="button"
+                  onClick={() => setView('month')}
+                  className={`px-3 py-1 text-xs rounded-l-md transition-colors ${
+                    view === 'month'
+                      ? 'bg-tab-active text-primary'
+                      : 'text-secondary hover:bg-active'
+                  }`}
+                >
+                  Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView('week')}
+                  className={`px-3 py-1 text-xs rounded-r-md transition-colors ${
+                    view === 'week'
+                      ? 'bg-tab-active text-primary'
+                      : 'text-secondary hover:bg-active'
+                  }`}
+                >
+                  Week
+                </button>
+              </div>
+            )}
+            {mode === 'habits' && (
+              <div className="inline-flex rounded-md border border-default bg-raised">
+                <button
+                  type="button"
+                  onClick={() => setHabitView('month')}
+                  className={`flex items-center gap-1 px-3 py-1 text-xs ${habitView === 'month' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'}`}
+                >
+                  <Table2 className="h-3.5 w-3.5" /> Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHabitView('table')}
+                  className={`flex items-center gap-1 px-3 py-1 text-xs ${habitView === 'table' ? 'bg-tab-active text-primary' : 'text-secondary hover:bg-active'}`}
+                >
+                  <List className="h-3.5 w-3.5" /> Table
+                </button>
+              </div>
+            )}
 
             {/* Google connect / disconnect */}
-            {oauthLoading ? (
+            {mode === 'habits' ? (
+              <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
+                Add habit
+              </Button>
+            ) : oauthLoading ? (
               <span className="text-xs text-tertiary">Checking…</span>
             ) : connected ? (
               <>
@@ -261,7 +321,13 @@ export function CalendarPage() {
         </div>
 
         {/* Calendar body */}
-        {connected ? (
+        {mode === 'habits' ? (
+          habitView === 'month' ? (
+            <HabitMonthView viewDate={viewDate} />
+          ) : (
+            <HabitTableView viewDate={viewDate} />
+          )
+        ) : connected ? (
           <div className="bg-raised border border-default rounded-lg p-4">
             {error ? (
               <div className="flex flex-col items-center gap-3 py-12 text-center text-sm">
