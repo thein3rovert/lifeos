@@ -93,6 +93,12 @@ export function CalendarPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [formInitialStart, setFormInitialStart] = useState<Date | undefined>();
+  const [pendingTiming, setPendingTiming] = useState<{
+    event: CalendarEvent;
+    start: Date;
+    end: Date;
+    operation: 'move' | 'resize';
+  } | null>(null);
 
   const openCreateAt = (start: Date) => {
     setEditingEvent(null);
@@ -127,24 +133,34 @@ export function CalendarPage() {
   // Handle the timing off an event, this help during updating
   // an event either locally or in the database
   const handleEventTimingChange = async (
-    eventId: string,
+    event: CalendarEvent,
     newStart: Date,
     newEnd: Date,
     operation: 'move' | 'resize' = 'move'
   ): Promise<boolean> => {
-    // Get the event id
-    const originalEvent = events.find((event) => event.id === eventId);
-    if (!originalEvent) return false;
+    if (event.recurrence) {
+      setPendingTiming({ event, start: newStart, end: newEnd, operation });
+      return true;
+    }
+    return persistTimingChange(event, event.id, newStart, newEnd, operation);
+  };
 
+  const persistTimingChange = async (
+    originalEvent: CalendarEvent,
+    targetId: string,
+    newStart: Date,
+    newEnd: Date,
+    operation: 'move' | 'resize'
+  ): Promise<boolean> => {
     // Update event local for faster update first
-    updateEventLocally(eventId, {
+    updateEventLocally(originalEvent.id, {
       start: newStart.toISOString(),
       end: newEnd.toISOString(),
     });
 
     // After event saved locally then update db
     try {
-      await api.calendar.updateEvent(eventId, {
+      await api.calendar.updateEvent(targetId, {
         start: newStart.toISOString(),
         end: newEnd.toISOString(),
       });
@@ -152,7 +168,7 @@ export function CalendarPage() {
       void refresh();
       return true;
     } catch {
-      updateEventLocally(eventId, { start: originalEvent.start, end: originalEvent.end });
+      updateEventLocally(originalEvent.id, { start: originalEvent.start, end: originalEvent.end });
       toast(
         operation === 'resize'
           ? 'Failed to resize event; the original duration was restored'
@@ -312,6 +328,58 @@ export function CalendarPage() {
         onClose={() => setFormOpen(false)}
         onSaved={refresh}
       />
+      {pendingTiming && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-default bg-raised p-4 shadow-lg">
+            <h3 className="text-sm font-medium text-primary">
+              {pendingTiming.operation === 'move'
+                ? 'Move recurring event'
+                : 'Resize recurring event'}
+            </h3>
+            <p className="mt-2 text-xs text-secondary">Choose what this change should affect.</p>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  const pending = pendingTiming;
+                  setPendingTiming(null);
+                  void persistTimingChange(
+                    pending.event,
+                    pending.event.id,
+                    pending.start,
+                    pending.end,
+                    pending.operation
+                  );
+                }}
+              >
+                This occurrence only
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => {
+                  const pending = pendingTiming;
+                  setPendingTiming(null);
+                  if (!pending.event.recurrence) return;
+                  void persistTimingChange(
+                    pending.event,
+                    pending.event.recurrence.seriesId,
+                    pending.start,
+                    pending.end,
+                    pending.operation
+                  );
+                }}
+              >
+                Entire series
+              </Button>
+              <Button variant="ghost" size="md" onClick={() => setPendingTiming(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Repeat2 } from 'lucide-react';
 import { useState } from 'react';
 import { buildMonthGrid, isToday } from '@/features/calendar';
 import type { CalendarEvent } from '@/types';
@@ -8,7 +9,7 @@ type MonthViewProps = {
   onDayClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
   onEventTimingChange: (
-    eventId: string,
+    event: CalendarEvent,
     newStart: Date,
     newEnd: Date,
     operation?: 'move' | 'resize'
@@ -87,7 +88,7 @@ export function MonthView({
                 const newStart = new Date(date);
                 newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
                 const newEnd = new Date(newStart.getTime() + durationMs);
-                void onEventTimingChange(eventId, newStart, newEnd, 'move');
+                void onEventTimingChange(source, newStart, newEnd, 'move');
               }}
               className={`text-left min-h-[100px] border-r border-b border-default p-1.5 transition-colors ${
                 isCurrentMonth ? 'bg-raised' : 'bg-base'
@@ -169,7 +170,10 @@ function EventChip({
         isDragging ? 'opacity-40' : ''
       }`}
     >
-      {event.title || '(untitled)'}
+      <span className="flex items-center gap-1">
+        {event.recurrence && <Repeat2 className="h-3 w-3 shrink-0" aria-label="Recurring event" />}
+        <span className="truncate">{event.title || '(untitled)'}</span>
+      </span>
     </button>
   );
 }

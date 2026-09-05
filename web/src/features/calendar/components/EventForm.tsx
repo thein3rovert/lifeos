@@ -1,12 +1,17 @@
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Repeat2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { toast } from '@/components/ui/Toast';
-import { CALENDAR_INCREMENT_MINUTES } from '@/features/calendar/utils';
+import {
+  CALENDAR_INCREMENT_MINUTES,
+  CALENDAR_WEEKDAYS,
+  parseWeeklyRecurrence,
+  weekdayToken,
+} from '@/features/calendar/utils';
 import { api } from '@/lib/api';
-import type { CalendarEvent } from '@/types';
+import type { CalendarEvent, CalendarWeekday } from '@/types';
 
 type EventFormProps = {
   isOpen: boolean;
@@ -35,10 +40,14 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
   const [startStr, setStartStr] = useState('');
   const [endStr, setEndStr] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [repeatsWeekly, setRepeatsWeekly] = useState(false);
+  const [weekdays, setWeekdays] = useState<CalendarWeekday[]>([]);
+  const [recurrenceEnd, setRecurrenceEnd] = useState<'never' | 'until'>('never');
+  const [recurrenceUntil, setRecurrenceUntil] = useState('');
+  const [pendingAction, setPendingAction] = useState<'edit' | 'delete' | null>(null);
   const mutating = saving || deleting || duplicating;
 
   // Reset form whenever the dialog opens or the event/initialStart changes.
@@ -49,7 +58,11 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
       setStartStr(toLocalDateTimeInput(new Date(event.start)));
       setEndStr(toLocalDateTimeInput(new Date(event.end)));
       setDescription(event.description || '');
-      setLocation(event.location || '');
+      setRepeatsWeekly(Boolean(event.recurrence));
+      const parsed = parseWeeklyRecurrence(event.recurrence?.rules);
+      setWeekdays(parsed.weekdays);
+      setRecurrenceEnd(parsed.end);
+      setRecurrenceUntil(parsed.until);
     } else {
       const start = initialStart ?? nextHour(new Date());
       const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -57,11 +70,14 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
       setStartStr(toLocalDateTimeInput(start));
       setEndStr(toLocalDateTimeInput(end));
       setDescription('');
-      setLocation('');
+      setRepeatsWeekly(false);
+      setWeekdays([weekdayToken(start)]);
+      setRecurrenceEnd('never');
+      setRecurrenceUntil('');
     }
   }, [isOpen, event, initialStart]);
 
-  const handleSave = async () => {
+  const handleSave = async (scope?: 'occurrence' | 'series') => {
     if (!title.trim()) {
       toast('Title is required', 'error');
       return;
@@ -79,15 +95,38 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
 
     setSaving(true);
     try {
+      if (repeatsWeekly && weekdays.length === 0) {
+        toast('Select at least one repeat day', 'error');
+        return;
+      }
+      if (repeatsWeekly && recurrenceEnd === 'until' && !recurrenceUntil) {
+        toast('Choose when the recurrence ends', 'error');
+        return;
+      }
       const body = {
         title: title.trim(),
         start: start.toISOString(),
         end: end.toISOString(),
         description: description.trim() || undefined,
-        location: location.trim() || undefined,
+        ...(repeatsWeekly && (!isEdit || scope === 'series')
+          ? {
+              recurrence: {
+                weekdays,
+                end: recurrenceEnd,
+                ...(recurrenceEnd === 'until' ? { until: recurrenceUntil } : {}),
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              },
+            }
+          : {}),
       };
       if (isEdit && event) {
-        await api.calendar.updateEvent(event.id, body);
+        if (event.recurrence && !scope) {
+          setPendingAction('edit');
+          return;
+        }
+        const targetId = scope === 'series' ? event.recurrence?.seriesId : event.id;
+        if (!targetId) return;
+        await api.calendar.updateEvent(targetId, body);
         toast('Event updated', 'success');
       } else {
         await api.calendar.createEvent(body);
@@ -102,13 +141,19 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (scope?: 'occurrence' | 'series') => {
     if (!event) return;
+    if (event.recurrence && !scope) {
+      setPendingAction('delete');
+      return;
+    }
+    const targetId = scope === 'series' ? event.recurrence?.seriesId : event.id;
+    if (!targetId) return;
     if (!window.confirm('Delete this event? This cannot be undone.')) return;
 
     setDeleting(true);
     try {
-      await api.calendar.deleteEvent(event.id);
+      await api.calendar.deleteEvent(targetId);
       toast('Event deleted', 'success');
       await onSaved();
       onClose();
@@ -141,7 +186,7 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} className="w-full max-w-dialog-md">
+    <Dialog isOpen={isOpen} onClose={onClose} className="relative w-full max-w-dialog-md">
       <DialogHeader title={isEdit ? 'Edit event' : 'New event'} onClose={onClose} />
       <DialogBody>
         <div className="space-y-3">
@@ -152,6 +197,75 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
             placeholder="Event title"
             autoFocus
           />
+          {event?.recurrence && (
+            <div className="flex items-center gap-2 rounded-md border border-default bg-selected px-2.5 py-2 text-xs text-primary">
+              <Repeat2 className="h-3.5 w-3.5" /> This event belongs to a recurring series
+            </div>
+          )}
+          {(!isEdit || event?.recurrence) && (
+            <div className="space-y-2 rounded-md border border-default p-3">
+              <label className="flex items-center gap-2 text-xs text-primary">
+                <input
+                  type="checkbox"
+                  checked={repeatsWeekly}
+                  onChange={(event) => setRepeatsWeekly(event.target.checked)}
+                  disabled={isEdit}
+                />
+                Repeat weekly
+              </label>
+              {repeatsWeekly && (
+                <>
+                  <fieldset className="flex gap-1">
+                    <legend className="sr-only">Repeat days</legend>
+                    {CALENDAR_WEEKDAYS.map((day) => (
+                      <button
+                        key={day.token}
+                        type="button"
+                        aria-label={day.token}
+                        onClick={() =>
+                          setWeekdays((current) =>
+                            current.includes(day.token)
+                              ? current.filter((value) => value !== day.token)
+                              : [...current, day.token]
+                          )
+                        }
+                        className={`h-7 w-7 rounded-full text-xs ${weekdays.includes(day.token) ? 'bg-highlight text-white' : 'bg-input text-secondary'}`}
+                      >
+                        {day.label}
+                      </button>
+                    ))}
+                  </fieldset>
+                  <div className="flex items-center gap-3 text-xs text-secondary">
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={recurrenceEnd === 'never'}
+                        onChange={() => setRecurrenceEnd('never')}
+                      />
+                      Never ends
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={recurrenceEnd === 'until'}
+                        onChange={() => setRecurrenceEnd('until')}
+                      />
+                      Ends on
+                    </label>
+                    {recurrenceEnd === 'until' && (
+                      <input
+                        aria-label="Repeat until"
+                        type="date"
+                        value={recurrenceUntil}
+                        onChange={(event) => setRecurrenceUntil(event.target.value)}
+                        className="h-7 rounded-md border border-default bg-input px-2 text-xs text-primary"
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Start"
@@ -168,12 +282,6 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
               onChange={(e) => setEndStr(e.target.value)}
             />
           </div>
-          <Input
-            label="Location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Optional"
-          />
           <div className="space-y-1.5">
             <label
               htmlFor="calendar-event-description"
@@ -199,7 +307,7 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
               <Button
                 variant="danger"
                 size="sm"
-                onClick={handleDelete}
+                onClick={() => void handleDelete()}
                 isLoading={deleting}
                 disabled={mutating}
                 leftIcon={<Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />}
@@ -227,7 +335,7 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
             <Button
               variant="primary"
               size="sm"
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               isLoading={saving}
               disabled={mutating}
             >
@@ -236,6 +344,43 @@ export function EventForm({ isOpen, event, initialStart, onClose, onSaved }: Eve
           </div>
         </div>
       </DialogFooter>
+      {pendingAction && event?.recurrence && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/70 p-6">
+          <div className="w-full max-w-sm rounded-lg border border-default bg-raised p-4 shadow-lg">
+            <h3 className="text-sm font-medium text-primary">
+              {pendingAction === 'delete' ? 'Delete recurring event' : 'Update recurring event'}
+            </h3>
+            <p className="mt-2 text-xs text-secondary">Choose what this change should affect.</p>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  setPendingAction(null);
+                  void (pendingAction === 'delete'
+                    ? handleDelete('occurrence')
+                    : handleSave('occurrence'));
+                }}
+              >
+                This occurrence only
+              </Button>
+              <Button
+                variant={pendingAction === 'delete' ? 'danger' : 'primary'}
+                size="md"
+                onClick={() => {
+                  setPendingAction(null);
+                  void (pendingAction === 'delete' ? handleDelete('series') : handleSave('series'));
+                }}
+              >
+                Entire series
+              </Button>
+              <Button variant="ghost" size="md" onClick={() => setPendingAction(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Dialog>
   );
 }

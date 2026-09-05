@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '@/lib/api';
 import type { CalendarEvent } from '@/types';
 import { EventForm } from './EventForm';
@@ -27,6 +27,7 @@ const event: CalendarEvent = {
 
 describe('EventForm duplication', () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => cleanup());
 
   it('duplicates an existing event without re-entering details', async () => {
     vi.mocked(api.calendar.createEvent).mockResolvedValue({ id: 'copy-1' });
@@ -56,5 +57,47 @@ describe('EventForm duplication', () => {
     const inputs = container.querySelectorAll('input[type="datetime-local"]');
     expect(inputs[0]?.getAttribute('step')).toBe('900');
     expect(inputs[1]?.getAttribute('step')).toBe('900');
+  });
+
+  it('creates a weekly recurring event on selected weekdays', async () => {
+    vi.mocked(api.calendar.createEvent).mockResolvedValue({ id: 'recurring-1' });
+    render(
+      <EventForm
+        isOpen
+        event={null}
+        initialStart={new Date(2026, 8, 7, 9)}
+        onSaved={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.change(screen.getByPlaceholderText('Event title'), { target: { value: 'Gym' } });
+    fireEvent.click(screen.getByLabelText('Repeat weekly'));
+    fireEvent.click(screen.getByRole('button', { name: 'WE' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(api.calendar.createEvent).toHaveBeenCalled());
+    expect(vi.mocked(api.calendar.createEvent).mock.calls[0]?.[0].recurrence?.weekdays).toEqual([
+      'MO',
+      'WE',
+    ]);
+  });
+
+  it('targets the recurring series when editing and the user confirms', async () => {
+    vi.mocked(api.calendar.updateEvent).mockResolvedValue({ message: 'updated' });
+    render(
+      <EventForm
+        isOpen
+        event={{
+          ...event,
+          recurrence: { seriesId: 'series-1', rules: ['RRULE:FREQ=WEEKLY;BYDAY=TU'] },
+        }}
+        onSaved={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Entire series' }));
+    await waitFor(() => expect(api.calendar.updateEvent).toHaveBeenCalled());
+    expect(api.calendar.updateEvent).toHaveBeenCalledWith('series-1', expect.any(Object));
   });
 });

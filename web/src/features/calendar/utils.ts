@@ -1,7 +1,38 @@
 // Native Date helpers for the calendar grid. No date library needed.
 
+import type { CalendarWeekday } from '@/types';
+
 export const CALENDAR_INCREMENT_MINUTES = 15;
 export const MIN_EVENT_DURATION_MINUTES = 15;
+export const CALENDAR_WEEKDAYS = [
+  { token: 'SU', label: 'S' },
+  { token: 'MO', label: 'M' },
+  { token: 'TU', label: 'T' },
+  { token: 'WE', label: 'W' },
+  { token: 'TH', label: 'T' },
+  { token: 'FR', label: 'F' },
+  { token: 'SA', label: 'S' },
+] as const;
+
+export function weekdayToken(date: Date): (typeof CALENDAR_WEEKDAYS)[number]['token'] {
+  return CALENDAR_WEEKDAYS[date.getDay()].token;
+}
+
+export function parseWeeklyRecurrence(rules: string[] | undefined): {
+  weekdays: CalendarWeekday[];
+  end: 'never' | 'until';
+  until: string;
+} {
+  const rule = rules?.find((value) => value.startsWith('RRULE:')) ?? '';
+  const weekdays = (rule.match(/(?:^|;)BYDAY=([^;]+)/)?.[1]?.split(',') ?? []).filter(
+    (value): value is CalendarWeekday => CALENDAR_WEEKDAYS.some((day) => day.token === value)
+  );
+  const untilValue = rule.match(/(?:^|;)UNTIL=(\d{8})/)?.[1];
+  const until = untilValue
+    ? `${untilValue.slice(0, 4)}-${untilValue.slice(4, 6)}-${untilValue.slice(6, 8)}`
+    : '';
+  return { weekdays, end: until ? 'until' : 'never', until };
+}
 
 export function snapMinutes(minutes: number, increment = CALENDAR_INCREMENT_MINUTES): number {
   return Math.round(minutes / increment) * increment;

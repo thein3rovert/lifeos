@@ -1,3 +1,4 @@
+import { Repeat2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   buildWeekGrid,
@@ -12,7 +13,7 @@ import type { CalendarEvent } from '@/types';
 
 type TimingOperation = 'move' | 'resize';
 type TimingChange = (
-  eventId: string,
+  event: CalendarEvent,
   newStart: Date,
   newEnd: Date,
   operation?: TimingOperation
@@ -70,7 +71,7 @@ export function WeekView({
     event.preventDefault();
     if (!preview) return;
     const current = preview;
-    await onEventTimingChange(current.event.id, current.start, current.end, 'move');
+    await onEventTimingChange(current.event, current.start, current.end, 'move');
     setPreview(null);
     setDragging(null);
   };
@@ -275,7 +276,7 @@ function EventBlock({
     }
     target.releasePointerCapture?.(pointerId);
     setResizing(true);
-    await onEventTimingChange(event.id, originalStart, resizeEnd, 'resize');
+    await onEventTimingChange(event, originalStart, resizeEnd, 'resize');
     setResizing(false);
     setResizeOrigin(null);
     setResizeEnd(null);
@@ -302,7 +303,12 @@ function EventBlock({
         onDragEnd={onDragEnd}
         className="absolute inset-0 w-full px-2 py-1 pb-3 text-xs text-primary text-left hover:bg-highlight/20 cursor-grab active:cursor-grabbing"
       >
-        <div className="font-medium truncate leading-tight">{event.title || '(untitled)'}</div>
+        <div className="flex items-center gap-1 font-medium truncate leading-tight">
+          {event.recurrence && (
+            <Repeat2 className="h-3 w-3 shrink-0" aria-label="Recurring event" />
+          )}
+          <span className="truncate">{event.title || '(untitled)'}</span>
+        </div>
         <div className="text-tertiary text-[10px] mt-0.5">
           {formatEventTimeRange(originalStart, displayEnd)}
         </div>

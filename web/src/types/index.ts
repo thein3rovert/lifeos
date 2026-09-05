@@ -160,6 +160,23 @@ export interface CalendarEvent {
   end: string;
   description?: string;
   location?: string;
+  recurrence?: CalendarEventRecurrence;
+}
+
+export type CalendarWeekday = 'SU' | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA';
+
+export interface CalendarEventRecurrence {
+  seriesId: string;
+  originalStartTime?: string;
+  timeZone?: string;
+  rules?: string[];
+}
+
+export interface WeeklyRecurrenceInput {
+  weekdays: CalendarWeekday[];
+  end: 'never' | 'until';
+  until?: string;
+  timeZone: string;
 }
 
 export interface CreateCalendarEventInput {
@@ -168,6 +185,7 @@ export interface CreateCalendarEventInput {
   end: string;
   description?: string;
   location?: string;
+  recurrence?: WeeklyRecurrenceInput;
 }
 
 export interface UpdateCalendarEventInput {
@@ -176,6 +194,7 @@ export interface UpdateCalendarEventInput {
   end?: string;
   description?: string;
   location?: string;
+  recurrence?: WeeklyRecurrenceInput;
 }
 
 export interface CalendarOAuthStatus {

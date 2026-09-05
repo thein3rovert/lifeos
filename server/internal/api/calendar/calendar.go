@@ -129,6 +129,11 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := h.service.CreateEvent(ctx, input)
 	if err != nil {
 		log.Printf("Failed to create event: %v", err)
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			api.RespondError(w, http.StatusBadRequest, validationErr.Error())
+			return
+		}
 		api.RespondError(w, http.StatusBadGateway, err.Error())
 		return
 	}
@@ -155,6 +160,11 @@ func (h *CalendarHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.UpdateEvent(ctx, eventID, input); err != nil {
 		log.Printf("Failed to update event %s: %v", eventID, err)
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			api.RespondError(w, http.StatusBadRequest, validationErr.Error())
+			return
+		}
 		api.RespondError(w, http.StatusBadGateway, err.Error())
 		return
 	}
