@@ -195,6 +195,8 @@ func runHTTPServer() {
 	mux.HandleFunc("GET /api/habits/{habitId}/completions", habitAPI.ListCompletionsForHabit)
 	mux.HandleFunc("PATCH /api/habits/{habitId}", habitAPI.Update)
 	mux.HandleFunc("DELETE /api/habits/{habitId}", habitAPI.Delete)
+	mux.HandleFunc("GET /api/habit-days", habitAPI.ListDays)
+	mux.HandleFunc("POST /api/habit-days", habitAPI.CreateDay)
 
 	// ==== MCP SSE Endpoints ====
 	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)

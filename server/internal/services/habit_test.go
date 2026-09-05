@@ -13,6 +13,8 @@ type habitStoreStub struct {
 	habit       *model.Habit
 	completions []model.HabitCompletion
 	completed   bool
+	days        []model.HabitDay
+	createdDay  bool
 	err         error
 }
 
@@ -22,7 +24,6 @@ func (s *habitStoreStub) GetHabit(string) (*model.Habit, error) {
 		return nil, store.ErrHabitNotFound
 	}
 	copy := *s.habit
-	copy.Weekdays = append([]string(nil), s.habit.Weekdays...)
 	return &copy, nil
 }
 func (s *habitStoreStub) CreateHabit(habit *model.Habit) error {
@@ -34,6 +35,13 @@ func (s *habitStoreStub) UpdateHabit(habit *model.Habit) error {
 	return nil
 }
 func (s *habitStoreStub) ArchiveHabit(string, time.Time) error { return nil }
+func (s *habitStoreStub) ListHabitDays(string, string) ([]model.HabitDay, error) {
+	return s.days, s.err
+}
+func (s *habitStoreStub) CreateHabitDay(day *model.HabitDay) (bool, error) {
+	s.days = []model.HabitDay{*day}
+	return s.createdDay, s.err
+}
 func (s *habitStoreStub) ListHabitCompletions(string, string) ([]model.HabitCompletion, error) {
 	return s.completions, s.err
 }
@@ -50,12 +58,7 @@ func TestHabitServiceCreateValidation(t *testing.T) {
 		input CreateHabitInput
 		want  string
 	}{
-		{name: "blank name", input: CreateHabitInput{Name: "  ", Recurrence: "daily", StartDate: "2026-09-05"}, want: "name must not be empty"},
-		{name: "noncanonical date", input: CreateHabitInput{Name: "Read", Recurrence: "daily", StartDate: "2026-9-5"}, want: "startDate must be a valid YYYY-MM-DD date"},
-		{name: "end before start", input: CreateHabitInput{Name: "Read", Recurrence: "daily", StartDate: "2026-09-05", EndDate: stringPtr("2026-09-04")}, want: "endDate must not be before startDate"},
-		{name: "daily weekdays", input: CreateHabitInput{Name: "Read", Recurrence: "daily", Weekdays: []string{"MO"}, StartDate: "2026-09-05"}, want: "daily habits must not include weekdays"},
-		{name: "weekly empty", input: CreateHabitInput{Name: "Read", Recurrence: "weekly", StartDate: "2026-09-05"}, want: "weekly habits must include at least one weekday"},
-		{name: "weekly duplicate", input: CreateHabitInput{Name: "Read", Recurrence: "weekly", Weekdays: []string{"MO", "MO"}, StartDate: "2026-09-05"}, want: `weekday "MO" must be unique`},
+		{name: "blank name", input: CreateHabitInput{Name: "  "}, want: "name must not be empty"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,9 +75,7 @@ func TestHabitServiceCreateAndUpdate(t *testing.T) {
 	stub := &habitStoreStub{}
 	svc := NewHabitService(stub)
 	svc.now = func() time.Time { return time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC) }
-	habit, err := svc.CreateHabit(CreateHabitInput{
-		Name: "  Read  ", Recurrence: "weekly", Weekdays: []string{"MO", "FR"}, StartDate: "2026-09-05",
-	})
+	habit, err := svc.CreateHabit(CreateHabitInput{Name: "  Read  "})
 	if err != nil {
 		t.Fatalf("CreateHabit() error = %v", err)
 	}
@@ -82,15 +83,34 @@ func TestHabitServiceCreateAndUpdate(t *testing.T) {
 		t.Fatalf("CreateHabit() = %#v", habit)
 	}
 
-	daily := "daily"
-	emptyWeekdays := []string{}
-	input := UpdateHabitInput{Recurrence: &daily, Weekdays: &emptyWeekdays, EndDate: OptionalString{Set: true}}
+	name := "Read daily"
+	input := UpdateHabitInput{Name: &name}
 	updated, err := svc.UpdateHabit(habit.ID, input)
 	if err != nil {
 		t.Fatalf("UpdateHabit() error = %v", err)
 	}
-	if updated.Recurrence != "daily" || len(updated.Weekdays) != 0 || updated.EndDate != nil {
+	if updated.Name != name {
 		t.Fatalf("UpdateHabit() = %#v", updated)
+	}
+}
+
+func TestHabitServiceDaysRejectFutureAndCreateToday(t *testing.T) {
+	stub := &habitStoreStub{
+		createdDay: true,
+		days:       []model.HabitDay{{ID: "day-1", Date: "2026-09-05"}},
+	}
+	svc := NewHabitService(stub)
+	svc.now = func() time.Time { return time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC) }
+	days, err := svc.ListHabitDays("2026-09-01", "2026-09-30")
+	if err != nil || len(days) != 1 {
+		t.Fatalf("ListHabitDays() = %#v, %v", days, err)
+	}
+	if _, _, err := svc.CreateHabitDay(CreateHabitDayInput{Date: "2026-09-06"}); err == nil {
+		t.Fatal("CreateHabitDay() accepted future date")
+	}
+	day, created, err := svc.CreateHabitDay(CreateHabitDayInput{})
+	if err != nil || !created || day.Date != "2026-09-05" {
+		t.Fatalf("CreateHabitDay() = %#v, %v, %v", day, created, err)
 	}
 }
 
@@ -140,5 +160,3 @@ func TestHabitServiceCompletions(t *testing.T) {
 		t.Fatalf("ToggleHabitCompletion() = %v, %v", completed, err)
 	}
 }
-
-func stringPtr(value string) *string { return &value }

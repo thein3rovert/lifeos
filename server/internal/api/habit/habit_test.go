@@ -18,6 +18,8 @@ type handlerHabitStore struct {
 	habits      []model.Habit
 	completions []model.HabitCompletion
 	completed   bool
+	days        []model.HabitDay
+	createdDay  bool
 	err         error
 }
 
@@ -34,8 +36,25 @@ func (s *handlerHabitStore) GetHabit(string) (*model.Habit, error) {
 func (s *handlerHabitStore) CreateHabit(habit *model.Habit) error { return s.err }
 func (s *handlerHabitStore) UpdateHabit(habit *model.Habit) error { return s.err }
 func (s *handlerHabitStore) ArchiveHabit(string, time.Time) error { return s.err }
+func (s *handlerHabitStore) ListHabitDays(string, string) ([]model.HabitDay, error) {
+	return s.days, s.err
+}
+func (s *handlerHabitStore) CreateHabitDay(day *model.HabitDay) (bool, error) {
+	s.days = []model.HabitDay{*day}
+	return s.createdDay, s.err
+}
 func (s *handlerHabitStore) ListHabitCompletions(string, string) ([]model.HabitCompletion, error) {
 	return s.completions, s.err
+}
+
+func TestHabitDayHandlers(t *testing.T) {
+	stub := &handlerHabitStore{createdDay: true}
+	handler := NewHandler(service.NewHabitService(stub))
+	response := httptest.NewRecorder()
+	handler.CreateDay(response, httptest.NewRequest(http.MethodPost, "/api/habit-days", strings.NewReader(`{"date":"2026-09-05"}`)))
+	if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"created":true`) {
+		t.Fatalf("response = %d %s", response.Code, response.Body.String())
+	}
 }
 func (s *handlerHabitStore) ListCompletionsForHabit(string, string, string) ([]model.HabitCompletion, error) {
 	return s.completions, s.err

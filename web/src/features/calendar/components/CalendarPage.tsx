@@ -14,19 +14,26 @@ import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
 import {
   addDays,
+  buildMonthGrid,
   formatMonthYear,
   formatWeekRange,
   startOfMonth,
   startOfWeek,
+  toLocalDateKey,
   toRFC3339,
   useCalendarEvents,
   useCalendarOAuthStatus,
+  useHabitCompletions,
+  useHabitDays,
+  useHabits,
 } from '@/features/calendar';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
-import type { CalendarEvent } from '@/types';
+import type { CalendarEvent, Habit } from '@/types';
 import { EventForm } from './EventForm';
+import { HabitForm } from './HabitForm';
+import { HabitManagementPanel } from './HabitManagementPanel';
 import { HabitMonthView } from './HabitMonthView';
 import { HabitTableView } from './HabitTableView';
 import { MonthView } from './MonthView';
@@ -39,6 +46,10 @@ type HabitView = 'month' | 'table';
 export function CalendarPage() {
   const [mode, setMode] = usePersistentState<CalendarMode>('lifeos:calendar:mode', 'calendar');
   const [habitView, setHabitView] = usePersistentState<HabitView>('lifeos:habits:view', 'month');
+  const [habitManagementCollapsed, setHabitManagementCollapsed] = usePersistentState(
+    'lifeos:habits:management-collapsed',
+    true
+  );
   // Persisted across nav — stored as ISO string (JSON-serializable).
   const [view, setView] = usePersistentState<CalendarView>('lifeos:calendar:view', 'month');
   const [viewDateStr, setViewDateStr] = usePersistentState<string>(
@@ -70,10 +81,51 @@ export function CalendarPage() {
   );
   const needsReconnect =
     error instanceof ApiError && error.code === 'google_calendar_reauthorization_required';
+  const {
+    habits,
+    loading: habitsLoading,
+    error: habitsError,
+    refresh: refreshHabits,
+  } = useHabits(mode === 'habits');
+  const [habitFormOpen, setHabitFormOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+
+  const habitGrid = buildMonthGrid(viewDate);
+  const completionStart = toLocalDateKey(habitGrid[0]);
+  const completionEnd = toLocalDateKey(habitGrid[habitGrid.length - 1]);
+  const {
+    days: habitDays,
+    loading: habitDaysLoading,
+    error: habitDaysError,
+    refresh: refreshHabitDays,
+    createToday,
+  } = useHabitDays(completionStart, completionEnd, mode === 'habits');
+  const {
+    completedKeys,
+    loading: completionsLoading,
+    error: completionsError,
+    refresh: refreshCompletions,
+    toggleCompletion,
+  } = useHabitCompletions(completionStart, completionEnd, mode === 'habits');
+
+  const openHabitForm = (habit: Habit | null = null) => {
+    setEditingHabit(habit);
+    setHabitFormOpen(true);
+  };
+
+  const handleNewHabitDay = async () => {
+    try {
+      const { created } = await createToday(toLocalDateKey(new Date()));
+      setViewDate(new Date());
+      toast(created ? 'Today added' : 'Today already exists', 'success');
+    } catch {
+      toast('Failed to add today', 'error');
+    }
+  };
 
   // Navigation
   const goPrev = () => {
-    if (view === 'month') {
+    if (mode === 'habits' || view === 'month') {
       setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
     } else {
       setViewDate(addDays(startOfWeek(viewDate), -7));
@@ -81,7 +133,7 @@ export function CalendarPage() {
   };
 
   const goNext = () => {
-    if (view === 'month') {
+    if (mode === 'habits' || view === 'month') {
       setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
     } else {
       setViewDate(addDays(startOfWeek(viewDate), 7));
@@ -196,12 +248,12 @@ export function CalendarPage() {
   };
 
   const headerLabel =
-    view === 'month'
+    mode === 'habits' || view === 'month'
       ? formatMonthYear(startOfMonth(viewDate))
       : formatWeekRange(startOfWeek(viewDate));
 
   return (
-    <div className="min-h-screen bg-base relative pb-40">
+    <div className={`min-h-screen bg-base relative ${mode === 'habits' ? 'pb-6' : 'pb-40'}`}>
       <div className="container mx-auto px-6 py-6">
         <div className="mb-4 inline-flex rounded-md border border-default bg-raised p-0.5">
           <button
@@ -283,8 +335,8 @@ export function CalendarPage() {
 
             {/* Google connect / disconnect */}
             {mode === 'habits' ? (
-              <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
-                Add habit
+              <Button variant="primary" size="sm" onClick={() => void handleNewHabitDay()}>
+                New
               </Button>
             ) : oauthLoading ? (
               <span className="text-xs text-tertiary">Checking…</span>
@@ -322,11 +374,53 @@ export function CalendarPage() {
 
         {/* Calendar body */}
         {mode === 'habits' ? (
-          habitView === 'month' ? (
-            <HabitMonthView viewDate={viewDate} />
-          ) : (
-            <HabitTableView viewDate={viewDate} />
-          )
+          <>
+            <HabitManagementPanel
+              habits={habits}
+              loading={habitsLoading}
+              error={habitsError}
+              onAdd={() => openHabitForm()}
+              onEdit={openHabitForm}
+              onRefresh={refreshHabits}
+              collapsed={habitManagementCollapsed}
+              onToggleCollapsed={() => setHabitManagementCollapsed((value) => !value)}
+            />
+            {(completionsError || habitDaysError) && (
+              <div className="mb-3 flex items-center justify-between rounded-md border border-error/40 bg-error/10 px-3 py-2 text-xs text-error">
+                <span>Failed to load or update habit completions.</span>
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => void Promise.all([refreshCompletions(), refreshHabitDays()])}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {completionsLoading || habitDaysLoading ? (
+              <div className="rounded-lg border border-default bg-raised py-16 text-center text-xs text-tertiary">
+                Loading habit completions…
+              </div>
+            ) : habitView === 'month' ? (
+              <HabitMonthView
+                viewDate={viewDate}
+                habits={habits}
+                habitDays={habitDays}
+                completedKeys={completedKeys}
+                onToggle={toggleCompletion}
+                onAddHabit={() => openHabitForm()}
+                managementCollapsed={habitManagementCollapsed}
+              />
+            ) : (
+              <HabitTableView
+                viewDate={viewDate}
+                habits={habits}
+                habitDays={habitDays}
+                completedKeys={completedKeys}
+                onToggle={toggleCompletion}
+              />
+            )}
+          </>
         ) : connected ? (
           <div className="bg-raised border border-default rounded-lg p-4">
             {error ? (
@@ -393,6 +487,12 @@ export function CalendarPage() {
         initialStart={formInitialStart}
         onClose={() => setFormOpen(false)}
         onSaved={refresh}
+      />
+      <HabitForm
+        isOpen={habitFormOpen}
+        habit={editingHabit}
+        onClose={() => setHabitFormOpen(false)}
+        onSaved={refreshHabits}
       />
       {pendingTiming && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">

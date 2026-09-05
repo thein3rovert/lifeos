@@ -3,13 +3,15 @@ package store
 import (
 	"database/sql"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
 )
 
-var ErrHabitNotFound = errors.New("habit not found")
+var (
+	ErrHabitNotFound    = errors.New("habit not found")
+	ErrHabitDayNotFound = errors.New("habit day not found")
+)
 
 // HabitStore defines persistence for active habits.
 type HabitStore interface {
@@ -18,6 +20,8 @@ type HabitStore interface {
 	CreateHabit(habit *model.Habit) error
 	UpdateHabit(habit *model.Habit) error
 	ArchiveHabit(id string, archivedAt time.Time) error
+	ListHabitDays(start, end string) ([]model.HabitDay, error)
+	CreateHabitDay(day *model.HabitDay) (bool, error)
 	ListHabitCompletions(start, end string) ([]model.HabitCompletion, error)
 	ListCompletionsForHabit(habitID, start, end string) ([]model.HabitCompletion, error)
 	ToggleHabitCompletion(habitID, date, completionID string, completedAt time.Time) (bool, error)
@@ -31,8 +35,7 @@ func NewHabitStore(db *sql.DB) *SQLHabitStore {
 	return &SQLHabitStore{db: db}
 }
 
-const habitColumns = `id, name, description, color, icon, recurrence, weekdays,
-	start_date, end_date, created_at, updated_at, archived_at`
+const habitColumns = `id, name, description, color, icon, created_at, updated_at, archived_at`
 
 func (s *SQLHabitStore) ListHabits() ([]model.Habit, error) {
 	rows, err := s.db.Query(`SELECT ` + habitColumns + ` FROM habits
@@ -67,21 +70,53 @@ func (s *SQLHabitStore) CreateHabit(habit *model.Habit) error {
 		(id, name, description, color, icon, recurrence, weekdays, start_date, end_date, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		habit.ID, habit.Name, habit.Description, habit.Color, habit.Icon,
-		habit.Recurrence, strings.Join(habit.Weekdays, ","), habit.StartDate,
-		habit.EndDate, habit.CreatedAt, habit.UpdatedAt)
+		"daily", "", "", nil, habit.CreatedAt, habit.UpdatedAt)
 	return err
 }
 
 func (s *SQLHabitStore) UpdateHabit(habit *model.Habit) error {
-	result, err := s.db.Exec(`UPDATE habits SET name = ?, description = ?, color = ?, icon = ?,
-		recurrence = ?, weekdays = ?, start_date = ?, end_date = ?, updated_at = ?
+	result, err := s.db.Exec(`UPDATE habits SET name = ?, description = ?, color = ?, icon = ?, updated_at = ?
 		WHERE id = ? AND archived_at IS NULL`,
-		habit.Name, habit.Description, habit.Color, habit.Icon, habit.Recurrence,
-		strings.Join(habit.Weekdays, ","), habit.StartDate, habit.EndDate, habit.UpdatedAt, habit.ID)
+		habit.Name, habit.Description, habit.Color, habit.Icon, habit.UpdatedAt, habit.ID)
 	if err != nil {
 		return err
 	}
 	return habitResultError(result)
+}
+
+func (s *SQLHabitStore) ListHabitDays(start, end string) ([]model.HabitDay, error) {
+	rows, err := s.db.Query(`SELECT id, date, created_at FROM habit_days
+		WHERE date >= ? AND date <= ? ORDER BY date DESC`, start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	days := make([]model.HabitDay, 0)
+	for rows.Next() {
+		var day model.HabitDay
+		if err := rows.Scan(&day.ID, &day.Date, &day.CreatedAt); err != nil {
+			return nil, err
+		}
+		days = append(days, day)
+	}
+	return days, rows.Err()
+}
+
+func (s *SQLHabitStore) CreateHabitDay(day *model.HabitDay) (bool, error) {
+	result, err := s.db.Exec(`INSERT INTO habit_days (id, date, created_at) VALUES (?, ?, ?)
+		ON CONFLICT(date) DO NOTHING`, day.ID, day.Date, day.CreatedAt)
+	if err != nil {
+		return false, err
+	}
+	created, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if created == 0 {
+		return false, s.db.QueryRow(`SELECT id, date, created_at FROM habit_days WHERE date = ?`, day.Date).
+			Scan(&day.ID, &day.Date, &day.CreatedAt)
+	}
+	return true, nil
 }
 
 func (s *SQLHabitStore) ArchiveHabit(id string, archivedAt time.Time) error {
@@ -142,6 +177,12 @@ func (s *SQLHabitStore) ToggleHabitCompletion(habitID, date, completionID string
 	if !exists {
 		return false, ErrHabitNotFound
 	}
+	if err = tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM habit_days WHERE date = ?)`, date).Scan(&exists); err != nil {
+		return false, err
+	}
+	if !exists {
+		return false, ErrHabitDayNotFound
+	}
 
 	var result sql.Result
 	result, err = tx.Exec(`DELETE FROM habit_completions WHERE habit_id = ? AND date = ?`, habitID, date)
@@ -183,23 +224,12 @@ type habitScanner interface {
 
 func scanHabit(scanner habitScanner) (*model.Habit, error) {
 	var habit model.Habit
-	var weekdays string
-	var endDate sql.NullString
 	var archivedAt sql.NullTime
 	if err := scanner.Scan(
 		&habit.ID, &habit.Name, &habit.Description, &habit.Color, &habit.Icon,
-		&habit.Recurrence, &weekdays, &habit.StartDate, &endDate,
 		&habit.CreatedAt, &habit.UpdatedAt, &archivedAt,
 	); err != nil {
 		return nil, err
-	}
-	if weekdays != "" {
-		habit.Weekdays = strings.Split(weekdays, ",")
-	} else {
-		habit.Weekdays = []string{}
-	}
-	if endDate.Valid {
-		habit.EndDate = &endDate.String
 	}
 	if archivedAt.Valid {
 		habit.ArchivedAt = &archivedAt.Time

@@ -200,3 +200,40 @@ export interface UpdateCalendarEventInput {
 export interface CalendarOAuthStatus {
   connected: boolean;
 }
+
+export interface Habit {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateHabitInput {
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+}
+
+export type UpdateHabitInput = Partial<CreateHabitInput>;
+
+export interface HabitDay {
+  id: string;
+  date: string;
+  createdAt: string;
+}
+
+export interface HabitCompletion {
+  id: string;
+  habitId: string;
+  date: string;
+  completedAt: string;
+}
+
+export interface ToggleHabitCompletionInput {
+  habitId: string;
+  date: string;
+}

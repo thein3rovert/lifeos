@@ -16,12 +16,10 @@ func TestHabitStoreCRUDAndArchive(t *testing.T) {
 	defer sqliteStore.DB().Close()
 
 	store := NewHabitStore(sqliteStore.DB())
-	endDate := "2026-09-30"
 	now := time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC)
 	habit := &model.Habit{
 		ID: "habit-1", Name: "Read", Description: "A chapter", Color: "blue", Icon: "book",
-		Recurrence: "weekly", Weekdays: []string{"MO", "FR"}, StartDate: "2026-09-05",
-		EndDate: &endDate, CreatedAt: now, UpdatedAt: now,
+		CreatedAt: now, UpdatedAt: now,
 	}
 	if err := store.CreateHabit(habit); err != nil {
 		t.Fatalf("CreateHabit() error = %v", err)
@@ -31,14 +29,11 @@ func TestHabitStoreCRUDAndArchive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListHabits() error = %v", err)
 	}
-	if len(habits) != 1 || len(habits[0].Weekdays) != 2 || habits[0].Weekdays[1] != "FR" {
+	if len(habits) != 1 || habits[0].Name != "Read" {
 		t.Fatalf("ListHabits() = %#v", habits)
 	}
 
 	habit.Name = "Read daily"
-	habit.Recurrence = "daily"
-	habit.Weekdays = []string{}
-	habit.EndDate = nil
 	if err := store.UpdateHabit(habit); err != nil {
 		t.Fatalf("UpdateHabit() error = %v", err)
 	}
@@ -46,7 +41,7 @@ func TestHabitStoreCRUDAndArchive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetHabit() error = %v", err)
 	}
-	if got.Name != "Read daily" || got.EndDate != nil || len(got.Weekdays) != 0 {
+	if got.Name != "Read daily" {
 		t.Fatalf("GetHabit() = %#v", got)
 	}
 
@@ -90,19 +85,26 @@ func TestHabitStoreCompletions(t *testing.T) {
 	store := NewHabitStore(sqliteStore.DB())
 	now := time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC)
 	for _, habit := range []*model.Habit{
-		{ID: "habit-1", Name: "Read", Recurrence: "daily", StartDate: "2026-09-01", CreatedAt: now, UpdatedAt: now},
-		{ID: "habit-2", Name: "Walk", Recurrence: "daily", StartDate: "2026-09-01", CreatedAt: now, UpdatedAt: now},
+		{ID: "habit-1", Name: "Read", CreatedAt: now, UpdatedAt: now},
+		{ID: "habit-2", Name: "Walk", CreatedAt: now, UpdatedAt: now},
 	} {
 		if err := store.CreateHabit(habit); err != nil {
 			t.Fatalf("CreateHabit(%q) error = %v", habit.ID, err)
 		}
 	}
-
-	completed, err := store.ToggleHabitCompletion("habit-1", "2026-09-01", "completion-1", now)
-	if err != nil || !completed {
-		t.Fatalf("first ToggleHabitCompletion() = %v, %v; want true, nil", completed, err)
+	day := &model.HabitDay{ID: "day-1", Date: "2026-09-03", CreatedAt: now}
+	if created, err := store.CreateHabitDay(day); err != nil || !created {
+		t.Fatalf("CreateHabitDay() = %v, %v", created, err)
 	}
-	completed, err = store.ToggleHabitCompletion("habit-1", "2026-09-03", "completion-2", now)
+	existing := &model.HabitDay{ID: "day-2", Date: day.Date, CreatedAt: now.Add(time.Hour)}
+	if created, err := store.CreateHabitDay(existing); err != nil || created || existing.ID != day.ID {
+		t.Fatalf("duplicate CreateHabitDay() = %#v, %v, %v", existing, created, err)
+	}
+
+	if _, err := store.ToggleHabitCompletion("habit-1", "2026-09-01", "completion-1", now); err != ErrHabitDayNotFound {
+		t.Fatalf("completion without habit day error = %v", err)
+	}
+	completed, err := store.ToggleHabitCompletion("habit-1", "2026-09-03", "completion-2", now)
 	if err != nil || !completed {
 		t.Fatalf("second ToggleHabitCompletion() = %v, %v; want true, nil", completed, err)
 	}
@@ -115,7 +117,7 @@ func TestHabitStoreCompletions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListHabitCompletions() error = %v", err)
 	}
-	if len(completions) != 3 || completions[0].Date != "2026-09-01" || completions[2].Date != "2026-09-03" {
+	if len(completions) != 2 || completions[0].Date != "2026-09-03" {
 		t.Fatalf("ListHabitCompletions() = %#v; want inclusive range", completions)
 	}
 	history, err := store.ListCompletionsForHabit("habit-1", "2026-09-03", "2026-09-03")
@@ -128,7 +130,7 @@ func TestHabitStoreCompletions(t *testing.T) {
 		t.Fatalf("toggle off = %v, %v; want false, nil", completed, err)
 	}
 	history, err = store.ListCompletionsForHabit("habit-1", "2026-09-01", "2026-09-03")
-	if err != nil || len(history) != 1 || history[0].Date != "2026-09-01" {
+	if err != nil || len(history) != 0 {
 		t.Fatalf("history after toggle off = %#v, %v", history, err)
 	}
 

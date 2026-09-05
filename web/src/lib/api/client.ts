@@ -36,5 +36,6 @@ export async function fetcher<T>(endpoint: string, options?: RequestInit): Promi
     throw new ApiError(response.status, code, message);
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json();
 }

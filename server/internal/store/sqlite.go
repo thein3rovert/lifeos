@@ -179,6 +179,14 @@ func (s *SQLiteStore) migrate() error {
 		`ALTER TABLE habits ADD COLUMN end_date TEXT;`,
 		`CREATE INDEX IF NOT EXISTS idx_habits_active_created ON habits(archived_at, created_at);`,
 
+		// Dates are explicit tracking pages, not generated from habit definitions.
+		`CREATE TABLE IF NOT EXISTS habit_days (
+			id TEXT PRIMARY KEY,
+			date TEXT NOT NULL UNIQUE,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_habit_days_date ON habit_days(date);`,
+
 		// One completion per habit per local calendar date.
 		`CREATE TABLE IF NOT EXISTS habit_completions (
 			id TEXT PRIMARY KEY,

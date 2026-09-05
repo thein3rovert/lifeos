@@ -1,6 +1,7 @@
 import { agentApi } from './agent';
 import { calendarApi } from './calendar';
 import { chatApi } from './chat';
+import { habitsApi } from './habits';
 import { notesApi } from './notes';
 import { referencesApi } from './references';
 import { skillsApi } from './skills';
@@ -14,6 +15,7 @@ export const api = {
   agent: agentApi,
   smartboard: smartboardApi,
   calendar: calendarApi,
+  habits: habitsApi,
 };
 
 export { fetcher } from './client';

@@ -76,6 +76,38 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) ListDays(w http.ResponseWriter, r *http.Request) {
+	days, err := h.service.ListHabitDays(r.URL.Query().Get("start"), r.URL.Query().Get("end"))
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	if days == nil {
+		days = []model.HabitDay{}
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]any{"days": days})
+}
+
+func (h *Handler) CreateDay(w http.ResponseWriter, r *http.Request) {
+	var input service.CreateHabitDayInput
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := api.DecodeJSON(r, &input); err != nil {
+			api.RespondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+	}
+	day, created, err := h.service.CreateHabitDay(input)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	api.RespondJSON(w, status, map[string]any{"day": day, "created": created})
+}
+
 func (h *Handler) ListCompletions(w http.ResponseWriter, r *http.Request) {
 	completions, err := h.service.ListHabitCompletions(r.URL.Query().Get("start"), r.URL.Query().Get("end"))
 	if err != nil {
@@ -123,6 +155,8 @@ func respondServiceError(w http.ResponseWriter, err error) {
 		api.RespondError(w, http.StatusBadRequest, validationErr.Error())
 	case errors.Is(err, store.ErrHabitNotFound):
 		api.RespondError(w, http.StatusNotFound, "habit not found")
+	case errors.Is(err, store.ErrHabitDayNotFound):
+		api.RespondError(w, http.StatusNotFound, "habit day not found")
 	default:
 		api.RespondError(w, http.StatusInternalServerError, "internal server error")
 	}

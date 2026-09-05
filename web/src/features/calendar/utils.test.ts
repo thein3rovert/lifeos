@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { dateAtMinutes, formatEventTimeRange, resizedEventEnd, snapMinutes } from './utils';
+import {
+  dateAtMinutes,
+  formatEventTimeRange,
+  resizedEventEnd,
+  snapMinutes,
+  toLocalDateKey,
+} from './utils';
 
 describe('calendar interaction utilities', () => {
   it('snaps times to 15-minute increments', () => {
@@ -33,5 +39,9 @@ describe('calendar interaction utilities', () => {
     expect(resizedEventEnd(start, originalEnd, 22, latestEnd).getTime()).toBe(
       new Date(2026, 8, 1, 11, 15).getTime()
     );
+  });
+
+  it('formats local calendar dates', () => {
+    expect(toLocalDateKey(new Date(2026, 8, 7, 23))).toBe('2026-09-07');
   });
 });

@@ -3,7 +3,6 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,45 +13,26 @@ import (
 )
 
 type CreateHabitInput struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Color       string   `json:"color"`
-	Icon        string   `json:"icon"`
-	Recurrence  string   `json:"recurrence"`
-	Weekdays    []string `json:"weekdays"`
-	StartDate   string   `json:"startDate"`
-	EndDate     *string  `json:"endDate"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	Icon        string `json:"icon"`
 }
 
 type UpdateHabitInput struct {
-	Name        *string        `json:"name"`
-	Description *string        `json:"description"`
-	Color       *string        `json:"color"`
-	Icon        *string        `json:"icon"`
-	Recurrence  *string        `json:"recurrence"`
-	Weekdays    *[]string      `json:"weekdays"`
-	StartDate   *string        `json:"startDate"`
-	EndDate     OptionalString `json:"endDate"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	Color       *string `json:"color"`
+	Icon        *string `json:"icon"`
+}
+
+type CreateHabitDayInput struct {
+	Date string `json:"date"`
 }
 
 type ToggleHabitCompletionInput struct {
 	HabitID string `json:"habitId"`
 	Date    string `json:"date"`
-}
-
-// OptionalString distinguishes an omitted PATCH field from an explicit null.
-type OptionalString struct {
-	Set   bool
-	Value *string
-}
-
-func (value *OptionalString) UnmarshalJSON(data []byte) error {
-	value.Set = true
-	if string(data) == "null" {
-		value.Value = nil
-		return nil
-	}
-	return json.Unmarshal(data, &value.Value)
 }
 
 type HabitService struct {
@@ -71,7 +51,6 @@ func (s *HabitService) ListHabits() ([]model.Habit, error) {
 func (s *HabitService) CreateHabit(input CreateHabitInput) (*model.Habit, error) {
 	habit := &model.Habit{
 		Name: input.Name, Description: input.Description, Color: input.Color, Icon: input.Icon,
-		Recurrence: input.Recurrence, Weekdays: input.Weekdays, StartDate: input.StartDate, EndDate: input.EndDate,
 	}
 	if err := validateHabit(habit); err != nil {
 		return nil, err
@@ -113,6 +92,40 @@ func (s *HabitService) DeleteHabit(id string) error {
 	return s.store.ArchiveHabit(id, s.now().UTC())
 }
 
+func (s *HabitService) ListHabitDays(start, end string) ([]model.HabitDay, error) {
+	if err := validateDateRange(start, end); err != nil {
+		return nil, err
+	}
+	today := s.now().Format("2006-01-02")
+	if end > today {
+		end = today
+	}
+	if start > end {
+		return []model.HabitDay{}, nil
+	}
+	return s.store.ListHabitDays(start, end)
+}
+
+func (s *HabitService) CreateHabitDay(input CreateHabitDayInput) (*model.HabitDay, bool, error) {
+	date := input.Date
+	if date == "" {
+		date = s.now().UTC().Format("2006-01-02")
+	}
+	if _, err := canonicalDate(date); err != nil {
+		return nil, false, &ValidationError{Message: "date must be a valid YYYY-MM-DD date"}
+	}
+	if date > s.now().Format("2006-01-02") {
+		return nil, false, &ValidationError{Message: "date must not be in the future"}
+	}
+	id, err := newHabitID()
+	if err != nil {
+		return nil, false, fmt.Errorf("generate habit day ID: %w", err)
+	}
+	day := &model.HabitDay{ID: id, Date: date, CreatedAt: s.now().UTC()}
+	created, err := s.store.CreateHabitDay(day)
+	return day, created, err
+}
+
 func (s *HabitService) ListHabitCompletions(start, end string) ([]model.HabitCompletion, error) {
 	if err := validateDateRange(start, end); err != nil {
 		return nil, err
@@ -146,8 +159,7 @@ func (s *HabitService) ToggleHabitCompletion(input ToggleHabitCompletionInput) (
 }
 
 func (input UpdateHabitInput) hasUpdates() bool {
-	return input.Name != nil || input.Description != nil || input.Color != nil || input.Icon != nil ||
-		input.Recurrence != nil || input.Weekdays != nil || input.StartDate != nil || input.EndDate.Set
+	return input.Name != nil || input.Description != nil || input.Color != nil || input.Icon != nil
 }
 
 func applyHabitUpdate(habit *model.Habit, input UpdateHabitInput) {
@@ -163,18 +175,6 @@ func applyHabitUpdate(habit *model.Habit, input UpdateHabitInput) {
 	if input.Icon != nil {
 		habit.Icon = *input.Icon
 	}
-	if input.Recurrence != nil {
-		habit.Recurrence = *input.Recurrence
-	}
-	if input.Weekdays != nil {
-		habit.Weekdays = *input.Weekdays
-	}
-	if input.StartDate != nil {
-		habit.StartDate = *input.StartDate
-	}
-	if input.EndDate.Set {
-		habit.EndDate = input.EndDate.Value
-	}
 }
 
 // Validate habit inputs
@@ -182,44 +182,6 @@ func validateHabit(habit *model.Habit) error {
 	habit.Name = strings.TrimSpace(habit.Name)
 	if habit.Name == "" {
 		return &ValidationError{Message: "name must not be empty"}
-	}
-	start, err := canonicalDate(habit.StartDate)
-	if err != nil {
-		return &ValidationError{Message: "startDate must be a valid YYYY-MM-DD date"}
-	}
-	if habit.EndDate != nil {
-		end, err := canonicalDate(*habit.EndDate)
-		if err != nil {
-			return &ValidationError{Message: "endDate must be a valid YYYY-MM-DD date"}
-		}
-		if end.Before(start) {
-			return &ValidationError{Message: "endDate must not be before startDate"}
-		}
-	}
-
-	switch habit.Recurrence {
-	case "daily":
-		if len(habit.Weekdays) != 0 {
-			return &ValidationError{Message: "daily habits must not include weekdays"}
-		}
-		habit.Weekdays = []string{}
-	case "weekly":
-		if len(habit.Weekdays) == 0 {
-			return &ValidationError{Message: "weekly habits must include at least one weekday"}
-		}
-		valid := map[string]bool{"SU": true, "MO": true, "TU": true, "WE": true, "TH": true, "FR": true, "SA": true}
-		seen := make(map[string]bool, len(habit.Weekdays))
-		for _, weekday := range habit.Weekdays {
-			if !valid[weekday] {
-				return &ValidationError{Message: fmt.Sprintf("invalid weekday %q; use SU, MO, TU, WE, TH, FR, or SA", weekday)}
-			}
-			if seen[weekday] {
-				return &ValidationError{Message: fmt.Sprintf("weekday %q must be unique", weekday)}
-			}
-			seen[weekday] = true
-		}
-	default:
-		return &ValidationError{Message: "recurrence must be daily or weekly"}
 	}
 	return nil
 }

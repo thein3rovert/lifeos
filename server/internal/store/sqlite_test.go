@@ -13,7 +13,7 @@ func TestMigrateCreatesHabitSchema(t *testing.T) {
 	}
 	defer s.DB().Close()
 
-	for _, table := range []string{"habits", "habit_completions"} {
+	for _, table := range []string{"habits", "habit_days", "habit_completions"} {
 		var name string
 		if err := s.DB().QueryRow(
 			`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`, table,
