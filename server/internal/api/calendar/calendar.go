@@ -17,6 +17,8 @@ type CalendarHandler struct {
 	frontendURL string // where to send the user after OAuth callback
 }
 
+const calendarRateLimitMessage = "Google Calendar is temporarily rate limited. Please retry shortly."
+
 // NewCalendarHandler creates a new calendar handler.
 func NewCalendarHandler(svc *service.CalendarService, frontendURL string) *CalendarHandler {
 	return &CalendarHandler{service: svc, frontendURL: frontendURL}
@@ -97,6 +99,10 @@ func (h *CalendarHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	events, err := h.service.GetEvents(ctx, start, end)
 	if err != nil {
 		log.Printf("Failed to fetch events: %v", err)
+		if errors.Is(err, service.ErrCalendarRateLimited) {
+			respondCalendarRateLimited(w)
+			return
+		}
 		if errors.Is(err, service.ErrCalendarReauthorizationRequired) {
 			api.RespondJSON(w, http.StatusUnauthorized, map[string]string{
 				"error":   "google_calendar_reauthorization_required",
@@ -129,6 +135,10 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := h.service.CreateEvent(ctx, input)
 	if err != nil {
 		log.Printf("Failed to create event: %v", err)
+		if errors.Is(err, service.ErrCalendarRateLimited) {
+			respondCalendarRateLimited(w)
+			return
+		}
 		var validationErr *service.ValidationError
 		if errors.As(err, &validationErr) {
 			api.RespondError(w, http.StatusBadRequest, validationErr.Error())
@@ -160,6 +170,10 @@ func (h *CalendarHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.UpdateEvent(ctx, eventID, input); err != nil {
 		log.Printf("Failed to update event %s: %v", eventID, err)
+		if errors.Is(err, service.ErrCalendarRateLimited) {
+			respondCalendarRateLimited(w)
+			return
+		}
 		var validationErr *service.ValidationError
 		if errors.As(err, &validationErr) {
 			api.RespondError(w, http.StatusBadRequest, validationErr.Error())
@@ -185,8 +199,19 @@ func (h *CalendarHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.DeleteEvent(ctx, eventID); err != nil {
 		log.Printf("Failed to delete event %s: %v", eventID, err)
+		if errors.Is(err, service.ErrCalendarRateLimited) {
+			respondCalendarRateLimited(w)
+			return
+		}
 		api.RespondError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 	api.RespondJSON(w, http.StatusOK, map[string]string{"message": "event deleted"})
+}
+
+func respondCalendarRateLimited(w http.ResponseWriter) {
+	api.RespondJSON(w, http.StatusTooManyRequests, map[string]string{
+		"error":   "google_calendar_rate_limited",
+		"message": calendarRateLimitMessage,
+	})
 }

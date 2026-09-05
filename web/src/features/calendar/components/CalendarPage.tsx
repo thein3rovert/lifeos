@@ -43,6 +43,16 @@ type CalendarView = 'month' | 'week';
 type CalendarMode = 'calendar' | 'habits';
 type HabitView = 'month' | 'table';
 
+export function getCalendarLoadErrorMessage(error: Error): string {
+  if (error instanceof ApiError && error.code === 'google_calendar_rate_limited') {
+    return 'Google Calendar is temporarily rate limited. Try again shortly.';
+  }
+  if (error instanceof ApiError && error.code === 'google_calendar_reauthorization_required') {
+    return 'Google Calendar access expired. Reconnect to continue.';
+  }
+  return 'Failed to load events.';
+}
+
 export function CalendarPage() {
   const [mode, setMode] = usePersistentState<CalendarMode>('lifeos:calendar:mode', 'calendar');
   const [habitView, setHabitView] = usePersistentState<HabitView>('lifeos:habits:view', 'month');
@@ -233,7 +243,7 @@ export function CalendarPage() {
         end: newEnd.toISOString(),
       });
       toast(operation === 'resize' ? 'Event resized' : 'Event moved', 'success');
-      void refresh();
+      void refresh({ force: true });
       return true;
     } catch {
       updateEventLocally(originalEvent.id, { start: originalEvent.start, end: originalEvent.end });
@@ -425,11 +435,7 @@ export function CalendarPage() {
           <div className="bg-raised border border-default rounded-lg p-4">
             {error ? (
               <div className="flex flex-col items-center gap-3 py-12 text-center text-sm">
-                <p className="text-error">
-                  {needsReconnect
-                    ? 'Google Calendar access expired. Reconnect to continue.'
-                    : 'Failed to load events.'}
-                </p>
+                <p className="text-error">{getCalendarLoadErrorMessage(error)}</p>
                 {needsReconnect ? (
                   <Button
                     variant="primary"
@@ -440,7 +446,11 @@ export function CalendarPage() {
                     Reconnect Google Calendar
                   </Button>
                 ) : (
-                  <button type="button" onClick={refresh} className="text-error underline">
+                  <button
+                    type="button"
+                    onClick={() => void refresh({ force: true })}
+                    className="text-error underline"
+                  >
                     Retry
                   </button>
                 )}
@@ -486,7 +496,7 @@ export function CalendarPage() {
         event={editingEvent}
         initialStart={formInitialStart}
         onClose={() => setFormOpen(false)}
-        onSaved={refresh}
+        onSaved={() => refresh({ force: true })}
       />
       <HabitForm
         isOpen={habitFormOpen}

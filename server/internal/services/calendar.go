@@ -5,18 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/thein3rovert/lifeos/server/internal/store"
 	"golang.org/x/oauth2"
 	calendar "google.golang.org/api/calendar/v3"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
 // ErrCalendarReauthorizationRequired indicates that Google rejected the saved
 // refresh token and the user must complete OAuth again.
 var ErrCalendarReauthorizationRequired = errors.New("google calendar reauthorization required")
+
+// ErrCalendarRateLimited indicates that Google rejected a request because the
+// per-user Calendar API quota was exhausted.
+var ErrCalendarRateLimited = errors.New("google calendar rate limited")
 
 // ValidationError indicates invalid calendar event input.
 type ValidationError struct {
@@ -27,12 +34,45 @@ func (e *ValidationError) Error() string {
 	return e.Message
 }
 
-const calendarScope = "https://www.googleapis.com/auth/calendar.events"
+const (
+	calendarScope          = "https://www.googleapis.com/auth/calendar.events"
+	calendarMasterCacheTTL = 5 * time.Minute
+)
+
+type eventRangeCall struct {
+	done       chan struct{}
+	generation uint64
+	events     []CalendarEvent
+	err        error
+}
+
+type recurringMasterMetadata struct {
+	timeZone string
+	rules    []string
+}
+
+type masterCacheEntry struct {
+	metadata  recurringMasterMetadata
+	expiresAt time.Time
+}
+
+type masterCall struct {
+	done     chan struct{}
+	metadata recurringMasterMetadata
+	err      error
+}
 
 // CalendarService handles Google Calendar OAuth + event operations.
 type CalendarService struct {
 	store       store.CalendarStore
 	oauthConfig *oauth2.Config
+	client      func(context.Context) (*calendar.Service, error)
+
+	cacheMu         sync.Mutex
+	cacheGeneration uint64
+	masterCache     map[string]masterCacheEntry
+	rangeInFlight   map[string]*eventRangeCall
+	masterInFlight  map[string]*masterCall
 }
 
 func NewCalendarService(store store.CalendarStore, clientID, clientSecret, redirectURI string) *CalendarService {
@@ -46,7 +86,15 @@ func NewCalendarService(store store.CalendarStore, clientID, clientSecret, redir
 			TokenURL: "https://oauth2.googleapis.com/token",
 		},
 	}
-	return &CalendarService{store: store, oauthConfig: cfg}
+	s := &CalendarService{
+		store:          store,
+		oauthConfig:    cfg,
+		masterCache:    make(map[string]masterCacheEntry),
+		rangeInFlight:  make(map[string]*eventRangeCall),
+		masterInFlight: make(map[string]*masterCall),
+	}
+	s.client = s.getCalendarClient
+	return s
 }
 
 // ── OAuth ──────────────────────────────────────────────────────
@@ -82,7 +130,11 @@ func (s *CalendarService) IsConnected() (bool, error) {
 
 // Disconnect clears stored tokens.
 func (s *CalendarService) Disconnect() error {
-	return s.store.ClearTokens()
+	if err := s.store.ClearTokens(); err != nil {
+		return err
+	}
+	s.invalidateEventCaches()
+	return nil
 }
 
 // ── Token refresh ───────────────────────────────────────────────
@@ -170,7 +222,36 @@ type CalendarEventRecurrence struct {
 
 // GetEvents fetches events from the user's primary calendar for the given range.
 func (s *CalendarService) GetEvents(ctx context.Context, timeMin, timeMax string) ([]CalendarEvent, error) {
-	client, err := s.getCalendarClient(ctx)
+	key := timeMin + "\x00" + timeMax
+	s.cacheMu.Lock()
+	if call, ok := s.rangeInFlight[key]; ok {
+		s.cacheMu.Unlock()
+		select {
+		case <-call.done:
+			return cloneCalendarEvents(call.events), call.err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	call := &eventRangeCall{done: make(chan struct{}), generation: s.cacheGeneration}
+	s.rangeInFlight[key] = call
+	s.cacheMu.Unlock()
+
+	events, err := s.fetchEvents(ctx, timeMin, timeMax, call.generation)
+	call.events = cloneCalendarEvents(events)
+	call.err = err
+	close(call.done)
+
+	s.cacheMu.Lock()
+	if s.rangeInFlight[key] == call {
+		delete(s.rangeInFlight, key)
+	}
+	s.cacheMu.Unlock()
+	return cloneCalendarEvents(events), err
+}
+
+func (s *CalendarService) fetchEvents(ctx context.Context, timeMin, timeMax string, generation uint64) ([]CalendarEvent, error) {
+	client, err := s.client(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +267,7 @@ func (s *CalendarService) GetEvents(ctx context.Context, timeMin, timeMax string
 			PageToken(pageToken).
 			Do()
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch events: %w", err)
+			return nil, classifyCalendarError("failed to fetch events", err)
 		}
 		items = append(items, events.Items...)
 		if events.NextPageToken == "" {
@@ -195,7 +276,6 @@ func (s *CalendarService) GetEvents(ctx context.Context, timeMin, timeMax string
 		pageToken = events.NextPageToken
 	}
 
-	masters := make(map[string]*calendar.Event)
 	result := make([]CalendarEvent, 0, len(items))
 	for _, event := range items {
 		normalized := CalendarEvent{
@@ -208,26 +288,112 @@ func (s *CalendarService) GetEvents(ctx context.Context, timeMin, timeMax string
 		}
 
 		if event.RecurringEventId != "" {
-			master, ok := masters[event.RecurringEventId]
-			if !ok {
-				master, err = client.Events.Get("primary", event.RecurringEventId).Do()
-				if err != nil {
-					return nil, fmt.Errorf("failed to fetch recurring event %q: %w", event.RecurringEventId, err)
-				}
-				masters[event.RecurringEventId] = master
+			metadata, err := s.getRecurringMasterMetadata(ctx, client, event.RecurringEventId, generation)
+			if err != nil {
+				return nil, err
 			}
 
 			normalized.Recurrence = &CalendarEventRecurrence{
 				SeriesID:          event.RecurringEventId,
 				OriginalStartTime: eventDateTime(event.OriginalStartTime),
-				TimeZone:          recurringEventTimeZone(event, master),
-				Rules:             append([]string(nil), master.Recurrence...),
+				TimeZone:          recurringEventTimeZone(event, metadata.timeZone),
+				Rules:             append([]string(nil), metadata.rules...),
 			}
 		}
 
 		result = append(result, normalized)
 	}
 	return result, nil
+}
+
+func (s *CalendarService) getRecurringMasterMetadata(ctx context.Context, client *calendar.Service, eventID string, generation uint64) (recurringMasterMetadata, error) {
+	now := time.Now()
+	s.cacheMu.Lock()
+	if generation == s.cacheGeneration {
+		if entry, ok := s.masterCache[eventID]; ok && now.Before(entry.expiresAt) {
+			metadata := cloneMasterMetadata(entry.metadata)
+			s.cacheMu.Unlock()
+			return metadata, nil
+		}
+	}
+	if call, ok := s.masterInFlight[eventID]; ok && generation == s.cacheGeneration {
+		s.cacheMu.Unlock()
+		select {
+		case <-call.done:
+			return cloneMasterMetadata(call.metadata), call.err
+		case <-ctx.Done():
+			return recurringMasterMetadata{}, ctx.Err()
+		}
+	}
+	if generation != s.cacheGeneration {
+		s.cacheMu.Unlock()
+		master, err := client.Events.Get("primary", eventID).Do()
+		if err != nil {
+			return recurringMasterMetadata{}, classifyCalendarError(fmt.Sprintf("failed to fetch recurring event %q", eventID), err)
+		}
+		metadata := recurringMasterMetadata{
+			timeZone: eventTimeZone(master.Start),
+			rules:    append([]string(nil), master.Recurrence...),
+		}
+		return metadata, nil
+	}
+	call := &masterCall{done: make(chan struct{})}
+	s.masterInFlight[eventID] = call
+	s.cacheMu.Unlock()
+
+	master, err := client.Events.Get("primary", eventID).Do()
+	if err != nil {
+		call.err = classifyCalendarError(fmt.Sprintf("failed to fetch recurring event %q", eventID), err)
+	} else {
+		call.metadata = recurringMasterMetadata{
+			timeZone: eventTimeZone(master.Start),
+			rules:    append([]string(nil), master.Recurrence...),
+		}
+	}
+	close(call.done)
+
+	s.cacheMu.Lock()
+	if s.masterInFlight[eventID] == call {
+		delete(s.masterInFlight, eventID)
+	}
+	if call.err == nil && s.cacheGeneration == generation {
+		s.masterCache[eventID] = masterCacheEntry{
+			metadata:  cloneMasterMetadata(call.metadata),
+			expiresAt: time.Now().Add(calendarMasterCacheTTL),
+		}
+	}
+	s.cacheMu.Unlock()
+	return cloneMasterMetadata(call.metadata), call.err
+}
+
+func (s *CalendarService) invalidateEventCaches() {
+	s.cacheMu.Lock()
+	s.cacheGeneration++
+	s.masterCache = make(map[string]masterCacheEntry)
+	s.rangeInFlight = make(map[string]*eventRangeCall)
+	s.masterInFlight = make(map[string]*masterCall)
+	s.cacheMu.Unlock()
+}
+
+func cloneMasterMetadata(metadata recurringMasterMetadata) recurringMasterMetadata {
+	metadata.rules = append([]string(nil), metadata.rules...)
+	return metadata
+}
+
+func cloneCalendarEvents(events []CalendarEvent) []CalendarEvent {
+	if events == nil {
+		return nil
+	}
+	result := make([]CalendarEvent, len(events))
+	copy(result, events)
+	for i := range result {
+		if events[i].Recurrence != nil {
+			recurrence := *events[i].Recurrence
+			recurrence.Rules = append([]string(nil), recurrence.Rules...)
+			result[i].Recurrence = &recurrence
+		}
+	}
+	return result
 }
 
 func eventDateTime(value *calendar.EventDateTime) string {
@@ -240,14 +406,30 @@ func eventDateTime(value *calendar.EventDateTime) string {
 	return value.Date
 }
 
-func recurringEventTimeZone(event, master *calendar.Event) string {
+func recurringEventTimeZone(event *calendar.Event, masterTimeZone string) string {
 	if event.OriginalStartTime != nil && event.OriginalStartTime.TimeZone != "" {
 		return event.OriginalStartTime.TimeZone
 	}
-	if master != nil && master.Start != nil {
-		return master.Start.TimeZone
+	return masterTimeZone
+}
+
+func eventTimeZone(value *calendar.EventDateTime) string {
+	if value == nil {
+		return ""
 	}
-	return ""
+	return value.TimeZone
+}
+
+func classifyCalendarError(operation string, err error) error {
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == http.StatusForbidden {
+		for _, item := range apiErr.Errors {
+			if strings.EqualFold(item.Reason, "rateLimitExceeded") || strings.EqualFold(item.Reason, "RATE_LIMIT_EXCEEDED") {
+				return fmt.Errorf("%s: %w", operation, ErrCalendarRateLimited)
+			}
+		}
+	}
+	return fmt.Errorf("%s: %w", operation, err)
 }
 
 // WeeklyRecurrenceInput describes an optional weekly recurrence rule.
@@ -352,7 +534,7 @@ func (s *CalendarService) CreateEvent(ctx context.Context, input CreateEventInpu
 		return "", err
 	}
 
-	client, err := s.getCalendarClient(ctx)
+	client, err := s.client(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -372,8 +554,9 @@ func (s *CalendarService) CreateEvent(ctx context.Context, input CreateEventInpu
 
 	created, err := client.Events.Insert("primary", event).Do()
 	if err != nil {
-		return "", fmt.Errorf("failed to create event: %w", err)
+		return "", classifyCalendarError("failed to create event", err)
 	}
+	s.invalidateEventCaches()
 	return created.Id, nil
 }
 
@@ -389,7 +572,7 @@ type UpdateEventInput struct {
 
 // UpdateEvent patches an event on the user's primary calendar.
 func (s *CalendarService) UpdateEvent(ctx context.Context, eventID string, input UpdateEventInput) error {
-	client, err := s.getCalendarClient(ctx)
+	client, err := s.client(ctx)
 	if err != nil {
 		return err
 	}
@@ -426,19 +609,21 @@ func (s *CalendarService) UpdateEvent(ctx context.Context, eventID string, input
 	}
 
 	if _, err := client.Events.Patch("primary", eventID, event).Do(); err != nil {
-		return fmt.Errorf("failed to update event: %w", err)
+		return classifyCalendarError("failed to update event", err)
 	}
+	s.invalidateEventCaches()
 	return nil
 }
 
 // DeleteEvent removes an event from the user's primary calendar.
 func (s *CalendarService) DeleteEvent(ctx context.Context, eventID string) error {
-	client, err := s.getCalendarClient(ctx)
+	client, err := s.client(ctx)
 	if err != nil {
 		return err
 	}
 	if err := client.Events.Delete("primary", eventID).Do(); err != nil {
-		return fmt.Errorf("failed to delete event: %w", err)
+		return classifyCalendarError("failed to delete event", err)
 	}
+	s.invalidateEventCaches()
 	return nil
 }

@@ -1,6 +1,7 @@
 package calendar
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,5 +35,25 @@ func TestCreateEventReturnsBadRequestForValidationError(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "end must be after start") {
 		t.Fatalf("body = %q, want validation message", response.Body.String())
+	}
+}
+
+func TestRespondCalendarRateLimited(t *testing.T) {
+	response := httptest.NewRecorder()
+
+	respondCalendarRateLimited(response)
+
+	if response.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusTooManyRequests)
+	}
+	var body map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["error"] != "google_calendar_rate_limited" {
+		t.Fatalf("error = %q, want google_calendar_rate_limited", body["error"])
+	}
+	if body["message"] != calendarRateLimitMessage {
+		t.Fatalf("message = %q, want %q", body["message"], calendarRateLimitMessage)
 	}
 }

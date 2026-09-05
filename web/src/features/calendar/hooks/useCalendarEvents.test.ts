@@ -77,4 +77,43 @@ describe('useCalendarEvents', () => {
     expect(result.current.events[0]?.start).toBe('2026-09-02T10:15:00Z');
     expect(api.calendar.getEvents).toHaveBeenCalledOnce();
   });
+
+  it('coalesces identical in-flight requests across hook instances', async () => {
+    const request = deferred<{ events: CalendarEvent[] }>();
+    vi.mocked(api.calendar.getEvents).mockReturnValue(request.promise);
+
+    const first = renderHook(() => useCalendarEvents('coalesce-start', 'coalesce-end'));
+    const second = renderHook(() => useCalendarEvents('coalesce-start', 'coalesce-end'));
+
+    expect(api.calendar.getEvents).toHaveBeenCalledOnce();
+    const expected = [event('shared', '2026-09-03T09:00:00Z')];
+    await act(async () => request.resolve({ events: expected }));
+    await waitFor(() => expect(first.result.current.events).toEqual(expected));
+    expect(second.result.current.events).toEqual(expected);
+  });
+
+  it('reuses a fresh successful response for the same range', async () => {
+    const expected = [event('fresh', '2026-09-04T09:00:00Z')];
+    vi.mocked(api.calendar.getEvents).mockResolvedValue({ events: expected });
+
+    const first = renderHook(() => useCalendarEvents('fresh-start', 'fresh-end'));
+    await waitFor(() => expect(first.result.current.events).toEqual(expected));
+    const second = renderHook(() => useCalendarEvents('fresh-start', 'fresh-end'));
+    await waitFor(() => expect(second.result.current.events).toEqual(expected));
+
+    expect(api.calendar.getEvents).toHaveBeenCalledOnce();
+  });
+
+  it('forces a network request instead of reusing fresh data', async () => {
+    vi.mocked(api.calendar.getEvents)
+      .mockResolvedValueOnce({ events: [event('before', '2026-09-05T09:00:00Z')] })
+      .mockResolvedValueOnce({ events: [event('after', '2026-09-05T10:00:00Z')] });
+    const { result } = renderHook(() => useCalendarEvents('force-start', 'force-end'));
+    await waitFor(() => expect(result.current.events[0]?.id).toBe('before'));
+
+    await act(async () => result.current.refresh({ force: true }));
+
+    expect(api.calendar.getEvents).toHaveBeenCalledTimes(2);
+    expect(result.current.events[0]?.id).toBe('after');
+  });
 });
