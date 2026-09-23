@@ -76,15 +76,16 @@ export function FloatingChat() {
       {/* Chat messages panel - slides up when expanded */}
       <div
         className={`
-          bg-secondary 
+          bg-[#0f0f0f]
           border border-default 
           rounded-xl 
           mb-2
           overflow-hidden
+          shadow-lg
           transition-all duration-300 ease-in-out
           ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}
         `}
-        style={{ height: isExpanded ? '400px' : '0px' }}
+        style={{ height: isExpanded ? '400px' : '0px', backgroundColor: '#0f0f0f' }}
       >
         {/* Messages container */}
         <div className="h-full flex flex-col">
@@ -111,8 +112,8 @@ export function FloatingChat() {
                         max-w-[80%] px-4 py-2 rounded-lg text-sm
                         ${
                           msg.role === 'user'
-                            ? 'bg-accent text-on-accent'
-                            : 'bg-tertiary text-primary'
+                            ? 'bg-highlight text-white'
+                            : 'bg-white/10 text-primary'
                         }
                       `}
                     >
@@ -124,7 +125,7 @@ export function FloatingChat() {
                 {/* Loading indicator */}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-tertiary rounded-lg text-sm text-secondary">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg text-sm text-secondary">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       <span>💭 Thinking...</span>
                     </div>
@@ -138,14 +139,14 @@ export function FloatingChat() {
       </div>
 
       {/* Input bar */}
-      <div className="bg-secondary border border-default rounded-full px-6 py-3 shadow-lg">
+      <div className="bg-[#0f0f0f] border border-default rounded-full px-6 py-3 shadow-lg" style={{ backgroundColor: '#0f0f0f' }}>
         <div className="flex items-center gap-3">
           {/* Expand/collapse button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className={`
               p-1.5 rounded-full 
-              hover:bg-tertiary 
+              hover:bg-white/10
               transition-all duration-300
               ${isExpanded ? 'rotate-180' : 'rotate-0'}
             `}
@@ -167,7 +168,7 @@ export function FloatingChat() {
           <button
             onClick={handleSend}
             disabled={!message.trim()}
-            className="p-1.5 rounded-full hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg
               className="w-4 h-4 text-secondary"
