@@ -113,7 +113,10 @@ describe('FloatingChat', () => {
     );
   });
 
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   it('lists persisted conversations and loads a selected transcript', async () => {
     let resolveList: (value: { conversations: AgentConversation[] }) => void = () => undefined;
@@ -203,6 +206,40 @@ describe('FloatingChat', () => {
       expect.any(String),
       undefined
     );
+  });
+
+  it('submits on an insecure origin where crypto.randomUUID is unavailable', async () => {
+    let seed = 1;
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => {
+        bytes.fill(seed++);
+        return bytes;
+      },
+    });
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.sendMessage).mockResolvedValue({
+      conversation,
+      message: {
+        id: 'message-insecure-origin',
+        role: 'assistant',
+        content: 'Submitted safely.',
+        createdAt: '2026-09-23T12:00:00Z',
+      },
+    });
+    render(<FloatingChat />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    await screen.findByText('Start with the release checklist.');
+    fireEvent.change(screen.getByPlaceholderText('Ask your agent anything...'), {
+      target: { value: 'Works over HTTP' },
+    });
+    fireEvent.keyDown(screen.getByPlaceholderText('Ask your agent anything...'), { key: 'Enter' });
+
+    await waitFor(() => expect(api.agent.sendMessage).toHaveBeenCalled());
+    const [, , requestID] = vi.mocked(api.agent.sendMessage).mock.calls[0];
+    expect(requestID).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await screen.findByText('Submitted safely.')).toBeTruthy();
   });
 
   it('searches current cards and selects one with the keyboard', async () => {

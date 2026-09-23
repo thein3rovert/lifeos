@@ -14,6 +14,7 @@ import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
 import { api } from '@/lib/api';
+import { createClientId } from '@/lib/clientId';
 import { getErrorMessage } from '@/lib/errors';
 import type {
   AgentActivity,
@@ -307,8 +308,8 @@ export function FloatingChat() {
   const handleSend = async (retryMessage?: AgentConversationMessage) => {
     const content = retryMessage?.content || draft.trim();
     if (!content || isTranscriptLoading) return;
-    const optimisticId = retryMessage?.id || crypto.randomUUID();
-    const requestId = crypto.randomUUID();
+    const optimisticId = retryMessage?.id || createClientId();
+    const requestId = createClientId();
     const messageContexts = retryMessage?.contexts || contexts;
     const selectedDelivery = retryMessage?.deliveryMode || deliveryMode;
     activeRequestsRef.current.set(requestId, optimisticId);
