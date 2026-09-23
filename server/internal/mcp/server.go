@@ -11,19 +11,15 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// allowedDirs is the runtime allow-list of directory prefixes the MCP
-// tools may read from. Populated by NewMCPServer from config; kept in a
-// package variable so the handler funcs (which the SDK calls by value)
-// can consult it without capture gymnastics.
-var allowedDirs []string
-
 // NewMCPServer creates the LifeOS MCP server. allowedDirectories is a
 // list of absolute paths (comma-separated in the MCP_ALLOWED_DIRS env)
 // that the MCP tools may read from. If empty, the MCP server can only
 // read from directories with no restriction — but the handlers will
 // reject everything, so pass at least one path in practice.
 func NewMCPServer(allowedDirectories ...string) *server.MCPServer {
-	allowedDirs = append(allowedDirs[:0], allowedDirectories...)
+	// Keep each server's allow-list independent. HTTP, stdio, and tests may
+	// construct MCP servers concurrently in the same process.
+	allowedDirs := append([]string(nil), allowedDirectories...)
 
 	s := server.NewMCPServer(
 		"lifeos-files",
@@ -39,7 +35,7 @@ func NewMCPServer(allowedDirectories ...string) *server.MCPServer {
 		mcp.WithResourceDescription("List of directories this MCP server has access to"),
 		mcp.WithMIMEType("text/plain"),
 	)
-	s.AddResource(allowedDirsResource, allowedDirectoriesHandler)
+	s.AddResource(allowedDirsResource, allowedDirectoriesHandler(allowedDirs))
 
 	// === list_files tool ===
 	listTool := mcp.NewTool("list_files",
@@ -49,7 +45,7 @@ func NewMCPServer(allowedDirectories ...string) *server.MCPServer {
 			mcp.Description("Absolute path to list"),
 		),
 	)
-	s.AddTool(listTool, listFilesHandler)
+	s.AddTool(listTool, listFilesHandler(allowedDirs))
 
 	// === read_file tool ===
 	readTool := mcp.NewTool("read_file",
@@ -59,91 +55,97 @@ func NewMCPServer(allowedDirectories ...string) *server.MCPServer {
 			mcp.Description("Absolute path to the file to read"),
 		),
 	)
-	s.AddTool(readTool, readFileHandler)
+	s.AddTool(readTool, readFileHandler(allowedDirs))
 	return s
 }
 
 // allowedDirectoriesHandler returns the list of allowed directories.
-func allowedDirectoriesHandler(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	var lines []string
-	lines = append(lines, "This MCP server has access to the following directories:")
-	lines = append(lines, "")
-	if len(allowedDirs) == 0 {
-		lines = append(lines, "(no directories configured — set MCP_ALLOWED_DIRS)")
-	} else {
-		for _, path := range allowedDirs {
-			lines = append(lines, fmt.Sprintf("📁 %s", path))
+func allowedDirectoriesHandler(allowedDirs []string) server.ResourceHandlerFunc {
+	return func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		var lines []string
+		lines = append(lines, "This MCP server has access to the following directories:")
+		lines = append(lines, "")
+		if len(allowedDirs) == 0 {
+			lines = append(lines, "(no directories configured — set MCP_ALLOWED_DIRS)")
+		} else {
+			for _, path := range allowedDirs {
+				lines = append(lines, fmt.Sprintf("📁 %s", path))
+			}
 		}
-	}
-	lines = append(lines, "")
-	lines = append(lines, "All subdirectories within these paths are also accessible.")
+		lines = append(lines, "")
+		lines = append(lines, "All subdirectories within these paths are also accessible.")
 
-	return []mcp.ResourceContents{
-		mcp.TextResourceContents{
-			URI:      "lifeos://allowed-directories",
-			MIMEType: "text/plain",
-			Text:     strings.Join(lines, "\n"),
-		},
-	}, nil
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "lifeos://allowed-directories",
+				MIMEType: "text/plain",
+				Text:     strings.Join(lines, "\n"),
+			},
+		}, nil
+	}
 }
 
 // listFilesHandler responds to the list_files tool call.
-func listFilesHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	targetPath, err := req.RequireString("path")
-	if err != nil {
-		return mcp.NewToolResultError("path is required"), nil
-	}
-
-	if !isAllowedDirectory(targetPath) {
-		return mcp.NewToolResultError("access denied: path not in allowed list"), nil
-	}
-
-	entries, err := os.ReadDir(targetPath)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("cannot read directory", err), nil
-	}
-
-	var lines []string
-	for _, e := range entries {
-		entriesInfo, _ := e.Info()
-		entriesSize := ""
-		if entriesInfo != nil && !e.IsDir() {
-			entriesSize = fmt.Sprintf(" (%d bytes)", entriesInfo.Size())
+func listFilesHandler(allowedDirs []string) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		targetPath, err := req.RequireString("path")
+		if err != nil {
+			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		entriesType := "file"
-		if e.IsDir() {
-			entriesType = "dir"
+		if !isAllowedDirectory(targetPath, allowedDirs) {
+			return mcp.NewToolResultError("access denied: path not in allowed list"), nil
 		}
-		lines = append(lines, fmt.Sprintf("[%s] %s%s", entriesType, e.Name(), entriesSize))
-	}
 
-	if len(lines) == 0 {
-		return mcp.NewToolResultText("directory is empty"), nil
+		entries, err := os.ReadDir(targetPath)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("cannot read directory", err), nil
+		}
+
+		var lines []string
+		for _, e := range entries {
+			entriesInfo, _ := e.Info()
+			entriesSize := ""
+			if entriesInfo != nil && !e.IsDir() {
+				entriesSize = fmt.Sprintf(" (%d bytes)", entriesInfo.Size())
+			}
+
+			entriesType := "file"
+			if e.IsDir() {
+				entriesType = "dir"
+			}
+			lines = append(lines, fmt.Sprintf("[%s] %s%s", entriesType, e.Name(), entriesSize))
+		}
+
+		if len(lines) == 0 {
+			return mcp.NewToolResultText("directory is empty"), nil
+		}
+		return mcp.NewToolResultText(strings.Join(lines, "\n")), nil
 	}
-	return mcp.NewToolResultText(strings.Join(lines, "\n")), nil
 }
 
 // readFileHandler responds to the read_file tool call.
-func readFileHandler(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	targetPath, err := req.RequireString("path")
-	if err != nil {
-		return mcp.NewToolResultError("path is required"), nil
-	}
+func readFileHandler(allowedDirs []string) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		targetPath, err := req.RequireString("path")
+		if err != nil {
+			return mcp.NewToolResultError("path is required"), nil
+		}
 
-	if !isAllowedDirectory(targetPath) {
-		return mcp.NewToolResultError("access denied: path not in allowed list"), nil
-	}
+		if !isAllowedDirectory(targetPath, allowedDirs) {
+			return mcp.NewToolResultError("access denied: path not in allowed list"), nil
+		}
 
-	data, err := os.ReadFile(targetPath)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("cannot read file", err), nil
-	}
+		data, err := os.ReadFile(targetPath)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("cannot read file", err), nil
+		}
 
-	return mcp.NewToolResultText(string(data)), nil
+		return mcp.NewToolResultText(string(data)), nil
+	}
 }
 
-func isAllowedDirectory(path string) bool {
+func isAllowedDirectory(path string, allowedDirs []string) bool {
 	absolutePath, err := filepath.Abs(path)
 	if err != nil {
 		return false

@@ -209,15 +209,11 @@ func runHTTPServer() {
 	mux.HandleFunc("GET /api/habit-days", habitAPI.ListDays)
 	mux.HandleFunc("POST /api/habit-days", habitAPI.CreateDay)
 
-	// ==== MCP SSE Endpoints ====
-	lifeosMCPServer := mcpServer.NewMCPServer(cfg.MCPAllowedDirs...)
-	// Server sent event transport. No baseURL specified - let the library
-	// auto-detect from the incoming request's Host header. This allows
-	// access via localhost, Tailscale IP, LAN IP, etc.
-	sse := server.NewSSEServer(lifeosMCPServer)
-	mux.Handle("/mcp/", middleware.MCPAuth(http.StripPrefix("/mcp", sse)))
-	// Message endpoint for JSON-RPC requests (handles MCP initialize, tools, etc.)
-	mux.Handle("/message", middleware.MCPAuth(sse))
+	// MCP Streamable HTTP (/mcp) plus legacy SSE (/mcp/sse and /message).
+	mcpHTTP := mcpServer.NewHTTPHandler(cfg.MCPAllowedDirs...)
+	mux.Handle("/mcp", mcpHTTP)
+	mux.Handle("/mcp/", mcpHTTP)
+	mux.Handle("/message", mcpHTTP)
 
 	// Health check
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

@@ -25,7 +25,7 @@ server/
     services/        # Business logic
     sidecar/         # Typed HTTP client for the Node sidecar
     store/           # Store interfaces + SQLite implementations
-    mcp/             # MCP server (SSE + stdio)
+    mcp/             # MCP server (Streamable HTTP + legacy SSE + stdio)
 ```
 
 ## API Routes
@@ -62,7 +62,7 @@ See [`internal/api/README.md`](internal/api/README.md) for the full endpoint ref
 | `LIFEOS_PORT` | `6060` | HTTP port |
 | `SIDECAR_URL` | `http://localhost:3002` | Node sidecar base URL |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:3001` | Allowed CORS origins (CSV) |
-| `MCP_API_KEY` | (unset) | Auth key for MCP SSE endpoint |
+| `MCP_API_KEY` | (unset) | Bearer auth key for MCP HTTP endpoints |
 
 ## Server-Specific Notes
 
