@@ -13,6 +13,9 @@ vi.mock('@/lib/api', () => ({
       sendMessage: vi.fn(),
       abort: vi.fn(),
     },
+    smartboard: {
+      getPanel: vi.fn(),
+    },
   },
 }));
 
@@ -47,10 +50,58 @@ const markdownTranscript: AgentConversationMessage[] = [
   },
 ];
 
+const panelResponses = {
+  'things-to-remember': {
+    panelType: 'things-to-remember' as const,
+    data: {
+      items: [
+        {
+          id: 'remember-1',
+          title: 'Release checklist',
+          text: 'Review it',
+          category: 'important' as const,
+          source: 'notes',
+          date: '2026-09-23',
+        },
+      ],
+    },
+    lastRefreshed: '2026-09-23T09:00:00Z',
+  },
+  suggestions: {
+    panelType: 'suggestions' as const,
+    data: {
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          title: 'Delegate reporting',
+          suggestion: 'Delegate it',
+          reasoning: 'Save time',
+          status: 'active' as const,
+          createdAt: '2026-09-23T09:00:00Z',
+        },
+      ],
+    },
+    lastRefreshed: '2026-09-23T09:00:00Z',
+  },
+  achievements: {
+    panelType: 'achievements' as const,
+    data: { achievements: [] },
+    lastRefreshed: '2026-09-23T09:00:00Z',
+  },
+  blockers: {
+    panelType: 'blockers' as const,
+    data: { blockers: [] },
+    lastRefreshed: '2026-09-23T09:00:00Z',
+  },
+};
+
 describe('FloatingChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.agent.listConversations).mockResolvedValue({ conversations: [conversation] });
+    vi.mocked(api.smartboard.getPanel).mockImplementation(async (panelType) =>
+      Promise.resolve(panelResponses[panelType])
+    );
   });
 
   afterEach(() => cleanup());
@@ -101,7 +152,8 @@ describe('FloatingChat', () => {
       expect(api.agent.sendMessage).toHaveBeenCalledWith(
         'conversation-1',
         'What next?',
-        expect.any(String)
+        expect.any(String),
+        []
       )
     );
     expect(api.agent.createConversation).not.toHaveBeenCalled();
@@ -133,8 +185,109 @@ describe('FloatingChat', () => {
     expect(api.agent.sendMessage).toHaveBeenCalledWith(
       'conversation-2',
       'Start fresh',
-      expect.any(String)
+      expect.any(String),
+      []
     );
+  });
+
+  it('searches current cards and selects one with the keyboard', async () => {
+    render(<FloatingChat />);
+    const composer = screen.getByPlaceholderText('Ask your agent anything...');
+
+    fireEvent.change(composer, { target: { value: '@release' } });
+
+    expect(await screen.findByRole('listbox', { name: 'Smart Board cards' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /Release checklist/ })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: /Delegate reporting/ })).toBeNull();
+    expect(api.smartboard.getPanel).toHaveBeenCalledTimes(4);
+
+    fireEvent.change(composer, { target: { value: '@' } });
+    fireEvent.keyDown(composer, { key: 'ArrowDown' });
+    fireEvent.keyDown(composer, { key: 'Enter' });
+
+    expect(screen.getByText('@ Delegate reporting')).toBeTruthy();
+    expect((composer as HTMLInputElement).value).toBe('');
+  });
+
+  it('opens the panel picker with slash, dismisses it, and removes selected chips', async () => {
+    render(<FloatingChat />);
+    const composer = screen.getByPlaceholderText('Ask your agent anything...');
+
+    fireEvent.change(composer, { target: { value: '/suggest' } });
+    expect(await screen.findByRole('option', { name: 'Suggestions' })).toBeTruthy();
+    fireEvent.keyDown(composer, { key: 'Escape' });
+    expect(screen.queryByRole('listbox', { name: 'Smart Board panels' })).toBeNull();
+
+    fireEvent.change(composer, { target: { value: '/' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Things to Remember' }));
+    expect(screen.getByText('/ Things to Remember')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Things to Remember' }));
+    expect(screen.queryByText('/ Things to Remember')).toBeNull();
+  });
+
+  it('sends compact contexts separately from the visible message', async () => {
+    vi.mocked(api.agent.createConversation).mockResolvedValue({ conversation });
+    vi.mocked(api.agent.sendMessage).mockResolvedValue({
+      conversation,
+      message: {
+        id: 'message-context-response',
+        role: 'assistant',
+        content: 'Use the checklist.',
+        createdAt: '2026-09-23T12:00:00Z',
+      },
+    });
+    render(<FloatingChat />);
+    const composer = screen.getByPlaceholderText('Ask your agent anything...');
+    fireEvent.focus(composer);
+
+    fireEvent.change(composer, { target: { value: '@release' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Release checklist/ }));
+    fireEvent.change(composer, { target: { value: 'What should I do?' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() =>
+      expect(api.agent.sendMessage).toHaveBeenCalledWith(
+        'conversation-1',
+        'What should I do?',
+        expect.any(String),
+        [
+          {
+            kind: 'card',
+            panelType: 'things-to-remember',
+            itemId: 'remember-1',
+            label: 'Release checklist',
+          },
+        ]
+      )
+    );
+    expect(screen.getByText('What should I do?')).toBeTruthy();
+    expect(screen.queryByText('@release')).toBeNull();
+  });
+
+  it('renders context chips from persisted transcript messages', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({
+      conversation,
+      messages: [
+        {
+          ...transcript[0],
+          contexts: [
+            {
+              kind: 'panel',
+              panelType: 'blockers',
+              label: 'Blockers',
+            },
+          ],
+        },
+      ],
+    });
+    render(<FloatingChat />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+
+    expect(await screen.findByText('/ Blockers')).toBeTruthy();
+    expect(screen.getByText('What should I focus on?')).toBeTruthy();
   });
 
   it('shows empty and failed history states without blocking a new chat', async () => {

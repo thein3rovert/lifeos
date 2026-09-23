@@ -68,11 +68,19 @@ export interface AgentConversation {
   updatedAt: string;
 }
 
+export interface AgentMessageContext {
+  kind: 'card' | 'panel';
+  panelType: PanelType;
+  itemId?: string;
+  label: string;
+}
+
 export interface AgentConversationMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
+  contexts?: AgentMessageContext[];
 }
 
 // -----------------------------------------------------------------------------

@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
@@ -73,14 +74,18 @@ func (s *SQLAgentConversationStore) UpdateConversationTitle(id, source, title st
 }
 
 func (s *SQLAgentConversationStore) AddMessage(message *model.AgentMessage) error {
+	contextRefs, err := json.Marshal(message.Contexts)
+	if err != nil {
+		return err
+	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	if _, err := tx.Exec(`INSERT INTO agent_messages
-		(id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)`,
-		message.ID, message.ConversationID, message.Role, message.Content, message.CreatedAt); err != nil {
+		(id, conversation_id, role, content, context_refs, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		message.ID, message.ConversationID, message.Role, message.Content, string(contextRefs), message.CreatedAt); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`UPDATE agent_conversations SET updated_at = ? WHERE id = ?`,
@@ -91,7 +96,7 @@ func (s *SQLAgentConversationStore) AddMessage(message *model.AgentMessage) erro
 }
 
 func (s *SQLAgentConversationStore) ListMessages(conversationID string) ([]model.AgentMessage, error) {
-	rows, err := s.db.Query(`SELECT id, conversation_id, role, content, created_at
+	rows, err := s.db.Query(`SELECT id, conversation_id, role, content, context_refs, created_at
 		FROM agent_messages WHERE conversation_id = ? ORDER BY created_at, id`, conversationID)
 	if err != nil {
 		return nil, err
@@ -101,7 +106,11 @@ func (s *SQLAgentConversationStore) ListMessages(conversationID string) ([]model
 	messages := make([]model.AgentMessage, 0)
 	for rows.Next() {
 		var message model.AgentMessage
-		if err := rows.Scan(&message.ID, &message.ConversationID, &message.Role, &message.Content, &message.CreatedAt); err != nil {
+		var contextRefs string
+		if err := rows.Scan(&message.ID, &message.ConversationID, &message.Role, &message.Content, &contextRefs, &message.CreatedAt); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(contextRefs), &message.Contexts); err != nil {
 			return nil, err
 		}
 		messages = append(messages, message)

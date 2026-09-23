@@ -53,8 +53,9 @@ func NewAgentChatService(
 const newAgentConversationTitle = "New conversation"
 
 type SendAgentMessageInput struct {
-	Message   string `json:"message"`
-	RequestID string `json:"requestId,omitempty"`
+	Message   string                      `json:"message"`
+	RequestID string                      `json:"requestId,omitempty"`
+	Contexts  []model.AgentMessageContext `json:"contexts,omitempty"`
 }
 
 func (s *AgentChatService) CreateConversation() (*model.AgentConversation, error) {
@@ -95,10 +96,15 @@ func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (
 	if err != nil {
 		return nil, err
 	}
+	contexts, context, err := s.resolveContexts(input.Contexts)
+	if err != nil {
+		return nil, err
+	}
 
 	now := time.Now()
 	userMessage := &model.AgentMessage{
-		ID: uuid.NewString(), ConversationID: id, Role: "user", Content: message, CreatedAt: now,
+		ID: uuid.NewString(), ConversationID: id, Role: "user", Content: message,
+		Contexts: contexts, CreatedAt: now,
 	}
 	if err := s.conversationStore.AddMessage(userMessage); err != nil {
 		return nil, fmt.Errorf("save user message: %w", err)
@@ -109,8 +115,12 @@ func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (
 		}
 	}
 
+	prompt := message
+	if context != "" {
+		prompt += "\n\n---\nSelected Smart Board context (resolved by LifeOS):\n" + context
+	}
 	response, err := s.sidecar.SendAgentSessionChat(sidecar.AgentSessionChatRequest{
-		SessionID: conversation.OpenCodeSessionID, Message: message, RequestID: input.RequestID,
+		SessionID: conversation.OpenCodeSessionID, Message: prompt, RequestID: input.RequestID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("continue agent session: %w", err)
@@ -122,6 +132,90 @@ func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (
 		return nil, fmt.Errorf("save assistant message: %w", err)
 	}
 	return assistantMessage, nil
+}
+
+var agentPanelLabels = map[string]string{
+	"things-to-remember": "Things to Remember",
+	"suggestions":        "Suggestions",
+	"achievements":       "Achievements",
+	"blockers":           "Blockers",
+}
+
+func (s *AgentChatService) resolveContexts(requested []model.AgentMessageContext) ([]model.AgentMessageContext, string, error) {
+	if len(requested) == 0 {
+		return nil, "", nil
+	}
+	if s.smartBoardStore == nil {
+		return nil, "", &ValidationError{Message: "smart board context is unavailable"}
+	}
+
+	resolved := make([]model.AgentMessageContext, 0, len(requested))
+	context := make([]json.RawMessage, 0, len(requested))
+	for _, ref := range requested {
+		panelLabel, ok := agentPanelLabels[ref.PanelType]
+		if !ok || (ref.Kind != "panel" && ref.Kind != "card") {
+			return nil, "", &ValidationError{Message: "invalid smart board context reference"}
+		}
+		panel, err := s.smartBoardStore.GetLatestPanel(ref.PanelType)
+		if err != nil {
+			return nil, "", fmt.Errorf("resolve smart board context: %w", err)
+		}
+		if panel == nil || !json.Valid([]byte(panel.Data)) {
+			return nil, "", &ValidationError{Message: "smart board context reference was not found"}
+		}
+
+		if ref.Kind == "panel" {
+			resolved = append(resolved, model.AgentMessageContext{Kind: "panel", PanelType: ref.PanelType, Label: panelLabel})
+			entry, _ := json.Marshal(map[string]any{
+				"type": "panel", "panelType": ref.PanelType, "data": json.RawMessage(panel.Data),
+			})
+			context = append(context, entry)
+			continue
+		}
+		if ref.ItemID == "" {
+			return nil, "", &ValidationError{Message: "card context reference requires itemId"}
+		}
+		item, label, ok := resolveAgentPanelItem(panel.Data, ref.ItemID)
+		if !ok {
+			return nil, "", &ValidationError{Message: "smart board context reference was not found"}
+		}
+		resolved = append(resolved, model.AgentMessageContext{
+			Kind: "card", PanelType: ref.PanelType, ItemID: ref.ItemID, Label: label,
+		})
+		entry, _ := json.Marshal(map[string]any{
+			"type": "card", "panelType": ref.PanelType, "itemId": ref.ItemID, "data": item,
+		})
+		context = append(context, entry)
+	}
+
+	encoded, err := json.Marshal(context)
+	if err != nil {
+		return nil, "", err
+	}
+	return resolved, string(encoded), nil
+}
+
+func resolveAgentPanelItem(panelData, itemID string) (map[string]any, string, bool) {
+	var wrapper map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(panelData), &wrapper); err != nil {
+		return nil, "", false
+	}
+	for _, raw := range wrapper {
+		var items []map[string]any
+		if json.Unmarshal(raw, &items) != nil {
+			continue
+		}
+		for _, item := range items {
+			if id, _ := item["id"].(string); id == itemID {
+				label, _ := item["title"].(string)
+				if strings.TrimSpace(label) == "" {
+					label = itemID
+				}
+				return item, label, true
+			}
+		}
+	}
+	return nil, "", false
 }
 
 func agentConversationTitle(message string) string {

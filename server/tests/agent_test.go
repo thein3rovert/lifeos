@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -79,7 +80,7 @@ func TestAgentConversationStoreFiltersSourceAndPersistsMessages(t *testing.T) {
 		}
 	}
 	for _, message := range []*model.AgentMessage{
-		{ID: "1", ConversationID: "floating", Role: "user", Content: "hello", CreatedAt: now},
+		{ID: "1", ConversationID: "floating", Role: "user", Content: "hello", Contexts: []model.AgentMessageContext{{Kind: "card", PanelType: "blockers", ItemID: "b-1", Label: "Waiting on review"}}, CreatedAt: now},
 		{ID: "2", ConversationID: "floating", Role: "assistant", Content: "hi", CreatedAt: now.Add(time.Second)},
 	} {
 		if err := chatStore.AddMessage(message); err != nil {
@@ -92,7 +93,39 @@ func TestAgentConversationStoreFiltersSourceAndPersistsMessages(t *testing.T) {
 		t.Fatalf("conversations = %#v, err = %v", conversations, err)
 	}
 	messages, err := chatStore.ListMessages("floating")
-	if err != nil || len(messages) != 2 || messages[0].Content != "hello" || messages[1].Content != "hi" {
+	if err != nil || len(messages) != 2 || messages[0].Content != "hello" || len(messages[0].Contexts) != 1 || messages[0].Contexts[0].Label != "Waiting on review" || messages[1].Content != "hi" {
+		t.Fatalf("messages = %#v, err = %v", messages, err)
+	}
+}
+
+func TestAgentMessageContextRefsMigrationPreservesExistingDatabase(t *testing.T) {
+	dsn := filepath.Join(t.TempDir(), "lifeos.db")
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TABLE agent_conversations (
+		id TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT NOT NULL,
+		opencode_session_id TEXT NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL);
+		CREATE TABLE agent_messages (
+		id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, role TEXT NOT NULL,
+		content TEXT NOT NULL, created_at DATETIME NOT NULL);
+		INSERT INTO agent_conversations VALUES ('c-1', 'floating-chat', 'Old', 's-1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+		INSERT INTO agent_messages VALUES ('m-1', 'c-1', 'user', 'old message', CURRENT_TIMESTAMP);`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	dbStore, err := store.NewSQLiteStore(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbStore.DB().Close()
+	messages, err := store.NewAgentConversationStore(dbStore.DB()).ListMessages("c-1")
+	if err != nil || len(messages) != 1 || messages[0].Content != "old message" || len(messages[0].Contexts) != 0 {
 		t.Fatalf("messages = %#v, err = %v", messages, err)
 	}
 }
@@ -131,6 +164,85 @@ func TestAgentChatServiceCreatesThenStrictlyContinuesSession(t *testing.T) {
 	}
 	if chatStore.requestedWith != model.AgentConversationSource || len(chatStore.messages) != 2 {
 		t.Fatalf("source = %q, messages = %#v", chatStore.requestedWith, chatStore.messages)
+	}
+}
+
+func TestAgentChatServiceResolvesContextForPromptAndPersistsReferences(t *testing.T) {
+	db, err := store.NewSQLiteStore(filepath.Join(t.TempDir(), "lifeos.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.DB().Close()
+	boardStore := store.NewSmartBoardStore(db.DB())
+	if err := boardStore.SavePanel("blockers", model.BlockersData{Blockers: []model.BlockerItem{
+		{ID: "b-1", Title: "Waiting on review", Blocker: "PR 42 needs approval", Context: "Release is paused"},
+	}}, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := boardStore.SavePanel("achievements", model.AchievementsData{Achievements: []model.AchievementItem{
+		{ID: "a-1", Title: "Shipped API", Achievement: "Released the API"},
+	}}, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	var sidecarPrompt string
+	sidecarServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/agent/session":
+			_ = json.NewEncoder(w).Encode(map[string]string{"sessionId": "session-1"})
+		case "/agent/session/chat":
+			var request sidecar.AgentSessionChatRequest
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Fatal(err)
+			}
+			sidecarPrompt = request.Message
+			_ = json.NewEncoder(w).Encode(map[string]string{"response": "reply"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer sidecarServer.Close()
+
+	conversationStore := store.NewAgentConversationStore(db.DB())
+	svc := service.NewAgentChatService(nil, nil, nil, boardStore, sidecar.New(sidecarServer.URL), conversationStore)
+	conversation, err := svc.CreateConversation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.SendMessage(conversation.ID, service.SendAgentMessageInput{
+		Message: "Help me prioritize", Contexts: []model.AgentMessageContext{
+			{Kind: "card", PanelType: "blockers", ItemID: "b-1", Label: "forged label"},
+			{Kind: "panel", PanelType: "achievements", Label: "forged panel"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(sidecarPrompt, "Help me prioritize") || !strings.Contains(sidecarPrompt, "PR 42 needs approval") || !strings.Contains(sidecarPrompt, "Released the API") || strings.Contains(sidecarPrompt, "forged") {
+		t.Fatalf("sidecar prompt = %q", sidecarPrompt)
+	}
+	_, messages, err := svc.GetConversation(conversation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 2 || messages[0].Content != "Help me prioritize" || strings.Contains(messages[0].Content, "PR 42") || len(messages[0].Contexts) != 2 {
+		t.Fatalf("messages = %#v", messages)
+	}
+	if messages[0].Contexts[0].Label != "Waiting on review" || messages[0].Contexts[1].Label != "Achievements" {
+		t.Fatalf("contexts = %#v", messages[0].Contexts)
+	}
+}
+
+func TestAgentChatServiceRejectsMissingSmartBoardContext(t *testing.T) {
+	chatStore := &agentConversationStoreStub{conversation: &model.AgentConversation{
+		ID: "conversation-1", Source: model.AgentConversationSource, OpenCodeSessionID: "session-1",
+	}}
+	svc := service.NewAgentChatService(nil, nil, nil, nil, sidecar.New("http://unused"), chatStore)
+	_, err := svc.SendMessage("conversation-1", service.SendAgentMessageInput{
+		Message: "hello", Contexts: []model.AgentMessageContext{{Kind: "card", PanelType: "blockers", ItemID: "missing"}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "unavailable") || len(chatStore.messages) != 0 {
+		t.Fatalf("err = %v, messages = %#v", err, chatStore.messages)
 	}
 }
 

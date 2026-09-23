@@ -101,9 +101,11 @@ func (s *SQLiteStore) migrate() error {
 			conversation_id TEXT NOT NULL,
 			role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
 			content TEXT NOT NULL,
+			context_refs TEXT NOT NULL DEFAULT '[]',
 			created_at DATETIME NOT NULL,
 			FOREIGN KEY(conversation_id) REFERENCES agent_conversations(id) ON DELETE CASCADE
 		);`,
+		`ALTER TABLE agent_messages ADD COLUMN context_refs TEXT NOT NULL DEFAULT '[]';`,
 		`CREATE INDEX IF NOT EXISTS idx_agent_messages_conversation_created
 			ON agent_messages(conversation_id, created_at, id);`,
 

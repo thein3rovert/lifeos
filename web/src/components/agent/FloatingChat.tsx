@@ -8,14 +8,51 @@ import {
   Minimize2,
   RefreshCw,
   Square,
+  X,
 } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
 import { api } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
-import type { AgentConversation, AgentConversationMessage } from '@/types';
+import type {
+  AgentConversation,
+  AgentConversationMessage,
+  AgentMessageContext,
+  PanelType,
+  SmartBoardPanelResponse,
+} from '@/types';
 
 type ChatView = 'history' | 'conversation';
+type PickerKind = AgentMessageContext['kind'];
+
+const PANEL_TYPES: PanelType[] = ['things-to-remember', 'suggestions', 'achievements', 'blockers'];
+
+const PANEL_LABELS: Record<PanelType, string> = {
+  'things-to-remember': 'Things to Remember',
+  suggestions: 'Suggestions',
+  achievements: 'Achievements',
+  blockers: 'Blockers',
+};
+
+function getPanelItems(response: SmartBoardPanelResponse): Array<{ id: string; title: string }> {
+  if (!response.data) return [];
+
+  switch (response.panelType) {
+    case 'things-to-remember':
+      return 'items' in response.data ? response.data.items : [];
+    case 'suggestions':
+      return 'suggestions' in response.data ? response.data.suggestions : [];
+    case 'achievements':
+      return 'achievements' in response.data ? response.data.achievements : [];
+    case 'blockers':
+      return 'blockers' in response.data ? response.data.blockers : [];
+  }
+}
+
+function contextKey(context: AgentMessageContext) {
+  return `${context.kind}:${context.panelType}:${context.itemId ?? ''}`;
+}
 
 function sortConversations(conversations: AgentConversation[]) {
   return [...conversations].sort(
@@ -37,10 +74,55 @@ export function FloatingChat() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [contexts, setContexts] = useState<AgentMessageContext[]>([]);
+  const [cardOptions, setCardOptions] = useState<AgentMessageContext[]>([]);
+  const [pickerKind, setPickerKind] = useState<PickerKind | null>(null);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [pickerStart, setPickerStart] = useState(0);
+  const [pickerIndex, setPickerIndex] = useState(0);
+  const [isPickerLoading, setIsPickerLoading] = useState(false);
+  const [pickerError, setPickerError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
   const activeRequestIdRef = useRef<string | null>(null);
   const stoppedRequestIdsRef = useRef(new Set<string>());
+  const pickerLoadInFlightRef = useRef(false);
+
+  const panelOptions: AgentMessageContext[] = PANEL_TYPES.map((panelType) => ({
+    kind: 'panel',
+    panelType,
+    label: PANEL_LABELS[panelType],
+  }));
+  const pickerOptions = (pickerKind === 'card' ? cardOptions : panelOptions).filter((option) =>
+    option.label.toLocaleLowerCase().includes(pickerQuery.toLocaleLowerCase())
+  );
+
+  const loadPickerData = async () => {
+    if (pickerLoadInFlightRef.current) return;
+    pickerLoadInFlightRef.current = true;
+    setIsPickerLoading(true);
+    setPickerError(false);
+    try {
+      const panels = await Promise.all(
+        PANEL_TYPES.map((panelType) => api.smartboard.getPanel(panelType))
+      );
+      setCardOptions(
+        panels.flatMap((panel) =>
+          getPanelItems(panel).map((item) => ({
+            kind: 'card' as const,
+            panelType: panel.panelType,
+            itemId: item.id,
+            label: item.title,
+          }))
+        )
+      );
+    } catch {
+      setPickerError(true);
+    } finally {
+      pickerLoadInFlightRef.current = false;
+      setIsPickerLoading(false);
+    }
+  };
 
   const loadConversations = async () => {
     setIsHistoryLoading(true);
@@ -116,6 +198,8 @@ export function FloatingChat() {
     setMessages([]);
     setTranscriptError(null);
     setSendError(null);
+    setContexts([]);
+    setPickerKind(null);
   };
 
   const updateConversationList = (conversation: AgentConversation) => {
@@ -129,9 +213,12 @@ export function FloatingChat() {
     if (!content || isSending || isTranscriptLoading) return;
     const optimisticId = `pending-${Date.now()}`;
     const requestId = crypto.randomUUID();
+    const messageContexts = contexts;
     activeRequestIdRef.current = requestId;
 
     setDraft('');
+    setContexts([]);
+    setPickerKind(null);
     setSendError(null);
     setIsSending(true);
 
@@ -149,10 +236,16 @@ export function FloatingChat() {
         role: 'user',
         content,
         createdAt: new Date().toISOString(),
+        contexts: messageContexts,
       };
       setMessages((current) => [...current, optimisticMessage]);
 
-      const data = await api.agent.sendMessage(conversation.id, content, requestId);
+      const data = await api.agent.sendMessage(
+        conversation.id,
+        content,
+        requestId,
+        messageContexts
+      );
       if (stoppedRequestIdsRef.current.has(requestId)) return;
       setMessages((current) => [...current, data.message]);
       setActiveConversation(data.conversation);
@@ -162,6 +255,7 @@ export function FloatingChat() {
       setMessages((current) => current.filter((item) => item.id !== optimisticId));
       setSendError(getErrorMessage(error));
       setDraft(content);
+      setContexts(messageContexts);
     } finally {
       stoppedRequestIdsRef.current.delete(requestId);
       if (activeRequestIdRef.current === requestId) {
@@ -169,6 +263,59 @@ export function FloatingChat() {
         setIsSending(false);
       }
     }
+  };
+
+  const updateDraft = (value: string) => {
+    setDraft(value);
+    const match = /(^|\s)([@/])([^\s@/]*)$/.exec(value);
+    if (!match) {
+      setPickerKind(null);
+      return;
+    }
+
+    const kind = match[2] === '@' ? 'card' : 'panel';
+    setPickerKind(kind);
+    setPickerQuery(match[3]);
+    setPickerStart(match.index + match[1].length);
+    setPickerIndex(0);
+    if (kind === 'card' && pickerKind !== 'card') void loadPickerData();
+  };
+
+  const selectContext = (context: AgentMessageContext) => {
+    setContexts((current) =>
+      current.some((item) => contextKey(item) === contextKey(context))
+        ? current
+        : [...current, context]
+    );
+    setDraft((current) => current.slice(0, pickerStart).trimEnd());
+    setPickerKind(null);
+  };
+
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (pickerKind) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setPickerKind(null);
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (pickerOptions.length > 0) {
+          const direction = event.key === 'ArrowDown' ? 1 : -1;
+          setPickerIndex(
+            (current) => (current + direction + pickerOptions.length) % pickerOptions.length
+          );
+        }
+        return;
+      }
+      if (event.key === 'Enter' && pickerOptions[pickerIndex]) {
+        event.preventDefault();
+        selectContext(pickerOptions[pickerIndex]);
+        return;
+      }
+    }
+
+    if (event.key === 'Enter') void handleSend();
   };
 
   const handleStop = async () => {
@@ -334,6 +481,18 @@ export function FloatingChat() {
                             : 'bg-white/10 text-primary'
                         }`}
                       >
+                        {item.role === 'user' && item.contexts && item.contexts.length > 0 && (
+                          <div className="mb-1.5 flex flex-wrap gap-1">
+                            {item.contexts.map((context) => (
+                              <span
+                                key={contextKey(context)}
+                                className="rounded-full bg-black/20 px-2 py-0.5 text-[11px] text-white/90"
+                              >
+                                {context.kind === 'card' ? '@' : '/'} {context.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {item.role === 'assistant' ? (
                           <div className="prose prose-invert prose-sm max-w-none">
                             <RenderMarkdown>{item.content}</RenderMarkdown>
@@ -366,9 +525,74 @@ export function FloatingChat() {
       </div>
 
       <div
-        className="rounded-full border border-default bg-[#0f0f0f] px-4 py-3 shadow-lg sm:px-6"
+        className="relative rounded-2xl border border-default bg-[#0f0f0f] px-4 py-3 shadow-lg sm:px-6"
         style={{ backgroundColor: '#0f0f0f' }}
       >
+        {pickerKind && (
+          <div
+            role="listbox"
+            aria-label={pickerKind === 'card' ? 'Smart Board cards' : 'Smart Board panels'}
+            className="absolute inset-x-0 bottom-full mb-2 max-h-56 overflow-y-auto rounded-xl border border-default bg-[#171717] p-1 shadow-xl"
+          >
+            {isPickerLoading ? (
+              <p className="px-3 py-2 text-xs text-secondary">Loading Smart Board...</p>
+            ) : pickerError && pickerKind === 'card' ? (
+              <p className="px-3 py-2 text-xs text-red-400">Could not load Smart Board cards.</p>
+            ) : pickerOptions.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-secondary">No matching results.</p>
+            ) : (
+              pickerOptions.map((option, index) => (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={index === pickerIndex}
+                  key={contextKey(option)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectContext(option)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                    index === pickerIndex
+                      ? 'bg-white/10 text-primary'
+                      : 'text-secondary hover:bg-white/5'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {option.kind === 'card' && (
+                    <span className="ml-3 text-[11px] text-secondary">
+                      {PANEL_LABELS[option.panelType]}
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+        {contexts.length > 0 && (
+          <fieldset
+            className="mb-2 flex flex-wrap gap-1.5 border-0 pl-10"
+            aria-label="Selected context"
+          >
+            {contexts.map((context) => (
+              <span
+                key={contextKey(context)}
+                className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-xs text-primary"
+              >
+                {context.kind === 'card' ? '@' : '/'} {context.label}
+                <button
+                  type="button"
+                  aria-label={`Remove ${context.label}`}
+                  onClick={() =>
+                    setContexts((current) =>
+                      current.filter((item) => contextKey(item) !== contextKey(context))
+                    )
+                  }
+                  className="rounded-full text-secondary hover:text-primary"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </fieldset>
+        )}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -388,8 +612,8 @@ export function FloatingChat() {
               setIsExpanded(true);
               if (view === 'history') startNewConversation();
             }}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => event.key === 'Enter' && void handleSend()}
+            onChange={(event) => updateDraft(event.target.value)}
+            onKeyDown={handleComposerKeyDown}
             placeholder="Ask your agent anything..."
             disabled={isSending || isTranscriptLoading}
             className="min-w-0 flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none disabled:opacity-60"

@@ -14,9 +14,17 @@ type AgentConversation struct {
 }
 
 type AgentMessage struct {
-	ID             string    `json:"id"`
-	ConversationID string    `json:"conversationId"`
-	Role           string    `json:"role"`
-	Content        string    `json:"content"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID             string                `json:"id"`
+	ConversationID string                `json:"conversationId"`
+	Role           string                `json:"role"`
+	Content        string                `json:"content"`
+	Contexts       []AgentMessageContext `json:"contexts,omitempty"`
+	CreatedAt      time.Time             `json:"createdAt"`
+}
+
+type AgentMessageContext struct {
+	Kind      string `json:"kind"`
+	PanelType string `json:"panelType"`
+	ItemID    string `json:"itemId,omitempty"`
+	Label     string `json:"label"`
 }

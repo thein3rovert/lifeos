@@ -1,4 +1,4 @@
-import type { AgentConversation, AgentConversationMessage } from '@/types';
+import type { AgentConversation, AgentConversationMessage, AgentMessageContext } from '@/types';
 import { fetcher } from './client';
 
 export const agentApi = {
@@ -12,12 +12,17 @@ export const agentApi = {
     fetcher<{ conversation: AgentConversation; messages: AgentConversationMessage[] }>(
       `/api/agent/conversations/${encodeURIComponent(id)}`
     ),
-  sendMessage: (id: string, message: string, requestId?: string) =>
+  sendMessage: (
+    id: string,
+    message: string,
+    requestId?: string,
+    contexts: AgentMessageContext[] = []
+  ) =>
     fetcher<{ message: AgentConversationMessage; conversation: AgentConversation }>(
       `/api/agent/conversations/${encodeURIComponent(id)}/messages`,
       {
         method: 'POST',
-        body: JSON.stringify({ message, requestId }),
+        body: JSON.stringify({ message, requestId, contexts }),
       }
     ),
   abort: (requestId: string) =>
