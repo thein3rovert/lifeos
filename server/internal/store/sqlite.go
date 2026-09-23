@@ -85,6 +85,28 @@ func (s *SQLiteStore) migrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_chat_messages_skill_session ON chat_messages(skill_id, session_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);`,
 
+		// ── agent conversations ─────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS agent_conversations (
+			id TEXT PRIMARY KEY,
+			source TEXT NOT NULL,
+			title TEXT NOT NULL,
+			opencode_session_id TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_agent_conversations_source_updated
+			ON agent_conversations(source, updated_at DESC);`,
+		`CREATE TABLE IF NOT EXISTS agent_messages (
+			id TEXT PRIMARY KEY,
+			conversation_id TEXT NOT NULL,
+			role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+			content TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(conversation_id) REFERENCES agent_conversations(id) ON DELETE CASCADE
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_agent_messages_conversation_created
+			ON agent_messages(conversation_id, created_at, id);`,
+
 		// ── skill_notes ──────────────────────────────────────────
 		`CREATE TABLE IF NOT EXISTS skill_notes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -7,6 +7,68 @@ const router = Router();
 // Track active opencode requests for cancellation
 const activeRequests = new Map();
 
+// POST /agent/session - Explicitly create a session for persisted callers.
+router.post('/session', async (req, res) => {
+  const { title = 'agent-chat', context } = req.body;
+  const client = getClient();
+
+  try {
+    const session = await client.session.create({ body: { title } });
+    const sessionId = session.data.id;
+    if (context) {
+      await client.session.prompt({
+        path: { id: sessionId },
+        body: { noReply: true, parts: [{ type: 'text', text: context }] },
+      });
+    }
+    return res.status(200).json({ sessionId });
+  } catch (err) {
+    console.error('[Agent] Failed to create session:', err.message);
+    return res.status(500).json({ error: 'Failed to create agent session' });
+  }
+});
+
+// POST /agent/session/chat - Continue exactly one existing session.
+router.post('/session/chat', async (req, res) => {
+  const { sessionId, message, requestId } = req.body;
+  if (!sessionId || !message) {
+    return res.status(400).json({ error: 'sessionId and message are required' });
+  }
+
+  const client = getClient();
+  try {
+    await client.session.get({ path: { id: sessionId } });
+  } catch (err) {
+    return res.status(404).json({ error: 'Agent session not found' });
+  }
+
+  const abortController = new AbortController();
+  if (requestId) {
+    activeRequests.set(requestId, { abortController, startTime: Date.now() });
+  }
+
+  try {
+    const result = await client.session.prompt({
+      path: { id: sessionId },
+      body: { parts: [{ type: 'text', text: message }] },
+      signal: abortController.signal,
+    });
+    const response = result.data.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('');
+    return res.json({ response, sessionId });
+  } catch (err) {
+    if (err.name === 'AbortError' || abortController.signal.aborted) {
+      return res.status(499).json({ error: 'Request was aborted', sessionId });
+    }
+    console.error(`[Agent] Failed to continue session ${sessionId}:`, err.message);
+    return res.status(500).json({ error: 'Failed to send message to agent' });
+  } finally {
+    if (requestId) activeRequests.delete(requestId);
+  }
+});
+
 // POST /agent/chat - Agent chat endpoint with MCP tools access
 router.post('/chat', async (req, res) => {
   const { message, sessionId, structuredOutput, context, requestId } = req.body;
@@ -110,9 +172,10 @@ router.post('/chat', async (req, res) => {
     console.log(`[Agent] ⏳ Waiting for response (timeout: 10min)...`);
 
     startTime = Date.now();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out after 600s')), 600000)
-    );
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Request timed out after 600s')), 600000);
+    });
 
     const promptPromise = client.session.prompt({
       path: { id: activeSessionId },
@@ -133,6 +196,8 @@ router.post('/chat', async (req, res) => {
         console.log(`[Agent] ⚠️  Failed to abort session:`, abortErr.message);
       }
       throw timeoutError; // Re-throw to trigger error handling below
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);

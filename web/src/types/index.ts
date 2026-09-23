@@ -61,6 +61,20 @@ export interface ChatSession {
   sessionId: string;
 }
 
+export interface AgentConversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentConversationMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
+
 // -----------------------------------------------------------------------------
 // AI Types
 // -----------------------------------------------------------------------------

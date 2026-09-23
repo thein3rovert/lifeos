@@ -95,6 +95,7 @@ func runHTTPServer() {
 	smartBoardStore := store.NewSmartBoardStore(db.DB())
 	calendarStore := store.NewCalendarStore(db.DB())
 	habitStore := store.NewHabitStore(db.DB())
+	agentConversationStore := store.NewAgentConversationStore(db.DB())
 
 	mux := http.NewServeMux()
 
@@ -102,7 +103,7 @@ func runHTTPServer() {
 	sidecarClient := sidecar.New(cfg.SidecarURL)
 
 	// ── Initialize services ─────────────────────────────────────
-	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, smartBoardStore, sidecarClient)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, smartBoardStore, sidecarClient, agentConversationStore)
 	noteService := service.NewNoteService(noteStore, skillStore)
 	skillAIService := service.NewSkillAIService(skillStore, noteStore, sidecarClient)
 	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService, cfg.MeetingsPath, cfg.JournalPath)
@@ -163,6 +164,10 @@ func runHTTPServer() {
 	// Agent chat (general assistant with MCP tools)
 	mux.HandleFunc("POST /api/agent/chat", agentAPI.AgentChatMessage)
 	mux.HandleFunc("POST /api/agent/abort", agentAPI.AbortRequest)
+	mux.HandleFunc("POST /api/agent/conversations", agentAPI.CreateConversation)
+	mux.HandleFunc("GET /api/agent/conversations", agentAPI.ListConversations)
+	mux.HandleFunc("GET /api/agent/conversations/{conversationId}", agentAPI.GetConversation)
+	mux.HandleFunc("POST /api/agent/conversations/{conversationId}/messages", agentAPI.SendConversationMessage)
 
 	// Smart Board
 	mux.HandleFunc("POST /api/smartboard/refresh/{panelType}", smartBoardAPI.RefreshPanel)

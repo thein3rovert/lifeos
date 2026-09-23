@@ -67,6 +67,14 @@ type AgentChatResponse struct {
 	SessionID string `json:"sessionId"`
 }
 
+// AgentSessionChatRequest continues one exact pre-existing agent session.
+// TODO: Move this to a AgentChatRequest above as this is duplicate
+type AgentSessionChatRequest struct {
+	SessionID string `json:"sessionId"`
+	Message   string `json:"message"`
+	RequestID string `json:"requestId,omitempty"`
+}
+
 // ── Endpoints ──────────────────────────────────────────────────────────
 
 // UpdateSkill sends the current skill text plus buffered notes to the sidecar
@@ -142,6 +150,34 @@ func (c *Client) SendAgentChat(req AgentChatRequest) (AgentChatResponse, error) 
 		return AgentChatResponse{}, err
 	}
 	return out, nil
+}
+
+// CreateAgentSession explicitly creates a new general-purpose agent session.
+// POST /agent/session
+func (c *Client) CreateAgentSession(title, context string) (string, error) {
+	var out struct {
+		SessionID string `json:"sessionId"`
+	}
+	if err := c.postJSON("/agent/session", map[string]string{"title": title, "context": context}, &out); err != nil {
+		return "", err
+	}
+	if out.SessionID == "" {
+		return "", fmt.Errorf("sidecar returned empty sessionId")
+	}
+	return out.SessionID, nil
+}
+
+// SendAgentSessionChat continues the exact session ID supplied. The sidecar
+// returns an error instead of silently creating a replacement session.
+// POST /agent/session/chat
+func (c *Client) SendAgentSessionChat(req AgentSessionChatRequest) (string, error) {
+	var out struct {
+		Response string `json:"response"`
+	}
+	if err := c.postJSON("/agent/session/chat", req, &out); err != nil {
+		return "", err
+	}
+	return out.Response, nil
 }
 
 // AbortAgentRequest cancels an in-flight agent request by its ID.

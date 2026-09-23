@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/thein3rovert/lifeos/server/internal/model"
 	"github.com/thein3rovert/lifeos/server/internal/sidecar"
 	"github.com/thein3rovert/lifeos/server/internal/store"
@@ -23,11 +24,12 @@ type skillSessionStore interface {
 // persistence, and dispatch to the sidecar. All sidecar I/O goes through
 // the injected sidecar.Client so this service stays transport-agnostic.
 type AgentChatService struct {
-	skillStore      skillSessionStore
-	msgStore        store.ChatMessageStore
-	noteStore       store.NoteStore
-	smartBoardStore store.SmartBoardStore
-	sidecar         *sidecar.Client
+	skillStore        skillSessionStore
+	msgStore          store.ChatMessageStore
+	conversationStore store.AgentConversationStore
+	noteStore         store.NoteStore
+	smartBoardStore   store.SmartBoardStore
+	sidecar           *sidecar.Client
 }
 
 func NewAgentChatService(
@@ -36,14 +38,99 @@ func NewAgentChatService(
 	noteStore store.NoteStore,
 	smartBoardStore store.SmartBoardStore,
 	sc *sidecar.Client,
+	conversationStore store.AgentConversationStore,
 ) *AgentChatService {
 	return &AgentChatService{
-		skillStore:      skillStore,
-		msgStore:        msgStore,
-		noteStore:       noteStore,
-		smartBoardStore: smartBoardStore,
-		sidecar:         sc,
+		skillStore:        skillStore,
+		msgStore:          msgStore,
+		conversationStore: conversationStore,
+		noteStore:         noteStore,
+		smartBoardStore:   smartBoardStore,
+		sidecar:           sc,
 	}
+}
+
+const newAgentConversationTitle = "New conversation"
+
+type SendAgentMessageInput struct {
+	Message   string `json:"message"`
+	RequestID string `json:"requestId,omitempty"`
+}
+
+func (s *AgentChatService) CreateConversation() (*model.AgentConversation, error) {
+	sessionID, err := s.sidecar.CreateAgentSession("lifeos-floating-chat", s.latestPanelsContext(7))
+	if err != nil {
+		return nil, fmt.Errorf("create agent session: %w", err)
+	}
+	now := time.Now()
+	conversation := &model.AgentConversation{
+		ID: uuid.NewString(), Source: model.AgentConversationSource, Title: newAgentConversationTitle,
+		OpenCodeSessionID: sessionID, CreatedAt: now, UpdatedAt: now,
+	}
+	if err := s.conversationStore.CreateConversation(conversation); err != nil {
+		return nil, fmt.Errorf("create conversation: %w", err)
+	}
+	return conversation, nil
+}
+
+func (s *AgentChatService) ListConversations() ([]model.AgentConversation, error) {
+	return s.conversationStore.ListConversations(model.AgentConversationSource)
+}
+
+func (s *AgentChatService) GetConversation(id string) (*model.AgentConversation, []model.AgentMessage, error) {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return nil, nil, err
+	}
+	messages, err := s.conversationStore.ListMessages(id)
+	return conversation, messages, err
+}
+
+func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (*model.AgentMessage, error) {
+	message := strings.TrimSpace(input.Message)
+	if message == "" {
+		return nil, &ValidationError{Message: "message is required"}
+	}
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	userMessage := &model.AgentMessage{
+		ID: uuid.NewString(), ConversationID: id, Role: "user", Content: message, CreatedAt: now,
+	}
+	if err := s.conversationStore.AddMessage(userMessage); err != nil {
+		return nil, fmt.Errorf("save user message: %w", err)
+	}
+	if conversation.Title == newAgentConversationTitle {
+		if err := s.conversationStore.UpdateConversationTitle(id, model.AgentConversationSource, agentConversationTitle(message)); err != nil {
+			return nil, fmt.Errorf("update conversation title: %w", err)
+		}
+	}
+
+	response, err := s.sidecar.SendAgentSessionChat(sidecar.AgentSessionChatRequest{
+		SessionID: conversation.OpenCodeSessionID, Message: message, RequestID: input.RequestID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("continue agent session: %w", err)
+	}
+	assistantMessage := &model.AgentMessage{
+		ID: uuid.NewString(), ConversationID: id, Role: "assistant", Content: response, CreatedAt: time.Now(),
+	}
+	if err := s.conversationStore.AddMessage(assistantMessage); err != nil {
+		return nil, fmt.Errorf("save assistant message: %w", err)
+	}
+	return assistantMessage, nil
+}
+
+func agentConversationTitle(message string) string {
+	const maxRunes = 60
+	runes := []rune(strings.Join(strings.Fields(message), " "))
+	if len(runes) <= maxRunes {
+		return string(runes)
+	}
+	return string(runes[:maxRunes]) + "..."
 }
 
 // ── Request/response types re-exported from sidecar for handler convenience ──

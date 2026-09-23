@@ -84,7 +84,7 @@ else
 fi
 
 # 2. Start Sidecar
-start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && PORT=$PORT npm start" "$PORT"
+start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && PORT=$PORT OPENCODE_URL=http://127.0.0.1:$OPENCODE_PORT npm start" "$PORT"
 sleep 2
 
 # 3. Start Go Backend (wrap in `nix develop` so we get the right Go version)
