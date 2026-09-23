@@ -1,5 +1,16 @@
-import { ArrowLeft, ChevronUp, History, Loader2, MessageSquarePlus, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronUp,
+  History,
+  Loader2,
+  Maximize2,
+  MessageSquarePlus,
+  Minimize2,
+  RefreshCw,
+  Square,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
 import { api } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import type { AgentConversation, AgentConversationMessage } from '@/types';
@@ -14,6 +25,7 @@ function sortConversations(conversations: AgentConversation[]) {
 
 export function FloatingChat() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [view, setView] = useState<ChatView>('history');
   const [draft, setDraft] = useState('');
   const [conversations, setConversations] = useState<AgentConversation[]>([]);
@@ -27,6 +39,8 @@ export function FloatingChat() {
   const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
+  const stoppedRequestIdsRef = useRef(new Set<string>());
 
   const loadConversations = async () => {
     setIsHistoryLoading(true);
@@ -114,6 +128,8 @@ export function FloatingChat() {
     const content = draft.trim();
     if (!content || isSending || isTranscriptLoading) return;
     const optimisticId = `pending-${Date.now()}`;
+    const requestId = crypto.randomUUID();
+    activeRequestIdRef.current = requestId;
 
     setDraft('');
     setSendError(null);
@@ -136,29 +152,59 @@ export function FloatingChat() {
       };
       setMessages((current) => [...current, optimisticMessage]);
 
-      const data = await api.agent.sendMessage(conversation.id, content);
+      const data = await api.agent.sendMessage(conversation.id, content, requestId);
+      if (stoppedRequestIdsRef.current.has(requestId)) return;
       setMessages((current) => [...current, data.message]);
       setActiveConversation(data.conversation);
       updateConversationList(data.conversation);
     } catch (error) {
+      if (stoppedRequestIdsRef.current.has(requestId)) return;
       setMessages((current) => current.filter((item) => item.id !== optimisticId));
       setSendError(getErrorMessage(error));
       setDraft(content);
     } finally {
-      setIsSending(false);
+      stoppedRequestIdsRef.current.delete(requestId);
+      if (activeRequestIdRef.current === requestId) {
+        activeRequestIdRef.current = null;
+        setIsSending(false);
+      }
+    }
+  };
+
+  const handleStop = async () => {
+    const requestId = activeRequestIdRef.current;
+    if (!requestId) return;
+
+    stoppedRequestIdsRef.current.add(requestId);
+    activeRequestIdRef.current = null;
+    setIsSending(false);
+    setSendError(null);
+
+    try {
+      await api.agent.abort(requestId);
+    } catch (error) {
+      stoppedRequestIdsRef.current.delete(requestId);
+      setSendError(`Could not stop the response: ${getErrorMessage(error)}`);
     }
   };
 
   return (
     <div
       ref={chatPanelRef}
-      className="fixed bottom-8 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2"
+      className={`fixed bottom-8 left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 transition-[max-width] duration-200 ${
+        isMaximized ? 'max-w-[min(1100px,calc(100vw-2rem))]' : 'max-w-[600px]'
+      }`}
     >
       <div
         className={`mb-2 overflow-hidden rounded-xl border border-default bg-[#0f0f0f] shadow-lg transition-all duration-300 ease-in-out ${
           isExpanded ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
         }`}
-        style={{ height: isExpanded ? '400px' : '0px', backgroundColor: '#0f0f0f' }}
+        style={{
+          height: isExpanded ? (isMaximized ? 'calc(100vh - 8rem)' : '400px') : '0px',
+          minHeight: isExpanded ? '280px' : '0px',
+          maxHeight: 'calc(100vh - 8rem)',
+          backgroundColor: '#0f0f0f',
+        }}
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-default px-4 py-3">
@@ -179,6 +225,15 @@ export function FloatingChat() {
                   : activeConversation?.title || 'New conversation'}
               </h2>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsMaximized((current) => !current)}
+              aria-label={isMaximized ? 'Restore chat panel size' : 'Expand chat panel'}
+              title={isMaximized ? 'Restore size' : 'Expand chat'}
+              className="ml-auto rounded-full p-1 text-secondary transition-colors hover:bg-white/10 hover:text-primary"
+            >
+              {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
             <button
               type="button"
               onClick={startNewConversation}
@@ -279,7 +334,13 @@ export function FloatingChat() {
                             : 'bg-white/10 text-primary'
                         }`}
                       >
-                        {item.content}
+                        {item.role === 'assistant' ? (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <RenderMarkdown>{item.content}</RenderMarkdown>
+                          </div>
+                        ) : (
+                          item.content
+                        )}
                       </div>
                     </div>
                   ))}
@@ -334,24 +395,36 @@ export function FloatingChat() {
             className="min-w-0 flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none disabled:opacity-60"
           />
 
-          <button
-            type="button"
-            onClick={() => void handleSend()}
-            aria-label="Send message"
-            disabled={!draft.trim() || isSending || isTranscriptLoading}
-            className="rounded-full p-1.5 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              className="h-4 w-4 text-secondary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              aria-hidden="true"
+          {isSending ? (
+            <button
+              type="button"
+              onClick={() => void handleStop()}
+              aria-label="Stop response"
+              title="Stop response"
+              className="rounded-full bg-white/10 p-1.5 text-primary transition-colors hover:bg-white/15"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </button>
+              <Square className="h-3.5 w-3.5" fill="currentColor" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleSend()}
+              aria-label="Send message"
+              disabled={!draft.trim() || isTranscriptLoading}
+              className="rounded-full p-1.5 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg
+                className="h-4 w-4 text-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

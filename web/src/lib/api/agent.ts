@@ -12,12 +12,17 @@ export const agentApi = {
     fetcher<{ conversation: AgentConversation; messages: AgentConversationMessage[] }>(
       `/api/agent/conversations/${encodeURIComponent(id)}`
     ),
-  sendMessage: (id: string, message: string) =>
+  sendMessage: (id: string, message: string, requestId?: string) =>
     fetcher<{ message: AgentConversationMessage; conversation: AgentConversation }>(
       `/api/agent/conversations/${encodeURIComponent(id)}/messages`,
       {
         method: 'POST',
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, requestId }),
       }
     ),
+  abort: (requestId: string) =>
+    fetcher<{ aborted: boolean; requestId: string }>('/api/agent/abort', {
+      method: 'POST',
+      body: JSON.stringify({ requestId }),
+    }),
 };

@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FloatingChat } from '@/components/agent/FloatingChat';
 import { api } from '@/lib/api';
 import type { AgentConversation, AgentConversationMessage } from '@/types';
-import { FloatingChat } from '@/components/agent/FloatingChat';
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -11,6 +11,7 @@ vi.mock('@/lib/api', () => ({
       listConversations: vi.fn(),
       getConversation: vi.fn(),
       sendMessage: vi.fn(),
+      abort: vi.fn(),
     },
   },
 }));
@@ -33,6 +34,15 @@ const transcript: AgentConversationMessage[] = [
     id: 'message-2',
     role: 'assistant',
     content: 'Start with the release checklist.',
+    createdAt: '2026-09-23T10:00:01Z',
+  },
+];
+
+const markdownTranscript: AgentConversationMessage[] = [
+  {
+    id: 'message-markdown',
+    role: 'assistant',
+    content: '## Summary\n\n**Important**\n\n- First item',
     createdAt: '2026-09-23T10:00:01Z',
   },
 ];
@@ -88,7 +98,11 @@ describe('FloatingChat', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
     await waitFor(() =>
-      expect(api.agent.sendMessage).toHaveBeenCalledWith('conversation-1', 'What next?')
+      expect(api.agent.sendMessage).toHaveBeenCalledWith(
+        'conversation-1',
+        'What next?',
+        expect.any(String)
+      )
     );
     expect(api.agent.createConversation).not.toHaveBeenCalled();
     expect(await screen.findByText('Review the open pull requests.')).toBeTruthy();
@@ -116,7 +130,11 @@ describe('FloatingChat', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
     await waitFor(() => expect(api.agent.createConversation).toHaveBeenCalledOnce());
-    expect(api.agent.sendMessage).toHaveBeenCalledWith('conversation-2', 'Start fresh');
+    expect(api.agent.sendMessage).toHaveBeenCalledWith(
+      'conversation-2',
+      'Start fresh',
+      expect.any(String)
+    );
   });
 
   it('shows empty and failed history states without blocking a new chat', async () => {
@@ -132,5 +150,63 @@ describe('FloatingChat', () => {
     expect(await screen.findByText('No conversations yet.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Start a new chat' }));
     expect(screen.getByText('Start a conversation with your agent')).toBeTruthy();
+  });
+
+  it('renders assistant Markdown while keeping user content as plain text', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({
+      conversation,
+      messages: [{ ...transcript[0], content: '**plain user text**' }, ...markdownTranscript],
+    });
+    render(<FloatingChat />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+
+    expect(await screen.findByRole('heading', { name: 'Summary' })).toBeTruthy();
+    expect(screen.getByText('Important').tagName).toBe('STRONG');
+    expect(screen.getByText('First item').closest('li')).toBeTruthy();
+    expect(screen.getByText('**plain user text**').tagName).toBe('DIV');
+  });
+
+  it('expands and restores the chat panel within viewport bounds', async () => {
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+
+    const panel = screen.getByText('Conversations').closest<HTMLElement>('.overflow-hidden');
+    expect(panel?.style.height).toBe('400px');
+    expect(panel?.style.minHeight).toBe('280px');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand chat panel' }));
+    expect(panel?.style.height).toBe('calc(100vh - 8rem)');
+    expect(panel?.style.maxHeight).toBe('calc(100vh - 8rem)');
+    expect(screen.getByRole('button', { name: 'Restore chat panel size' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore chat panel size' }));
+    expect(panel?.style.height).toBe('400px');
+  });
+
+  it('stops an in-flight response and allows another message', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.abort).mockResolvedValue({ aborted: true, requestId: 'request-id' });
+    vi.mocked(api.agent.sendMessage).mockReturnValue(new Promise(() => undefined));
+    render(<FloatingChat />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    await screen.findByText('Start with the release checklist.');
+    fireEvent.change(screen.getByPlaceholderText('Ask your agent anything...'), {
+      target: { value: 'Long request' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    const stopButton = await screen.findByRole('button', { name: 'Stop response' });
+    const requestId = vi.mocked(api.agent.sendMessage).mock.calls[0][2];
+    fireEvent.click(stopButton);
+
+    await waitFor(() => expect(api.agent.abort).toHaveBeenCalledWith(requestId));
+    expect(screen.queryByRole('button', { name: 'Stop response' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeTruthy();
+    expect(screen.getByText('Long request')).toBeTruthy();
+    expect(screen.queryByText('Message failed to send. Your draft was restored.')).toBeNull();
   });
 });
