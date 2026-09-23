@@ -5,12 +5,13 @@ status: Done
 assignee:
   - opencode
 created_date: '2026-09-23 23:28'
-updated_date: '2026-09-23 23:31'
+updated_date: '2026-09-23 23:35'
 labels: []
 dependencies: []
 references:
   - web/src/components/agent/FloatingChat.tsx
 modified_files:
+  - docker-compose.prod.yml
   - web/src/components/agent/FloatingChat.tsx
   - web/src/lib/clientId.ts
   - web/src/test/ClientId.test.ts
@@ -45,10 +46,14 @@ Floating chat submission crashes in production over plain HTTP because crypto.ra
 
 <!-- SECTION:NOTES:BEGIN -->
 Replaced direct crypto.randomUUID calls with a browser-safe helper that prefers native randomUUID, falls back to getRandomValues UUID generation, then a timestamp/sequence/random fallback. Verified submit behavior with randomUUID unavailable. Focused tests passed 22/22 and production build passed.
+
+Production deployment also exposed that docker-compose.prod.yml did not pass API_URL to the SSR frontend. Added the runtime environment mapping, configured the deployment URL, recreated the frontend, and verified the production root returns HTTP 200.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Fixed floating-chat submission on plain-HTTP production origins where crypto.randomUUID is unavailable. Request and optimistic message IDs now use a secure-context-aware helper with layered fallbacks while preserving native UUID behavior when supported. Added helper and end-to-end component tests; focused frontend tests and production build pass.
+
+Production compose now passes API_URL to the frontend runtime; the recreated production frontend returns HTTP 200.
 <!-- SECTION:FINAL_SUMMARY:END -->
