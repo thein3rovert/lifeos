@@ -36,6 +36,7 @@ describe('agentApi', () => {
               label: 'Delegate reporting',
             },
           ],
+          delivery: 'queue',
         }),
       })
     );

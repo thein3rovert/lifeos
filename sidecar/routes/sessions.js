@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getClient } from '../client.js';
+import { getLocation, messageText, promptAndWait } from '../opencode.js';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.post('/getOrCreate', async (req, res) => {
   try {
     if (sessionId) {
       try {
-        await client.session.get({ path: { id: sessionId } });
+        await client.session.get({ sessionID: sessionId });
         console.log(`Resuming existing session: ${sessionId}`);
         return res.json({ sessionId });
       } catch (err) {
@@ -25,10 +26,11 @@ router.post('/getOrCreate', async (req, res) => {
     }
 
     const session = await client.session.create({
-      body: { title: `skill-${skillId}` },
+      title: `skill-${skillId}`,
+      location: getLocation(),
     });
-    console.log(`Created new session: ${session.data.id}`);
-    return res.json({ sessionId: session.data.id });
+    console.log(`Created new session: ${session.id}`);
+    return res.json({ sessionId: session.id });
   } catch (err) {
     console.error('Failed to get/create session:', err.message);
     return res.status(500).json({ error: 'Failed to manage session' });
@@ -57,17 +59,8 @@ ${skillContent}
 User: ${message}`;
     }
 
-    const result = await client.session.prompt({
-      path: { id: sessionId },
-      body: {
-        parts: [{ type: 'text', text: prompt }],
-      },
-    });
-
-    const response = result.data.parts
-      .filter((p) => p.type === 'text')
-      .map((p) => p.text)
-      .join('');
+    const result = await promptAndWait(client, sessionId, prompt);
+    const response = messageText(result);
 
     console.log(`Response received from session ${sessionId}`);
     return res.json({ response });
@@ -90,22 +83,16 @@ router.post('/messages', async (req, res) => {
   try {
     console.log(`[Messages] Fetching messages for session: ${sessionId}`);
 
-    // Use correct SDK method: client.session.messages()
-    const messages = await client.session.messages({
-      path: { id: sessionId },
-    });
+    const messages = await client.message.list({ sessionID: sessionId, order: 'asc' });
 
     console.log(`[Messages] Found ${messages.data.length} messages`);
 
     // Format for frontend
     const formattedMessages = messages.data.map((msg) => ({
-      id: msg.info.id,
-      role: msg.info.role,
-      content: msg.parts
-        .filter((p) => p.type === 'text')
-        .map((p) => p.text)
-        .join(''),
-      created: msg.info.created,
+      id: msg.id,
+      role: msg.type,
+      content: messageText(msg),
+      created: msg.time.created,
     }));
 
     return res.json({ messages: formattedMessages });

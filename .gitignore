@@ -58,5 +58,6 @@ tmp/
 # Node.js
 node_modules/
 package-lock.json
+!sidecar/package-lock.json
 /.next/
 logs

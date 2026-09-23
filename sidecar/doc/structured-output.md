@@ -15,13 +15,12 @@ Relies on prompt instructions ("Return valid JSON only") + backend's
 
 ### Structured Output (`USE_STRUCTURED_OUTPUT=true`)
 
-Uses provider-native `json_schema` format to constrain the response.
+OpenCode V2's `session.prompt` contract does not expose a response-format or
+JSON-schema field. The sidecar therefore keeps this flag for compatibility but
+falls back to prompt-only JSON parsing and logs the limitation.
 
-- ✅ Strict schema enforcement
-- ❌ **Does not work with thinking/reasoning models** (DeepSeek R1/v4-pro,
-  OpenAI o1, Claude w/ extended thinking) — they reject forced `tool_choice`
-- ❌ Most providers (OpenAI, DeepSeek) require object-root schemas — arrays
-  must be wrapped in `{ items: [...] }` (see `schemas/smartboard.js`)
+- ❌ No schema enforcement is available through the V2 session API
+- ✅ Works with thinking/reasoning models because no forced tool call is used
 
 ## How to switch
 
@@ -29,26 +28,14 @@ Uses provider-native `json_schema` format to constrain the response.
 # docker-compose.yml
 sidecar:
   environment:
-    - USE_STRUCTURED_OUTPUT=true   # only for non-thinking models
+    - USE_STRUCTURED_OUTPUT=true   # accepted, but V2 still uses prompt-only mode
 ```
 
-## Why thinking models can't be forced
+## V2 limitation
 
-Thinking models reason internally before producing output:
+The V1 SDK accepted a `format: { type: "json_schema", ... }` prompt option.
+`@opencode/client@2.0.15` accepts text and attachments but no format field.
+LifeOS continues to request JSON in the prompt and parse the returned text.
 
-```
-input → [reasoning tokens] → output
-```
-
-Forcing `tool_choice` says "your next token MUST be a function call" — but
-the model needs to think first. The two requirements conflict, so the
-provider rejects the request.
-
-**Workaround:** trust the prompt + parse the output. Modern thinking models
-follow JSON format instructions reliably.
-
-## Schema wrapping (when structured output is enabled)
-
-DeepSeek and OpenAI require root schemas to be `type: "object"`, not arrays.
-All schemas in `schemas/smartboard.js` are wrapped in `{ items: [...] }`
-and unwrapped in `routes/agent.js` before returning to the backend.
+The schemas remain in `schemas/smartboard.js` for a future V2 API that supports
+schema-constrained session prompts.

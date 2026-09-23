@@ -1,7 +1,7 @@
-import { createOpencodeClient } from '@opencode-ai/sdk';
 import { Agent, setGlobalDispatcher } from 'undici';
 import { createApp } from './app.js';
 import { setClient } from './client.js';
+import { createOpenCodeClient } from './opencode.js';
 
 // Configure global dispatcher with longer timeouts to prevent
 // HeadersTimeoutError (default is 300s) on long AI requests
@@ -15,24 +15,13 @@ setGlobalDispatcher(
 
 // TODO: This should be in env
 const PORT = process.env.PORT || 3002;
-const OPENCODE_URL = process.env.OPENCODE_URL || 'http://127.0.0.1:4097';
-
 async function initOpencode() {
   try {
-    const client = createOpencodeClient({
-      baseUrl: OPENCODE_URL,
-      fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(600_000) }), // 10 min timeout
-    });
-
-    // Health check
-    const checkHealthRequest = await fetch(`${OPENCODE_URL}/global/health`);
-    const opencodeConfigRequest = await fetch(`${OPENCODE_URL}/config`);
-    const config = await opencodeConfigRequest.json();
-    console.log('Model:', JSON.stringify(config.model, null, 2));
-
-    if (!checkHealthRequest.ok) throw new Error('OpenCode not healthy');
-    const data = await checkHealthRequest.json();
-    console.log('Connected to OpenCode, version:', data.version);
+    const { client, baseUrl, location } = await createOpenCodeClient();
+    const info = await client.server.info();
+    await client.location.get({ location });
+    console.log(`Connected to OpenCode ${info.version} at ${baseUrl}`);
+    console.log('OpenCode location:', location.directory);
 
     // Set the shared client instance
     setClient(client);

@@ -81,6 +81,63 @@ export interface AgentConversationMessage {
   content: string;
   createdAt: string;
   contexts?: AgentMessageContext[];
+  deliveryMode?: 'steer' | 'queue';
+  deliveryStatus?: 'pending' | 'accepted' | 'failed';
+  deliveryError?: string;
+}
+
+export interface AgentActivity {
+  id: string;
+  kind: 'status' | 'tool' | 'file' | 'mcp' | 'reasoning' | 'error';
+  status: 'started' | 'progress' | 'completed' | 'failed' | 'interrupted' | 'idle' | 'retry';
+  title: string;
+  detail?: string;
+  toolCallId?: string;
+  timestamp: string;
+}
+
+export interface AgentPermissionRequest {
+  id: string;
+  action: string;
+  resources: string[];
+  message?: string;
+}
+
+export interface AgentFormOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+export interface AgentFormField {
+  key: string;
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'multiselect' | 'external';
+  title?: string;
+  description?: string;
+  required?: boolean;
+  hidden?: boolean;
+  format?: 'email' | 'uri' | 'date' | 'date-time';
+  placeholder?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number | string;
+  maximum?: number | string;
+  minItems?: number;
+  maxItems?: number;
+  options?: AgentFormOption[];
+  default?: string | number | boolean | string[];
+  url?: string;
+}
+export type AgentFormValue = string | number | boolean | string[];
+export interface AgentSessionForm {
+  id: string;
+  title: string;
+  fields: AgentFormField[];
+  state: { status: 'pending' | 'answered' | 'cancelled'; answer?: Record<string, AgentFormValue> };
+}
+export interface AgentInteractions {
+  permissions: AgentPermissionRequest[];
+  forms: AgentSessionForm[];
 }
 
 // -----------------------------------------------------------------------------

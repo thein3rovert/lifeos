@@ -19,6 +19,10 @@ type AgentMessage struct {
 	Role           string                `json:"role"`
 	Content        string                `json:"content"`
 	Contexts       []AgentMessageContext `json:"contexts,omitempty"`
+	DeliveryMode   string                `json:"deliveryMode,omitempty"`
+	DeliveryStatus string                `json:"deliveryStatus,omitempty"`
+	DeliveryError  string                `json:"deliveryError,omitempty"`
+	Prompt         string                `json:"-"`
 	CreatedAt      time.Time             `json:"createdAt"`
 }
 

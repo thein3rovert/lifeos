@@ -50,6 +50,11 @@ services:
     environment:
       - NODE_ENV=production
       - OPENCODE_URL=${OPENCODE_URL:-http://host.containers.internal:4097}
+      - OPENCODE_DIRECTORY=${OPENCODE_DIRECTORY:-/app}
+      - OPENCODE_AUTHORIZATION=${OPENCODE_AUTHORIZATION:-}
+      - OPENCODE_TOKEN=${OPENCODE_TOKEN:-}
+      - OPENCODE_USERNAME=${OPENCODE_USERNAME:-}
+      - OPENCODE_PASSWORD=${OPENCODE_PASSWORD:-}
     restart: unless-stopped
     networks:
       - lifeos-network

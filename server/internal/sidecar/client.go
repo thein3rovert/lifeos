@@ -6,10 +6,12 @@ package sidecar
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -17,6 +19,32 @@ import (
 type Client struct {
 	baseURL string
 	http    *http.Client
+}
+
+// StreamAgentActivity opens the sidecar SSE stream for one private OpenCode
+// session. Callers must close the returned body.
+func (c *Client) StreamAgentActivity(ctx context.Context, sessionID string) (io.ReadCloser, error) {
+	if sessionID == "" {
+		return nil, fmt.Errorf("sessionId is required")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL+"/agent/session/"+url.PathEscape(sessionID)+"/activity", nil)
+	if err != nil {
+		return nil, fmt.Errorf("create sidecar activity request: %w", err)
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	streamClient := *c.http
+	streamClient.Timeout = 0
+	resp, err := streamClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("sidecar activity request failed: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return nil, fmt.Errorf("sidecar activity returned %d: %s", resp.StatusCode, string(body))
+	}
+	return resp.Body, nil
 }
 
 // Option configures a Client.
@@ -73,6 +101,18 @@ type AgentSessionChatRequest struct {
 	SessionID string `json:"sessionId"`
 	Message   string `json:"message"`
 	RequestID string `json:"requestId,omitempty"`
+	MessageID string `json:"messageId,omitempty"`
+	Delivery  string `json:"delivery"`
+}
+
+type AgentSessionChatResponse struct {
+	Response           string `json:"response"`
+	AssistantMessageID string `json:"assistantMessageId"`
+}
+
+type AgentInteractions struct {
+	Permissions []json.RawMessage `json:"permissions"`
+	Forms       []json.RawMessage `json:"forms"`
 }
 
 // ── Endpoints ──────────────────────────────────────────────────────────
@@ -170,14 +210,50 @@ func (c *Client) CreateAgentSession(title, context string) (string, error) {
 // SendAgentSessionChat continues the exact session ID supplied. The sidecar
 // returns an error instead of silently creating a replacement session.
 // POST /agent/session/chat
-func (c *Client) SendAgentSessionChat(req AgentSessionChatRequest) (string, error) {
-	var out struct {
-		Response string `json:"response"`
-	}
+func (c *Client) SendAgentSessionChat(req AgentSessionChatRequest) (AgentSessionChatResponse, error) {
+	var out AgentSessionChatResponse
 	if err := c.postJSON("/agent/session/chat", req, &out); err != nil {
-		return "", err
+		return AgentSessionChatResponse{}, err
 	}
-	return out.Response, nil
+	return out, nil
+}
+
+func (c *Client) ListAgentInteractions(sessionID string) (AgentInteractions, error) {
+	var permissions struct {
+		Permissions []json.RawMessage `json:"permissions"`
+	}
+	if err := c.getJSON("/agent/session/"+url.PathEscape(sessionID)+"/permissions", &permissions); err != nil {
+		return AgentInteractions{}, err
+	}
+	var forms struct {
+		Forms []json.RawMessage `json:"forms"`
+	}
+	if err := c.getJSON("/agent/session/"+url.PathEscape(sessionID)+"/forms", &forms); err != nil {
+		return AgentInteractions{}, err
+	}
+	return AgentInteractions{Permissions: permissions.Permissions, Forms: forms.Forms}, nil
+}
+
+func (c *Client) GetAgentForm(sessionID, formID string) (json.RawMessage, error) {
+	var result struct {
+		Form json.RawMessage `json:"form"`
+	}
+	err := c.getJSON("/agent/session/"+url.PathEscape(sessionID)+"/forms/"+url.PathEscape(formID), &result)
+	return result.Form, err
+}
+
+func (c *Client) ReplyAgentPermission(sessionID, requestID, decision, message string) error {
+	return c.postJSON("/agent/session/"+url.PathEscape(sessionID)+"/permissions/"+url.PathEscape(requestID)+"/reply",
+		map[string]string{"decision": decision, "message": message}, nil)
+}
+
+func (c *Client) ReplyAgentForm(sessionID, formID string, answer map[string]any) error {
+	return c.postJSON("/agent/session/"+url.PathEscape(sessionID)+"/forms/"+url.PathEscape(formID)+"/reply",
+		map[string]any{"answer": answer}, nil)
+}
+
+func (c *Client) CancelAgentForm(sessionID, formID string) error {
+	return c.postJSON("/agent/session/"+url.PathEscape(sessionID)+"/forms/"+url.PathEscape(formID)+"/cancel", map[string]any{}, nil)
 }
 
 // AbortAgentRequest cancels an in-flight agent request by its ID.
@@ -230,6 +306,22 @@ func (c *Client) postJSON(path string, body, out interface{}) error {
 
 	if out == nil {
 		return nil
+	}
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return fmt.Errorf("failed to decode sidecar response: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) getJSON(path string, out interface{}) error {
+	resp, err := c.http.Get(c.baseURL + path)
+	if err != nil {
+		return fmt.Errorf("sidecar request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("sidecar %s returned %d: %s", path, resp.StatusCode, string(body))
 	}
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 		return fmt.Errorf("failed to decode sidecar response: %w", err)

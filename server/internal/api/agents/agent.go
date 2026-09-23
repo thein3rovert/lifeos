@@ -1,7 +1,9 @@
 package agents
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/thein3rovert/lifeos/server/internal/api"
@@ -119,6 +121,125 @@ func (h *AgentChatHandler) GetConversation(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// StreamConversationActivity securely proxies activity for the conversation's
+// private OpenCode session without exposing that session ID to the browser.
+func (h *AgentChatHandler) StreamConversationActivity(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		api.RespondError(w, http.StatusInternalServerError, "streaming is not supported")
+		return
+	}
+	stream, err := h.agentChatService.StreamConversationActivity(
+		r.Context(), r.PathValue("conversationId"),
+	)
+	if err != nil {
+		if errors.Is(err, store.ErrAgentConversationNotFound) {
+			api.RespondError(w, http.StatusNotFound, "conversation not found")
+		} else {
+			// Do not return the upstream URL: it contains the private session ID.
+			api.RespondError(w, http.StatusBadGateway, "activity stream unavailable")
+		}
+		return
+	}
+	defer stream.Close()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+	flusher.Flush()
+
+	buffer := make([]byte, 32*1024)
+	for {
+		n, readErr := stream.Read(buffer)
+		if n > 0 {
+			if _, writeErr := w.Write(buffer[:n]); writeErr != nil {
+				return
+			}
+			flusher.Flush()
+		}
+		if readErr != nil {
+			if !errors.Is(readErr, io.EOF) {
+				return
+			}
+			return
+		}
+	}
+}
+
+func (h *AgentChatHandler) ListConversationInteractions(w http.ResponseWriter, r *http.Request) {
+	interactions, err := h.agentChatService.ListConversationInteractions(r.PathValue("conversationId"))
+	if err != nil {
+		h.respondInteractionError(w, err)
+		return
+	}
+	if interactions.Permissions == nil {
+		interactions.Permissions = []json.RawMessage{}
+	}
+	if interactions.Forms == nil {
+		interactions.Forms = []json.RawMessage{}
+	}
+	api.RespondJSON(w, http.StatusOK, interactions)
+}
+
+func (h *AgentChatHandler) GetConversationForm(w http.ResponseWriter, r *http.Request) {
+	form, err := h.agentChatService.GetConversationForm(r.PathValue("conversationId"), r.PathValue("formId"))
+	if err != nil {
+		h.respondInteractionError(w, err)
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]any{"form": form})
+}
+
+func (h *AgentChatHandler) ReplyConversationPermission(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Decision string `json:"decision"`
+		Message  string `json:"message"`
+	}
+	if api.DecodeJSON(r, &input) != nil || (input.Decision != "once" && input.Decision != "always" && input.Decision != "reject") {
+		api.RespondError(w, http.StatusBadRequest, "decision must be once, always, or reject")
+		return
+	}
+	if err := h.agentChatService.ReplyConversationPermission(r.PathValue("conversationId"), r.PathValue("requestId"), input.Decision, input.Message); err != nil {
+		h.respondInteractionError(w, err)
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]string{"status": "settled", "decision": input.Decision})
+}
+
+func (h *AgentChatHandler) ReplyConversationForm(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Answer map[string]any `json:"answer"`
+	}
+	if api.DecodeJSON(r, &input) != nil || input.Answer == nil {
+		api.RespondError(w, http.StatusBadRequest, "answer is required")
+		return
+	}
+	if err := h.agentChatService.ReplyConversationForm(r.PathValue("conversationId"), r.PathValue("formId"), input.Answer); err != nil {
+		h.respondInteractionError(w, err)
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]string{"status": "answered"})
+}
+
+func (h *AgentChatHandler) CancelConversationForm(w http.ResponseWriter, r *http.Request) {
+	if err := h.agentChatService.CancelConversationForm(r.PathValue("conversationId"), r.PathValue("formId")); err != nil {
+		h.respondInteractionError(w, err)
+		return
+	}
+	api.RespondJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
+}
+
+func (h *AgentChatHandler) respondInteractionError(w http.ResponseWriter, err error) {
+	if errors.Is(err, store.ErrAgentConversationNotFound) {
+		api.RespondError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+	// Never expose an upstream URL because it contains the private OpenCode session ID.
+	api.RespondError(w, http.StatusBadGateway, "agent interaction unavailable")
+}
+
 // SendConversationMessage sends and persists a message in a floating-chat conversation.
 func (h *AgentChatHandler) SendConversationMessage(w http.ResponseWriter, r *http.Request) {
 	var input service.SendAgentMessageInput
@@ -127,7 +248,7 @@ func (h *AgentChatHandler) SendConversationMessage(w http.ResponseWriter, r *htt
 		return
 	}
 	conversationID := r.PathValue("conversationId")
-	message, err := h.agentChatService.SendMessage(conversationID, input)
+	userMessage, message, err := h.agentChatService.SendMessage(conversationID, input)
 	if err != nil {
 		respondFloatingChatError(w, err)
 		return
@@ -140,6 +261,7 @@ func (h *AgentChatHandler) SendConversationMessage(w http.ResponseWriter, r *htt
 	api.RespondJSON(w, http.StatusOK, map[string]any{
 		"conversation": conversation,
 		"message":      message,
+		"userMessage":  userMessage,
 	})
 }
 

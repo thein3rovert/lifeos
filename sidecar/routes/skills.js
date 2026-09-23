@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getClient } from '../client.js';
+import { getLocation, messageText, promptAndWait } from '../opencode.js';
 
 const router = Router();
 
@@ -28,9 +29,10 @@ router.post('/update', async (req, res) => {
   try {
     console.log('Creating OpenCode session...');
     const session = await client.session.create({
-      body: { title: 'skill-update' },
+      title: 'skill-update',
+      location: getLocation(),
     });
-    sessionId = session.data.id;
+    sessionId = session.id;
     console.log('Session created:', sessionId);
 
     const prompt = `You are a skills manager. You will be given an existing skill file in markdown format and some new notes/learnings.
@@ -46,24 +48,16 @@ ${existingSkill}
 ${newNotes}`;
 
     console.log('Sending prompt to AI...');
-    const result = await client.session.prompt({
-      path: { id: sessionId },
-      body: {
-        parts: [{ type: 'text', text: prompt }],
-      },
-    });
+    const result = await promptAndWait(client, sessionId, prompt);
     console.log('AI response received');
 
-    const updatedSkill = result.data.parts
-      .filter((p) => p.type === 'text')
-      .map((p) => p.text)
-      .join('');
+    const updatedSkill = messageText(result);
 
     console.log('Updated skill generated:');
     console.log('  - Length:', updatedSkill.length, 'chars');
     console.log('  - Preview:', updatedSkill.substring(0, 100), '...');
 
-    await client.session.delete({ path: { id: sessionId } });
+    await client.session.remove({ sessionID: sessionId });
     console.log('Session cleaned up');
 
     console.log('=== SUCCESS ===\n');
@@ -73,7 +67,7 @@ ${newNotes}`;
     console.error('Stack:', err.stack);
 
     if (sessionId) {
-      await client.session.delete({ path: { id: sessionId } }).catch(() => {});
+      await client.session.remove({ sessionID: sessionId }).catch(() => {});
     }
 
     console.log('=== FAILED ===\n');

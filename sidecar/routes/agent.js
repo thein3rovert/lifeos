@@ -1,11 +1,186 @@
 import { Router } from 'express';
 import { getClient } from '../client.js';
+import { getLocation, messageText, promptAndWait, promptAndWaitDetailed, requestSignal } from '../opencode.js';
 import { schemas } from '../schemas/smartboard.js';
+import { streamSessionActivity } from '../activity.js';
 
 const router = Router();
 
 // Track active opencode requests for cancellation
 const activeRequests = new Map();
+const sessionRequests = new Map();
+
+function trackRequest(requestId, request) {
+  if (!requestId) return;
+  activeRequests.set(requestId, request);
+  if (!request.sessionId) return;
+  const requests = sessionRequests.get(request.sessionId) || new Set();
+  requests.add(requestId);
+  sessionRequests.set(request.sessionId, requests);
+}
+
+function untrackRequest(requestId) {
+  if (!requestId) return;
+  const request = activeRequests.get(requestId);
+  activeRequests.delete(requestId);
+  if (!request?.sessionId) return;
+  const requests = sessionRequests.get(request.sessionId);
+  requests?.delete(requestId);
+  if (requests?.size === 0) sessionRequests.delete(request.sessionId);
+}
+
+function upstreamStatus(err) {
+  const tag = err?._tag || err?.data?._tag;
+  if (tag?.includes('NotFound')) return 404;
+  if (tag?.includes('AlreadySettled')) return 409;
+  if (tag?.includes('InvalidAnswer')) return 400;
+  return 502;
+}
+
+async function exactSession(client, sessionId) {
+  const session = await client.session.get({ sessionID: sessionId });
+  if (session.id !== sessionId) throw new Error('OpenCode returned a different session');
+}
+
+function exactResource(resource, sessionId) {
+  if (!resource || resource.sessionID !== sessionId) {
+    throw new Error('OpenCode returned a resource from a different session');
+  }
+  return resource;
+}
+
+// V2 permission requests, strictly scoped to the session in the route.
+router.get('/session/:sessionId/permissions', async (req, res) => {
+  const { sessionId } = req.params;
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    const permissions = await client.permission.list({ sessionID: sessionId });
+    return res.json({ permissions: permissions.map((item) => exactResource(item, sessionId)) });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to list session permissions' });
+  }
+});
+
+router.post('/session/:sessionId/permissions/:requestId/reply', async (req, res) => {
+  const { sessionId, requestId } = req.params;
+  const { decision, message } = req.body;
+  if (!['once', 'always', 'reject'].includes(decision)) {
+    return res.status(400).json({ error: 'decision must be once, always, or reject' });
+  }
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    exactResource(await client.permission.get({ sessionID: sessionId, requestID: requestId }), sessionId);
+    await client.permission.reply({ sessionID: sessionId, requestID: requestId, decision, message });
+    return res.json({ requestId, status: decision === 'reject' ? 'rejected' : 'approved', decision });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to reply to session permission' });
+  }
+});
+
+// V2 forms. List is hydrated so callers receive pending/answered/cancelled state.
+router.get('/session/:sessionId/forms', async (req, res) => {
+  const { sessionId } = req.params;
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    const forms = await client.session.form.list({ sessionID: sessionId });
+    const details = await Promise.all(forms.map(async (form) => {
+      exactResource(form, sessionId);
+      return exactResource(
+        await client.session.form.get({ sessionID: sessionId, formID: form.id }),
+        sessionId,
+      );
+    }));
+    return res.json({ forms: details });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to list session forms' });
+  }
+});
+
+router.get('/session/:sessionId/forms/:formId', async (req, res) => {
+  const { sessionId, formId } = req.params;
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    const form = exactResource(await client.session.form.get({ sessionID: sessionId, formID: formId }), sessionId);
+    return res.json({ form });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to get session form' });
+  }
+});
+
+router.post('/session/:sessionId/forms/:formId/reply', async (req, res) => {
+  const { sessionId, formId } = req.params;
+  if (!req.body.answer || typeof req.body.answer !== 'object' || Array.isArray(req.body.answer)) {
+    return res.status(400).json({ error: 'answer is required' });
+  }
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    exactResource(await client.session.form.get({ sessionID: sessionId, formID: formId }), sessionId);
+    await client.session.form.reply({ sessionID: sessionId, formID: formId, answer: req.body.answer });
+    return res.json({ formId, status: 'answered' });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to reply to session form' });
+  }
+});
+
+router.post('/session/:sessionId/forms/:formId/cancel', async (req, res) => {
+  const { sessionId, formId } = req.params;
+  const client = getClient();
+  try {
+    await exactSession(client, sessionId);
+    exactResource(await client.session.form.get({ sessionID: sessionId, formID: formId }), sessionId);
+    await client.session.form.cancel({ sessionID: sessionId, formID: formId });
+    return res.json({ formId, status: 'cancelled' });
+  } catch (err) {
+    return res.status(upstreamStatus(err)).json({ error: 'Failed to cancel session form' });
+  }
+});
+
+// GET /agent/session/:sessionId/activity - Stream only this session's V2 events.
+router.get('/session/:sessionId/activity', async (req, res) => {
+  const { sessionId } = req.params;
+  const client = getClient();
+
+  try {
+    await client.session.get({ sessionID: sessionId });
+  } catch {
+    return res.status(404).json({ error: 'Agent session not found' });
+  }
+
+  const abortController = new AbortController();
+  res.once('close', () => abortController.abort());
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders();
+  res.write(': connected\n\n');
+  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 15_000);
+
+  try {
+    await streamSessionActivity(client, sessionId, res, abortController.signal);
+  } catch (err) {
+    if (!abortController.signal.aborted) {
+      console.error(`[Agent] Activity stream failed for ${sessionId}:`, err.message);
+      res.write(`data: ${JSON.stringify({
+        id: `stream-${Date.now()}`,
+        kind: 'error',
+        status: 'failed',
+        title: 'Activity stream interrupted',
+        timestamp: new Date().toISOString(),
+      })}\n\n`);
+    }
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
+  }
+});
 
 // POST /agent/session - Explicitly create a session for persisted callers.
 router.post('/session', async (req, res) => {
@@ -13,12 +188,14 @@ router.post('/session', async (req, res) => {
   const client = getClient();
 
   try {
-    const session = await client.session.create({ body: { title } });
-    const sessionId = session.data.id;
+    const session = await client.session.create({ title, location: getLocation() });
+    const sessionId = session.id;
     if (context) {
-      await client.session.prompt({
-        path: { id: sessionId },
-        body: { noReply: true, parts: [{ type: 'text', text: context }] },
+      await client.session.synthetic({
+        sessionID: sessionId,
+        text: context,
+        description: 'LifeOS context',
+        resume: false,
       });
     }
     return res.status(200).json({ sessionId });
@@ -30,34 +207,39 @@ router.post('/session', async (req, res) => {
 
 // POST /agent/session/chat - Continue exactly one existing session.
 router.post('/session/chat', async (req, res) => {
-  const { sessionId, message, requestId } = req.body;
+  const { sessionId, message, requestId, delivery = 'queue', messageId } = req.body;
   if (!sessionId || !message) {
     return res.status(400).json({ error: 'sessionId and message are required' });
+  }
+  if (!['steer', 'queue'].includes(delivery)) {
+    return res.status(400).json({ error: 'delivery must be steer or queue' });
   }
 
   const client = getClient();
   try {
-    await client.session.get({ path: { id: sessionId } });
+    await client.session.get({ sessionID: sessionId });
   } catch (err) {
     return res.status(404).json({ error: 'Agent session not found' });
   }
 
   const abortController = new AbortController();
   if (requestId) {
-    activeRequests.set(requestId, { abortController, startTime: Date.now() });
+    trackRequest(requestId, { abortController, sessionId, startTime: Date.now() });
   }
 
   try {
-    const result = await client.session.prompt({
-      path: { id: sessionId },
-      body: { parts: [{ type: 'text', text: message }] },
-      signal: abortController.signal,
+    const result = await promptAndWaitDetailed(client, sessionId, message, abortController.signal, {
+      delivery,
+      lifeOSMessageID: messageId,
     });
-    const response = result.data.parts
-      .filter((part) => part.type === 'text')
-      .map((part) => part.text)
-      .join('');
-    return res.json({ response, sessionId });
+    const response = messageText(result.assistant);
+    return res.json({
+      response,
+      sessionId,
+      delivery: result.delivery,
+      inboxId: result.inbox.id,
+      assistantMessageId: result.assistant.id,
+    });
   } catch (err) {
     if (err.name === 'AbortError' || abortController.signal.aborted) {
       return res.status(499).json({ error: 'Request was aborted', sessionId });
@@ -65,7 +247,7 @@ router.post('/session/chat', async (req, res) => {
     console.error(`[Agent] Failed to continue session ${sessionId}:`, err.message);
     return res.status(500).json({ error: 'Failed to send message to agent' });
   } finally {
-    if (requestId) activeRequests.delete(requestId);
+    untrackRequest(requestId);
   }
 });
 
@@ -88,6 +270,7 @@ router.post('/chat', async (req, res) => {
   if (requestId) {
     activeRequests.set(requestId, {
       abortController,
+      sessionId: activeSessionId,
       startTime: Date.now(),
     });
     console.log(`[Agent] Tracking request ${requestId}`);
@@ -98,12 +281,12 @@ router.post('/chat', async (req, res) => {
 
     if (activeSessionId) {
       try {
-        const session = await client.session.get({ path: { id: activeSessionId } });
+        await client.session.get({ sessionID: activeSessionId });
         
         // Check if session is stuck processing (has an incomplete assistant message)
-        const messages = await client.session.messages({ path: { id: activeSessionId } });
-        const lastMessage = messages.data?.[messages.data.length - 1];
-        const isStuck = lastMessage?.info?.role === 'assistant' && !lastMessage?.info?.completed_at;
+        const messages = await client.message.list({ sessionID: activeSessionId, order: 'desc', limit: 1 });
+        const lastMessage = messages.data?.[0];
+        const isStuck = lastMessage?.type === 'assistant' && !lastMessage.time.completed;
         
         if (isStuck) {
           console.log(`[Agent] ⚠️  Session ${activeSessionId} appears stuck, creating new one`);
@@ -119,37 +302,31 @@ router.post('/chat', async (req, res) => {
 
     if (!activeSessionId) {
       const session = await client.session.create({
-        body: { title: 'agent-chat' },
+        title: 'agent-chat',
+        location: getLocation(),
       });
-      activeSessionId = session.data.id;
+      activeSessionId = session.id;
       isNewSession = true;
+      if (requestId) activeRequests.get(requestId).sessionId = activeSessionId;
       console.log(`[Agent] Created new session: ${activeSessionId}`);
     } else {
       console.log(`[Agent] Using existing session: ${activeSessionId}`);
     }
 
-    // Inject context silently on first message using noReply
+    // Insert context without resuming the agent loop.
     if (isNewSession && context) {
-      console.log(`[Agent] Injecting context silently (noReply: true)`);
-      await client.session.prompt({
-        path: { id: activeSessionId },
-        body: {
-          noReply: true,
-          parts: [{ type: 'text', text: context }],
-        },
+      console.log(`[Agent] Injecting context silently`);
+      await client.session.synthetic({
+        sessionID: activeSessionId,
+        text: context,
+        description: 'LifeOS context',
+        resume: false,
       });
       console.log(`[Agent] ✅ Context injected`);
     }
 
-    const promptBody = {
-      parts: [{ type: 'text', text: message }],
-    };
-
-    // Structured output mode (json_schema) is disabled by default because it
-    // doesn't work with thinking/reasoning models (they can't be forced into
-    // a tool call). We rely on prompt instructions + cleanJSONResponse parsing
-    // on the backend instead. Set USE_STRUCTURED_OUTPUT=true to re-enable for
-    // non-thinking models.
+    // V2 session.prompt has no response-format field. Keep the flag and schema
+    // lookup for compatibility, but rely on prompt instructions and backend JSON parsing.
     const useStructuredOutput = process.env.USE_STRUCTURED_OUTPUT === 'true';
 
     if (useStructuredOutput && structuredOutput?.panelType) {
@@ -157,12 +334,7 @@ router.post('/chat', async (req, res) => {
       if (!schema) {
         console.log(`[Agent] ⚠️  Unknown panel type: ${structuredOutput.panelType}, skipping structured output`);
       } else {
-        promptBody.format = {
-          type: 'json_schema',
-          schema: schema,
-          retryCount: 2,
-        };
-        console.log(`[Agent] Using structured output for panel: ${structuredOutput.panelType}`);
+        console.log(`[Agent] V2 prompt does not accept a response schema; using prompt-only JSON for panel: ${structuredOutput.panelType}`);
       }
     } else if (structuredOutput?.panelType) {
       console.log(`[Agent] Panel: ${structuredOutput.panelType} (prompt-only mode)`);
@@ -172,58 +344,38 @@ router.post('/chat', async (req, res) => {
     console.log(`[Agent] ⏳ Waiting for response (timeout: 10min)...`);
 
     startTime = Date.now();
-    let timeoutId;
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Request timed out after 600s')), 600000);
-    });
-
-    const promptPromise = client.session.prompt({
-      path: { id: activeSessionId },
-      body: promptBody,
-      signal: abortController.signal,
-    });
-
     let result;
     try {
-      result = await Promise.race([promptPromise, timeoutPromise]);
+      result = await promptAndWait(
+        client,
+        activeSessionId,
+        message,
+        requestSignal(abortController),
+      );
     } catch (timeoutError) {
-      // Timeout occurred - abort the session to stop OpenCode from processing
-      console.log(`[Agent] ⏰ Timeout - aborting session ${activeSessionId}`);
-      try {
-        await client.session.abort({ path: { id: activeSessionId } });
-        console.log(`[Agent] ✅ Session aborted successfully`);
-      } catch (abortErr) {
-        console.log(`[Agent] ⚠️  Failed to abort session:`, abortErr.message);
+      if (timeoutError.name === 'TimeoutError') {
+        console.log(`[Agent] ⏰ Timeout - interrupting session ${activeSessionId}`);
+        try {
+          await client.session.interrupt({ sessionID: activeSessionId });
+          console.log(`[Agent] ✅ Session interrupted successfully`);
+        } catch (interruptErr) {
+          console.log(`[Agent] ⚠️  Failed to interrupt session:`, interruptErr.message);
+        }
+        throw new Error('Request timed out after 600s', { cause: timeoutError });
       }
-      throw timeoutError; // Re-throw to trigger error handling below
-    } finally {
-      clearTimeout(timeoutId);
+      throw timeoutError;
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[Agent] ✅ Response received in ${duration}s`);
 
-    let response;
-    if (structuredOutput?.panelType && result.data.info?.structured_output) {
-      // Unwrap the `{ items: [...] }` wrapper we added for DeepSeek compatibility
-      const output = result.data.info.structured_output;
-      const unwrapped = output && typeof output === 'object' && Array.isArray(output.items) ? output.items : output;
-      response = JSON.stringify(unwrapped);
-      console.log(`[Agent] Structured output: ${response.substring(0, 100)}...`);
-    } else {
-      response = result.data.parts
-        .filter((p) => p.type === 'text')
-        .map((p) => p.text)
-        .join('');
+    const response = messageText(result);
 
-      // Debug: if empty, log what parts we actually got
-      if (!response) {
-        const partTypes = result.data.parts.map((p) => p.type);
-        console.log(`[Agent] ⚠️  Empty text response. Parts received: ${JSON.stringify(partTypes)}`);
-        console.log(`[Agent] Full result.data:`, JSON.stringify(result.data, null, 2).substring(0, 1000));
-      } else {
-        console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
-      }
+    if (!response) {
+      const contentTypes = result.content.map((part) => part.type);
+      console.log(`[Agent] ⚠️  Empty text response. Content received: ${JSON.stringify(contentTypes)}`);
+    } else {
+      console.log(`[Agent] Text response: ${response.substring(0, 100)}...`);
     }
 
     // Clean up tracking
@@ -296,12 +448,23 @@ router.post('/abort', async (req, res) => {
   }
 
   console.log(`[Agent] 🛑 Aborting request ${requestId}`);
-  request.abortController.abort();
+  const affectedRequestIds = request.sessionId
+    ? [...(sessionRequests.get(request.sessionId) || [requestId])]
+    : [requestId];
+  for (const affectedRequestId of affectedRequestIds) {
+    activeRequests.get(affectedRequestId)?.abortController.abort();
+  }
+
+  if (request.sessionId) {
+    await getClient().session.interrupt({ sessionID: request.sessionId }).catch((err) => {
+      console.log(`[Agent] ⚠️  Failed to interrupt session:`, err.message);
+    });
+  }
 
   // Clean up tracking
-  activeRequests.delete(requestId);
+  for (const affectedRequestId of affectedRequestIds) untrackRequest(affectedRequestId);
 
-  return res.json({ aborted: true, requestId });
+  return res.json({ aborted: true, requestId, affectedRequestIds });
 });
 
 // GET /agent/active - List active requests (for debugging)

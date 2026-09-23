@@ -167,6 +167,12 @@ func runHTTPServer() {
 	mux.HandleFunc("POST /api/agent/conversations", agentAPI.CreateConversation)
 	mux.HandleFunc("GET /api/agent/conversations", agentAPI.ListConversations)
 	mux.HandleFunc("GET /api/agent/conversations/{conversationId}", agentAPI.GetConversation)
+	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/activity", agentAPI.StreamConversationActivity)
+	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/interactions", agentAPI.ListConversationInteractions)
+	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/forms/{formId}", agentAPI.GetConversationForm)
+	mux.HandleFunc("POST /api/agent/conversations/{conversationId}/permissions/{requestId}/reply", agentAPI.ReplyConversationPermission)
+	mux.HandleFunc("POST /api/agent/conversations/{conversationId}/forms/{formId}/reply", agentAPI.ReplyConversationForm)
+	mux.HandleFunc("POST /api/agent/conversations/{conversationId}/forms/{formId}/cancel", agentAPI.CancelConversationForm)
 	mux.HandleFunc("POST /api/agent/conversations/{conversationId}/messages", agentAPI.SendConversationMessage)
 
 	// Smart Board

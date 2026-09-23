@@ -72,8 +72,8 @@ doc/               # Architecture notes, roadmap
 | Server | `GITHUB_REPO` | `polis` | Skill files repo |
 | Server | `LIFEOS_PORT` | `6060` | HTTP port |
 | Server | `CORS_ORIGINS` | `http://localhost:3000` | Allowed CORS origins |
-| Sidecar | `PORT` | `3001` | Express port |
-| Sidecar | `OPENCODE_URL` | `http://localhost:4097` | OpenCode API endpoint |
+| Sidecar | `PORT` | `3002` | Express port |
+| Sidecar | `OPENCODE_URL` | unset | Explicit OpenCode V2 endpoint; unset uses local service discovery |
 
 ## Conventions
 

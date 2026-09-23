@@ -10,6 +10,11 @@ vi.mock('@/lib/api', () => ({
       createConversation: vi.fn(),
       listConversations: vi.fn(),
       getConversation: vi.fn(),
+      activityUrl: vi.fn(),
+      getInteractions: vi.fn(),
+      replyPermission: vi.fn(),
+      replyForm: vi.fn(),
+      cancelForm: vi.fn(),
       sendMessage: vi.fn(),
       abort: vi.fn(),
     },
@@ -99,6 +104,10 @@ describe('FloatingChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.agent.listConversations).mockResolvedValue({ conversations: [conversation] });
+    vi.mocked(api.agent.activityUrl).mockImplementation(
+      (id) => `/api/agent/conversations/${id}/activity`
+    );
+    vi.mocked(api.agent.getInteractions).mockResolvedValue({ permissions: [], forms: [] });
     vi.mocked(api.smartboard.getPanel).mockImplementation(async (panelType) =>
       Promise.resolve(panelResponses[panelType])
     );
@@ -153,7 +162,10 @@ describe('FloatingChat', () => {
         'conversation-1',
         'What next?',
         expect.any(String),
-        []
+        [],
+        'queue',
+        expect.any(String),
+        undefined
       )
     );
     expect(api.agent.createConversation).not.toHaveBeenCalled();
@@ -186,7 +198,10 @@ describe('FloatingChat', () => {
       'conversation-2',
       'Start fresh',
       expect.any(String),
-      []
+      [],
+      'queue',
+      expect.any(String),
+      undefined
     );
   });
 
@@ -258,7 +273,10 @@ describe('FloatingChat', () => {
             itemId: 'remember-1',
             label: 'Release checklist',
           },
-        ]
+        ],
+        'queue',
+        expect.any(String),
+        undefined
       )
     );
     expect(screen.getByText('What should I do?')).toBeTruthy();
@@ -361,5 +379,240 @@ describe('FloatingChat', () => {
     expect(screen.getByRole('button', { name: 'Send message' })).toBeTruthy();
     expect(screen.getByText('Long request')).toBeTruthy();
     expect(screen.queryByText('Message failed to send. Your draft was restored.')).toBeNull();
+  });
+
+  it('keeps the composer available and sends simultaneous queue and steer follow-ups in order', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.sendMessage).mockReturnValue(new Promise(() => undefined));
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    await screen.findByText('Start with the release checklist.');
+    const composer = screen.getByPlaceholderText('Ask your agent anything...') as HTMLInputElement;
+
+    fireEvent.change(composer, { target: { value: 'Do the long task' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    expect(composer.disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText('Follow-up delivery'), { target: { value: 'steer' } });
+    fireEvent.change(composer, { target: { value: 'Use this correction' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => expect(api.agent.sendMessage).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(api.agent.sendMessage).mock.calls.map((call) => [call[1], call[4]])).toEqual([
+      ['Do the long task', 'queue'],
+      ['Use this correction', 'steer'],
+    ]);
+    expect(screen.getAllByText(/Pending/)).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Stop response' })).toBeTruthy();
+  });
+
+  it('displays persisted failed delivery and retries the same text and Smart Board contexts', async () => {
+    const failedMessage: AgentConversationMessage = {
+      id: 'failed-1',
+      role: 'user',
+      content: 'Retry this exactly',
+      createdAt: '2026-09-23T10:01:00Z',
+      deliveryMode: 'steer',
+      deliveryStatus: 'failed',
+      deliveryError: 'offline',
+      contexts: [{ kind: 'panel', panelType: 'blockers', label: 'Blockers' }],
+    };
+    vi.mocked(api.agent.getConversation).mockResolvedValue({
+      conversation,
+      messages: [...transcript, failedMessage],
+    });
+    vi.mocked(api.agent.sendMessage).mockResolvedValue({
+      conversation,
+      userMessage: { ...failedMessage, deliveryStatus: 'accepted', deliveryError: undefined },
+      message: {
+        id: 'retry-reply',
+        role: 'assistant',
+        content: 'Recovered',
+        createdAt: '2026-09-23T10:02:00Z',
+      },
+    });
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    expect(await screen.findByText('Steer · Failed')).toBeTruthy();
+    expect(screen.getByText('/ Blockers')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() =>
+      expect(api.agent.sendMessage).toHaveBeenCalledWith(
+        'conversation-1',
+        'Retry this exactly',
+        expect.any(String),
+        failedMessage.contexts,
+        'steer',
+        'failed-1',
+        'failed-1'
+      )
+    );
+    expect(await screen.findByText('Steer · Accepted')).toBeTruthy();
+    expect(screen.getByText('Recovered')).toBeTruthy();
+  });
+
+  it('shows toggleable normalized live activity for the active conversation', async () => {
+    class MockEventSource {
+      static instances: MockEventSource[] = [];
+      onopen: (() => void) | null = null;
+      onmessage: ((event: MessageEvent<string>) => void) | null = null;
+      onerror: (() => void) | null = null;
+      close = vi.fn();
+      constructor(public url: string) {
+        MockEventSource.instances.push(this);
+      }
+    }
+    vi.stubGlobal('EventSource', MockEventSource);
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.sendMessage).mockReturnValue(new Promise(() => undefined));
+    render(<FloatingChat />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    await screen.findByText('Start with the release checklist.');
+    fireEvent.change(screen.getByPlaceholderText('Ask your agent anything...'), {
+      target: { value: 'Investigate' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    const source = MockEventSource.instances[0];
+    expect(source.url).toBe('/api/agent/conversations/conversation-1/activity');
+    source.onopen?.();
+    source.onmessage?.({
+      data: JSON.stringify({
+        id: 'activity-1',
+        kind: 'file',
+        status: 'started',
+        title: 'read',
+        detail: '/vault/today.md',
+        timestamp: '2026-09-23T12:00:00Z',
+      }),
+    } as MessageEvent<string>);
+
+    expect(await screen.findByText('read · /vault/today.md')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide live activity' }));
+    expect(screen.queryByLabelText('Live agent activity')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show live activity' }));
+    expect(screen.getByLabelText('Live agent activity')).toBeTruthy();
+  });
+
+  it('shows reconnecting state when the activity stream fails', async () => {
+    class FailingEventSource {
+      static instance: FailingEventSource;
+      onopen: (() => void) | null = null;
+      onmessage: ((event: MessageEvent<string>) => void) | null = null;
+      onerror: (() => void) | null = null;
+      close = vi.fn();
+      constructor() {
+        FailingEventSource.instance = this;
+      }
+    }
+    vi.stubGlobal('EventSource', FailingEventSource);
+    vi.mocked(api.agent.createConversation).mockResolvedValue({ conversation });
+    vi.mocked(api.agent.sendMessage).mockReturnValue(new Promise(() => undefined));
+    render(<FloatingChat />);
+    const composer = screen.getByPlaceholderText('Ask your agent anything...');
+    fireEvent.focus(composer);
+    fireEvent.change(composer, { target: { value: 'Work' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => expect(FailingEventSource.instance).toBeTruthy());
+    FailingEventSource.instance.onerror?.();
+    expect(await screen.findByText('Reconnecting…')).toBeTruthy();
+  });
+
+  it('shows a pending permission and settles an approve-always reply', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.getInteractions).mockResolvedValue({
+      permissions: [{ id: 'permission-1', action: 'write', resources: ['/vault/today.md'] }],
+      forms: [],
+    });
+    vi.mocked(api.agent.replyPermission).mockResolvedValue({
+      status: 'settled',
+      decision: 'always',
+    });
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    expect(await screen.findByText('Permission requested: write')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }));
+    await waitFor(() =>
+      expect(api.agent.replyPermission).toHaveBeenCalledWith(
+        'conversation-1',
+        'permission-1',
+        'always'
+      )
+    );
+    expect(await screen.findByText('Always allowed')).toBeTruthy();
+  });
+
+  it('validates and submits supported form fields and can cancel a form', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
+    vi.mocked(api.agent.getInteractions).mockResolvedValue({
+      permissions: [],
+      forms: [
+        {
+          id: 'form-1',
+          title: 'Release details',
+          state: { status: 'pending' },
+          fields: [
+            { key: 'name', type: 'string', title: 'Name', required: true },
+            { key: 'count', type: 'integer', title: 'Count' },
+            { key: 'ratio', type: 'number', title: 'Ratio' },
+            { key: 'ready', type: 'boolean', title: 'Ready' },
+            {
+              key: 'tags',
+              type: 'multiselect',
+              title: 'Tags',
+              options: [{ value: 'urgent', label: 'Urgent' }],
+            },
+            {
+              key: 'external',
+              type: 'external',
+              title: 'External approval',
+              url: 'https://example.test',
+            },
+          ],
+        },
+        {
+          id: 'form-2',
+          title: 'Optional follow-up',
+          state: { status: 'pending' },
+          fields: [],
+        },
+      ],
+    });
+    vi.mocked(api.agent.replyForm).mockResolvedValue({ status: 'answered' });
+    vi.mocked(api.agent.cancelForm).mockResolvedValue({ status: 'cancelled' });
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    expect(await screen.findByText('Release details')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Submit' })[0]);
+    expect(await screen.findByText('Name is required.')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Launch' } });
+    fireEvent.change(screen.getByLabelText('Count'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Ratio'), { target: { value: '1.5' } });
+    fireEvent.click(screen.getByLabelText('Ready'));
+    fireEvent.click(screen.getByText('Urgent'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Submit' })[0]);
+    await waitFor(() =>
+      expect(api.agent.replyForm).toHaveBeenCalledWith('conversation-1', 'form-1', {
+        name: 'Launch',
+        count: 3,
+        ratio: 1.5,
+        ready: true,
+        tags: ['urgent'],
+      })
+    );
+    expect(await screen.findByText('Submitted')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(api.agent.cancelForm).toHaveBeenCalledWith('conversation-1', 'form-2')
+    );
+    expect(await screen.findByText('Cancelled')).toBeTruthy();
   });
 });

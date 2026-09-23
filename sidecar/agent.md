@@ -8,8 +8,8 @@ This guide covers the Node.js sidecar for LifeOS. For the full project overview,
 |-------|------|
 | Runtime | Node.js |
 | Framework | Express |
-| AI SDK | `@opencode-ai/sdk` |
-| Port | `3001` |
+| OpenCode client | `@opencode/client@2.0.15` |
+| Port | `3002` |
 
 ## Project Structure
 
@@ -30,22 +30,24 @@ sidecar/
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `PORT` | `3001` | Express server port |
-| `OPENCODE_URL` | `http://localhost:4097` | OpenCode API endpoint |
+| `PORT` | `3002` | Express server port |
+| `OPENCODE_URL` | unset | Explicit OpenCode V2 endpoint; when unset, discover/start the local service |
+| `OPENCODE_DIRECTORY` | current directory | Project location for configuration and sessions |
+| `OPENCODE_AUTHORIZATION` | unset | Complete Authorization header for an explicit endpoint |
+| `OPENCODE_TOKEN` | unset | Bearer token for an explicit endpoint |
+| `OPENCODE_USERNAME` / `OPENCODE_PASSWORD` | unset | Basic credentials for an explicit endpoint |
 
 ## Running the Sidecar
 
 ```bash
-cd sidecar && npm start    # port 3001
+cd sidecar && npm start    # port 3002
 ```
 
-OpenCode must already be running:
-
-```bash
-opencode serve --port 4097
-```
+With no `OPENCODE_URL`, the V2 client discovers the authenticated local service
+and starts it when necessary. Containers use an explicit `OPENCODE_URL` and
+must receive any required authentication through the variables above.
 
 ## Sidecar-Specific Notes
 
-- The sidecar expects OpenCode on port `4097`.
+- The sidecar uses `@opencode/client@2.0.15` and the OpenCode V2 API.
 - The Go backend and frontend do not talk to the sidecar directly for most operations; the sidecar is used for AI-powered skill rewrites.

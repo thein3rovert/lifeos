@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/thein3rovert/lifeos/server/internal/model"
 )
@@ -16,6 +17,8 @@ type AgentConversationStore interface {
 	GetConversation(id, source string) (*model.AgentConversation, error)
 	UpdateConversationTitle(id, source, title string) error
 	AddMessage(*model.AgentMessage) error
+	GetMessage(id, conversationID string) (*model.AgentMessage, error)
+	UpdateMessageDelivery(id, conversationID, status, deliveryError string) error
 	ListMessages(conversationID string) ([]model.AgentMessage, error)
 }
 
@@ -83,9 +86,18 @@ func (s *SQLAgentConversationStore) AddMessage(message *model.AgentMessage) erro
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.Exec(`INSERT INTO agent_messages
-		(id, conversation_id, role, content, context_refs, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		message.ID, message.ConversationID, message.Role, message.Content, string(contextRefs), message.CreatedAt); err != nil {
+	insert := `INSERT INTO agent_messages
+		(id, conversation_id, role, content, context_refs, delivery_mode, delivery_status, delivery_error, prompt_text, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	// A steered execution can be awaited by multiple HTTP requests, all of
+	// which resolve to the same upstream assistant message. Deduplicate only
+	// assistants; client-supplied user IDs remain strict.
+	if message.Role == "assistant" {
+		insert = strings.Replace(insert, "INSERT INTO", "INSERT OR IGNORE INTO", 1)
+	}
+	if _, err := tx.Exec(insert, message.ID, message.ConversationID, message.Role,
+		message.Content, string(contextRefs), message.DeliveryMode, message.DeliveryStatus,
+		message.DeliveryError, message.Prompt, message.CreatedAt); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`UPDATE agent_conversations SET updated_at = ? WHERE id = ?`,
@@ -96,7 +108,8 @@ func (s *SQLAgentConversationStore) AddMessage(message *model.AgentMessage) erro
 }
 
 func (s *SQLAgentConversationStore) ListMessages(conversationID string) ([]model.AgentMessage, error) {
-	rows, err := s.db.Query(`SELECT id, conversation_id, role, content, context_refs, created_at
+	rows, err := s.db.Query(`SELECT id, conversation_id, role, content, context_refs,
+		delivery_mode, delivery_status, delivery_error, prompt_text, created_at
 		FROM agent_messages WHERE conversation_id = ? ORDER BY created_at, id`, conversationID)
 	if err != nil {
 		return nil, err
@@ -107,7 +120,7 @@ func (s *SQLAgentConversationStore) ListMessages(conversationID string) ([]model
 	for rows.Next() {
 		var message model.AgentMessage
 		var contextRefs string
-		if err := rows.Scan(&message.ID, &message.ConversationID, &message.Role, &message.Content, &contextRefs, &message.CreatedAt); err != nil {
+		if err := scanAgentMessage(rows, &message, &contextRefs); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(contextRefs), &message.Contexts); err != nil {
@@ -116,6 +129,38 @@ func (s *SQLAgentConversationStore) ListMessages(conversationID string) ([]model
 		messages = append(messages, message)
 	}
 	return messages, rows.Err()
+}
+
+func (s *SQLAgentConversationStore) GetMessage(id, conversationID string) (*model.AgentMessage, error) {
+	var message model.AgentMessage
+	var contextRefs string
+	err := scanAgentMessage(s.db.QueryRow(`SELECT id, conversation_id, role, content, context_refs,
+		delivery_mode, delivery_status, delivery_error, prompt_text, created_at FROM agent_messages
+		WHERE id = ? AND conversation_id = ?`, id, conversationID), &message, &contextRefs)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrAgentConversationNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal([]byte(contextRefs), &message.Contexts); err != nil {
+		return nil, err
+	}
+	return &message, nil
+}
+
+func (s *SQLAgentConversationStore) UpdateMessageDelivery(id, conversationID, status, deliveryError string) error {
+	result, err := s.db.Exec(`UPDATE agent_messages SET delivery_status = ?, delivery_error = ?
+		WHERE id = ? AND conversation_id = ? AND role = 'user'`, status, deliveryError, id, conversationID)
+	if err != nil {
+		return err
+	}
+	return agentConversationResultError(result)
+}
+
+func scanAgentMessage(scanner agentConversationScanner, message *model.AgentMessage, contextRefs *string) error {
+	return scanner.Scan(&message.ID, &message.ConversationID, &message.Role, &message.Content, contextRefs,
+		&message.DeliveryMode, &message.DeliveryStatus, &message.DeliveryError, &message.Prompt, &message.CreatedAt)
 }
 
 type agentConversationScanner interface {

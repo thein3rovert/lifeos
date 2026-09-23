@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -53,9 +55,12 @@ func NewAgentChatService(
 const newAgentConversationTitle = "New conversation"
 
 type SendAgentMessageInput struct {
-	Message   string                      `json:"message"`
-	RequestID string                      `json:"requestId,omitempty"`
-	Contexts  []model.AgentMessageContext `json:"contexts,omitempty"`
+	Message        string                      `json:"message"`
+	RequestID      string                      `json:"requestId,omitempty"`
+	MessageID      string                      `json:"messageId,omitempty"`
+	RetryMessageID string                      `json:"retryMessageId,omitempty"`
+	Delivery       string                      `json:"delivery,omitempty"`
+	Contexts       []model.AgentMessageContext `json:"contexts,omitempty"`
 }
 
 func (s *AgentChatService) CreateConversation() (*model.AgentConversation, error) {
@@ -87,51 +92,151 @@ func (s *AgentChatService) GetConversation(id string) (*model.AgentConversation,
 	return conversation, messages, err
 }
 
-func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (*model.AgentMessage, error) {
-	message := strings.TrimSpace(input.Message)
-	if message == "" {
-		return nil, &ValidationError{Message: "message is required"}
-	}
+// StreamConversationActivity resolves a public LifeOS conversation to its
+// private OpenCode session and opens its activity stream.
+func (s *AgentChatService) StreamConversationActivity(ctx context.Context, id string) (io.ReadCloser, error) {
 	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
 	if err != nil {
 		return nil, err
 	}
-	contexts, context, err := s.resolveContexts(input.Contexts)
+	return s.sidecar.StreamAgentActivity(ctx, conversation.OpenCodeSessionID)
+}
+
+func (s *AgentChatService) ListConversationInteractions(id string) (sidecar.AgentInteractions, error) {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return sidecar.AgentInteractions{}, err
+	}
+	return s.sidecar.ListAgentInteractions(conversation.OpenCodeSessionID)
+}
+
+func (s *AgentChatService) GetConversationForm(id, formID string) (json.RawMessage, error) {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
 	if err != nil {
 		return nil, err
 	}
+	return s.sidecar.GetAgentForm(conversation.OpenCodeSessionID, formID)
+}
 
-	now := time.Now()
-	userMessage := &model.AgentMessage{
-		ID: uuid.NewString(), ConversationID: id, Role: "user", Content: message,
-		Contexts: contexts, CreatedAt: now,
+func (s *AgentChatService) ReplyConversationPermission(id, requestID, decision, message string) error {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return err
 	}
-	if err := s.conversationStore.AddMessage(userMessage); err != nil {
-		return nil, fmt.Errorf("save user message: %w", err)
+	return s.sidecar.ReplyAgentPermission(conversation.OpenCodeSessionID, requestID, decision, message)
+}
+
+func (s *AgentChatService) ReplyConversationForm(id, formID string, answer map[string]any) error {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return err
 	}
-	if conversation.Title == newAgentConversationTitle {
-		if err := s.conversationStore.UpdateConversationTitle(id, model.AgentConversationSource, agentConversationTitle(message)); err != nil {
-			return nil, fmt.Errorf("update conversation title: %w", err)
+	return s.sidecar.ReplyAgentForm(conversation.OpenCodeSessionID, formID, answer)
+}
+
+func (s *AgentChatService) CancelConversationForm(id, formID string) error {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return err
+	}
+	return s.sidecar.CancelAgentForm(conversation.OpenCodeSessionID, formID)
+}
+
+func (s *AgentChatService) SendMessage(id string, input SendAgentMessageInput) (*model.AgentMessage, *model.AgentMessage, error) {
+	message := strings.TrimSpace(input.Message)
+	if input.Delivery == "" {
+		input.Delivery = "queue"
+	}
+	if input.Delivery != "queue" && input.Delivery != "steer" {
+		return nil, nil, &ValidationError{Message: "delivery must be steer or queue"}
+	}
+	if message == "" && input.RetryMessageID == "" {
+		return nil, nil, &ValidationError{Message: "message is required"}
+	}
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var userMessage *model.AgentMessage
+	var prompt string
+	if input.RetryMessageID != "" {
+		userMessage, err = s.conversationStore.GetMessage(input.RetryMessageID, id)
+		if err != nil || userMessage.Role != "user" || userMessage.DeliveryStatus != "failed" {
+			return nil, nil, &ValidationError{Message: "only failed user messages can be retried"}
 		}
-	}
-
-	prompt := message
-	if context != "" {
-		prompt += "\n\n---\nSelected Smart Board context (resolved by LifeOS):\n" + context
+		message = userMessage.Content
+		prompt = userMessage.Prompt
+		input.Delivery = userMessage.DeliveryMode
+		if prompt == "" {
+			_, context, resolveErr := s.resolveContexts(userMessage.Contexts)
+			if resolveErr != nil {
+				return nil, nil, resolveErr
+			}
+			prompt = message
+			if context != "" {
+				prompt += "\n\n---\nSelected Smart Board context (resolved by LifeOS):\n" + context
+			}
+		}
+		if err := s.conversationStore.UpdateMessageDelivery(userMessage.ID, id, "pending", ""); err != nil {
+			return nil, nil, fmt.Errorf("mark retry pending: %w", err)
+		}
+		userMessage.DeliveryStatus, userMessage.DeliveryError = "pending", ""
+	} else {
+		contexts, context, resolveErr := s.resolveContexts(input.Contexts)
+		if resolveErr != nil {
+			return nil, nil, resolveErr
+		}
+		prompt = message
+		if context != "" {
+			prompt += "\n\n---\nSelected Smart Board context (resolved by LifeOS):\n" + context
+		}
+		messageID := input.MessageID
+		if messageID == "" {
+			messageID = uuid.NewString()
+		}
+		userMessage = &model.AgentMessage{
+			ID: messageID, ConversationID: id, Role: "user", Content: message, Contexts: contexts,
+			DeliveryMode: input.Delivery, DeliveryStatus: "pending", Prompt: prompt, CreatedAt: time.Now(),
+		}
+		if err := s.conversationStore.AddMessage(userMessage); err != nil {
+			return nil, nil, fmt.Errorf("save user message: %w", err)
+		}
+		if conversation.Title == newAgentConversationTitle {
+			if err := s.conversationStore.UpdateConversationTitle(id, model.AgentConversationSource, agentConversationTitle(message)); err != nil {
+				return nil, nil, fmt.Errorf("update conversation title: %w", err)
+			}
+		}
 	}
 	response, err := s.sidecar.SendAgentSessionChat(sidecar.AgentSessionChatRequest{
 		SessionID: conversation.OpenCodeSessionID, Message: prompt, RequestID: input.RequestID,
+		MessageID: userMessage.ID, Delivery: input.Delivery,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("continue agent session: %w", err)
+		deliveryError := "Delivery failed"
+		_ = s.conversationStore.UpdateMessageDelivery(userMessage.ID, id, "failed", deliveryError)
+		userMessage.DeliveryStatus, userMessage.DeliveryError = "failed", deliveryError
+		return userMessage, nil, fmt.Errorf("continue agent session: %w", err)
 	}
+	if err := s.conversationStore.UpdateMessageDelivery(userMessage.ID, id, "accepted", ""); err != nil {
+		return userMessage, nil, fmt.Errorf("mark message accepted: %w", err)
+	}
+	userMessage.DeliveryStatus, userMessage.DeliveryError = "accepted", ""
 	assistantMessage := &model.AgentMessage{
-		ID: uuid.NewString(), ConversationID: id, Role: "assistant", Content: response, CreatedAt: time.Now(),
+		ID: uuid.NewString(), ConversationID: id, Role: "assistant", Content: response.Response, CreatedAt: time.Now(),
+	}
+	if response.AssistantMessageID != "" {
+		assistantMessage.ID = "opencode-" + response.AssistantMessageID
 	}
 	if err := s.conversationStore.AddMessage(assistantMessage); err != nil {
-		return nil, fmt.Errorf("save assistant message: %w", err)
+		// Multiple steered HTTP calls can share one final assistant message.
+		// Treat a concurrently persisted copy of that exact upstream message as success.
+		if existing, getErr := s.conversationStore.GetMessage(assistantMessage.ID, id); getErr == nil && existing.Role == "assistant" {
+			return userMessage, existing, nil
+		}
+		return userMessage, nil, fmt.Errorf("save assistant message: %w", err)
 	}
-	return assistantMessage, nil
+	return userMessage, assistantMessage, nil
 }
 
 var agentPanelLabels = map[string]string{
