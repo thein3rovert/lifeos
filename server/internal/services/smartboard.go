@@ -11,9 +11,59 @@ import (
 	"github.com/thein3rovert/lifeos/server/internal/store"
 )
 
-// cacheTTL is how long a cached panel is considered "fresh" before refresh()
-// will call the AI again. Users can always bypass with ?force=true.
+// How long saved panel data stays fresh. After this, we ask AI again.
 const cacheTTL = 10 * time.Minute
+
+// Short rule we add to every AI prompt. It tells AI to return JSON only.
+const jsonContract = `
+OUTPUT CONTRACT (MUST FOLLOW):
+- Return VALID JSON ONLY, no markdown, no code fences, no explanation.
+- Return a JSON array ([] when nothing found), never an object wrapper.
+- Keep every string within its max length, use YYYY-MM-DD dates.
+- If unsure, return [] rather than prose.`
+
+// Short message for users when AI output breaks. Real error stays in logs for you.
+func friendlyPanelError(panelType string) error {
+	return fmt.Errorf("Smart board %s is temporarily unavailable, showing last saved data", panelType)
+}
+
+// Save raw AI text to logs so you can see what went wrong. Users never see this.
+func logRawResponse(panelType, response string) {
+	raw := response
+	if len(raw) > 4000 {
+		raw = raw[:4000] + "...[truncated]"
+	}
+	log.Printf("[smartboard] %s: raw AI response for owner review (len=%d): %q", panelType, len(response), raw)
+}
+
+// If AI returns {items:[...]} instead of [...], pull out the array so parsing still works.
+func unwrapJSONArray(panelType, cleaned string) string {
+	trimmed := strings.TrimSpace(cleaned)
+	if !strings.HasPrefix(trimmed, "{") {
+		return cleaned
+	}
+	var wrapper map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(trimmed), &wrapper); err != nil {
+		return cleaned
+	}
+	// Try panel name first, then common keys, then any array we find.
+	keys := []string{panelType, "items", "suggestions", "achievements", "blockers"}
+	for _, k := range keys {
+		if raw, ok := wrapper[k]; ok {
+			s := strings.TrimSpace(string(raw))
+			if strings.HasPrefix(s, "[") {
+				return s
+			}
+		}
+	}
+	for _, raw := range wrapper {
+		s := strings.TrimSpace(string(raw))
+		if strings.HasPrefix(s, "[") {
+			return s
+		}
+	}
+	return cleaned
+}
 
 // SmartBoardService handles business logic for smart board panels
 type SmartBoardService struct {
@@ -176,23 +226,45 @@ Use the MCP file access tools proactively without asking permission. Be concise.
 		return nil, fmt.Errorf("failed to call AI: %w", err)
 	}
 
-	// Parse AI response based on panel type
+	// Try to read AI answer. If it is bad JSON, ask once more for clean JSON.
 	data, err := s.parseAIResponse(panelType, chatResp.Response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		// Save bad answer to logs for you, then try repair.
+		logRawResponse(panelType, chatResp.Response)
+		log.Printf("[smartboard] %s: first parse failed, retrying with repair prompt: %v", panelType, err)
+		repairID := fmt.Sprintf("smartboard-%s-repair-%d", panelType, time.Now().UnixNano())
+		repairSession := chatResp.SessionID
+		repairResp, repairErr := s.agentChatService.SendAgentChatMessage(AgentChatRequest{
+			Message:   fmt.Sprintf("Your previous response was not valid JSON. %s Return ONLY a JSON array for %s, no other text.", jsonContract, panelType),
+			SessionID: &repairSession,
+			RequestID: repairID,
+			StructuredOutput: &StructuredOutputSpec{
+				PanelType: panelType,
+			},
+			Context: fmt.Sprintf(`You are Samad's productivity assistant. Repair the previous %s output to valid JSON only.`, panelType),
+		})
+		if repairErr == nil {
+			if data, err = s.parseAIResponse(panelType, repairResp.Response); err == nil {
+				chatResp = repairResp
+			} else {
+				logRawResponse(panelType, repairResp.Response)
+			}
+		} else {
+			log.Printf("[smartboard] %s: repair call failed: %v", panelType, repairErr)
+		}
+	}
+	if err != nil {
+		return nil, friendlyPanelError(panelType)
 	}
 
-	// Merge with existing panel data: preserves user-curated fields
-	// (category, status) for items the AI re-emits with the same ID, and
-	// assigns stable IDs to brand-new items.
+	// Keep old user edits (like status) when new AI data comes in.
 	var oldJSON string
 	if existingPanel != nil {
 		oldJSON = existingPanel.Data
 	}
 	data = mergePanelData(panelType, oldJSON, data)
 
-	// Save to database. SourceFingerprint kept empty for now — reserved for
-	// future Option-B style cache key (e.g. MCP-listed file digest).
+	// Save new panel to database.
 	if err := s.store.SavePanel(panelType, data, chatResp.SessionID, ""); err != nil {
 		return nil, fmt.Errorf("failed to save panel: %w", err)
 	}
@@ -276,7 +348,7 @@ Rules:
 - Only include actionable or decision-critical items
 - Exclude routine/completed tasks
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
-- Return valid JSON only, no markdown or explanation`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock, nil
+- Return valid JSON only, no markdown or explanation`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
 
 	case "suggestions":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -308,7 +380,7 @@ Focus on:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
 
 	case "achievements":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -339,7 +411,7 @@ Rules:
 - Sort by date (newest first)
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
 
-Return valid JSON only, no markdown or explanation.`, s.journalPath, weekStart) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.journalPath, weekStart) + reuseBlock + jsonContract, nil
 
 	case "blockers":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -371,7 +443,7 @@ Look for phrases like:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, threeDaysAgo) + reuseBlock, nil
+Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, threeDaysAgo) + reuseBlock + jsonContract, nil
 
 	default:
 		return "", fmt.Errorf("unknown panel type: %s", panelType)
@@ -385,9 +457,11 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 
 	// Log raw response if cleaning produced empty result (AI didn't return JSON)
 	if cleaned == "" {
-		log.Printf("[smartboard] %s: AI returned non-JSON response (len=%d): %q", panelType, len(response), response)
 		return nil, fmt.Errorf("AI returned non-JSON response for %s panel", panelType)
 	}
+
+	// Unwrap {items:[...]} / {suggestions:[...]} style wrappers from prompt-only models.
+	cleaned = unwrapJSONArray(panelType, cleaned)
 
 	response = cleaned
 
@@ -442,12 +516,12 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 	}
 }
 
-// cleanJSONResponse removes markdown code blocks and extracts JSON from response
+// Clean AI text so we can parse it. Removes markdown and finds JSON part.
 func cleanJSONResponse(response string) string {
-	// First trim whitespace
+	// Cut empty space.
 	response = strings.TrimSpace(response)
 
-	// Remove markdown code blocks if present
+	// Remove ``` marks if AI added them.
 	if strings.HasPrefix(response, "```json") {
 		response = strings.TrimPrefix(response, "```json")
 	}
@@ -458,10 +532,10 @@ func cleanJSONResponse(response string) string {
 		response = strings.TrimSuffix(response, "```")
 	}
 
-	// Trim again after removing code blocks
+	// Cut empty space again.
 	response = strings.TrimSpace(response)
 
-	// Find first '[' or '{' (start of JSON)
+	// Find where JSON starts ([ or {).
 	startIdx := -1
 	for i, ch := range response {
 		if ch == '[' || ch == '{' {
@@ -470,7 +544,7 @@ func cleanJSONResponse(response string) string {
 		}
 	}
 
-	// Find last ']' or '}' (end of JSON)
+	// Find where JSON ends (] or }).
 	endIdx := -1
 	for i := len(response) - 1; i >= 0; i-- {
 		if response[i] == ']' || response[i] == '}' {
@@ -479,11 +553,11 @@ func cleanJSONResponse(response string) string {
 		}
 	}
 
-	// Extract JSON if found
+	// Return only JSON part if found.
 	if startIdx != -1 && endIdx != -1 && startIdx < endIdx {
 		return strings.TrimSpace(response[startIdx:endIdx])
 	}
 
-	// Return original if no JSON markers found
+	// No JSON found, return as is.
 	return response
 }

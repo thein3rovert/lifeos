@@ -40,6 +40,31 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Stop any old LifeOS processes first, so new ones can use the ports.
+# Only touches our project folder, never browsers or other apps.
+stop_old() {
+    local port=$1
+    local pids=$(lsof -ti:$port 2>/dev/null || true)
+    for pid in $pids; do
+        local args=$(ps -o args= -p "$pid" 2>/dev/null || echo "")
+        if echo "$args" | grep -q "$PROJECT_ROOT\|opencode serve.*$OPENCODE_PORT\|lifeos\|sidecar\|vite.*$PROJECT_ROOT"; then
+            echo "Stopping old process on port $port (PID: $pid)..."
+            kill -9 "$pid" 2>/dev/null || true
+        else
+            echo "Port $port is used by another app (PID: $pid), leaving it alone."
+        fi
+    done
+}
+
+stop_old "$OPENCODE_PORT"
+stop_old "$PORT"
+stop_old "$LIFEOS_PORT"
+stop_old "$FRONTEND_DEV_PORT"
+pkill -f "$PROJECT_ROOT/sidecar" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/server/cmd/server" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/web" 2>/dev/null || true
+sleep 1
+
 # Create logs directory
 mkdir -p "$LOG_DIR"
 

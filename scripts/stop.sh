@@ -31,18 +31,28 @@ echo -e "${RED}╚════════════════════�
 echo ""
 
 # Function to kill process on port
+# Only kills it if it looks like a LifeOS process, so browsers and other apps stay safe.
 kill_port() {
     local port=$1
     local name=$2
-    local pid=$(lsof -ti:$port 2>/dev/null)
+    local pids=$(lsof -ti:$port 2>/dev/null)
 
-    if [ -n "$pid" ]; then
-        echo -e "${YELLOW}[•]${NC} Stopping $name (port $port, PID: $pid)..."
-        kill -9 $pid 2>/dev/null || true
-        echo -e "${GREEN}[✓]${NC} $name stopped"
-    else
+    if [ -z "$pids" ]; then
         echo -e "${GREEN}[✓]${NC} $name not running"
+        return
     fi
+
+    for pid in $pids; do
+        local args=$(ps -o args= -p "$pid" 2>/dev/null || echo "")
+        if echo "$args" | grep -q "$PROJECT_ROOT\|opencode serve.*$OPENCODE_PORT\|lifeos\|sidecar\|vite.*$PROJECT_ROOT"; then
+            echo -e "${YELLOW}[•]${NC} Stopping $name (port $port, PID: $pid)..."
+            kill -9 "$pid" 2>/dev/null || true
+            echo -e "${GREEN}[✓]${NC} $name stopped"
+        else
+            echo -e "${YELLOW}[!]${NC} Port $port is used by another app (PID: $pid), leaving it alone:"
+            echo "    $args"
+        fi
+    done
 }
 
 # Stop all services
@@ -51,13 +61,14 @@ kill_port "$PORT"          "Sidecar"
 kill_port "$LIFEOS_PORT"   "Backend"
 kill_port "$FRONTEND_DEV_PORT" "Frontend"
 
-# Also kill by process name as fallback
+# Also clean up leftover LifeOS processes.
+# Each pattern includes the project folder, so other apps are never touched.
 echo ""
 echo -e "${YELLOW}[•]${NC} Cleaning up any remaining processes..."
-pkill -f "opencode serve" 2>/dev/null || true
-pkill -f "npm start" 2>/dev/null || true
-pkill -f "go run server/cmd/server/main.go" 2>/dev/null || true
-pkill -f "vite" 2>/dev/null || true
+pkill -f "opencode serve --port $OPENCODE_PORT" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/sidecar" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/server/cmd/server" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/web" 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
