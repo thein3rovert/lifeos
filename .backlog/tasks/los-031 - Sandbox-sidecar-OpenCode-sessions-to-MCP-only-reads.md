@@ -1,11 +1,11 @@
 ---
 id: LOS-031
 title: Sandbox sidecar OpenCode sessions to MCP-only reads
-status: In Progress
+status: Done
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 12:00'
+updated_date: '2026-09-27 12:05'
 labels:
   - sidecar
   - opencode
@@ -24,33 +24,18 @@ Sidecar currently pins OpenCode sessions to OPENCODE_DIRECTORY / PROJECT_DIR / c
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Sessions default to an empty sandbox dir, not project / sidecar dir
-- [ ] #2 Agent cannot read project files via built-in file tools, only via lifeos-files MCP
-- [ ] #3 Existing agent, session, skill and permission flows still work
-- [ ] #4 README documents the sandbox behavior and config
-- [ ] #5 Production sidecar connects to a dedicated OpenCode process and sees the same host-visible sandbox path rather than container /app
-- [ ] #6 Production MCP targets the production backend and startup fails safely when it is unavailable
+- [x] #1 Sessions default to an empty sandbox dir, not project / sidecar dir
+- [x] #2 Agent cannot read project files via built-in file tools, only via lifeos-files MCP
+- [x] #3 Existing agent, session, skill and permission flows still work
+- [x] #4 README documents the sandbox behavior and config
+- [x] #5 Production sidecar connects to a dedicated OpenCode process and sees the same host-visible sandbox path rather than container /app
+- [x] #6 Production MCP targets the production backend and startup fails safely when it is unavailable
 <!-- AC:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Default session cwd to empty sandbox dir (auto-created), never project root
-2. Ship sandbox opencode.json denying built-in file/shell tools, allowing only lifeos-files MCP
-3. Wire dev.sh + sidecar to use sandbox, update README
-4. Verify sessions create, chat works, shell reads blocked, MCP reads work
-
-5. Start dev backend before sidecar and wait for health; on sidecar init explicitly reconnect lifeos-files MCP and fail startup if unavailable, so cached failures cannot silently deprive agent of notes. Verify recovered status, test start sequence and SDK calls.
-
-6. Restrict LifeOS agent: disable inherited MCPs, expose lifeos-files tools directly (codemode:false), deny all actions by default except its two MCP tool actions, cap steps, and remove subagent/skill execution. Test actual tools in a fresh sandbox session. Separate network-isolated service remains an additional deployment requirement; do not claim permissions alone isolate network.
-
-7. Pass the backend configured LIFEOS_MEETINGS_PATH and LIFEOS_JOURNAL_PATH into the first synthetic context of every floating-chat conversation, so LifeOS does not guess sandbox/home paths. Add Go regression test in server/tests and verify configured paths match MCP_ALLOWED_DIRS.
-
-8. Production: create a host-side dedicated OpenCode service with private XDG config/data, provider auth onboarding and HTTP password; bind-mount one absolute sandbox path at the same location inside sidecar; point sidecar at dedicated service and host-side production MCP URL (7060), provide backend health gating and a rollout check. Do not modify the NixOS main OpenCode service or claim firewall/network egress enforcement without explicit firewall setup.
-
-Production design refinement: use `opencode serve --service` with a private XDG state directory and generated authenticated service.json mounted into sidecar, rather than fixed HTTP Basic credentials. Standalone `serve` on installed v2.0.15 returned 401 for configured Basic on /api/*; generated service registration works with the SDK. Provider authentication must be completed interactively for isolated credentials before enabling production sidecar.
-
-9. Rollout gate: verify the main-branch sidecar image build finished (build-sidecar.yml publishes latest), pull latest image, recreate only prod sidecar, then confirm its logs show dedicated :4098, host-visible sandbox and production lifeos-files MCP. Start a fresh production chat to verify only the two permitted MCP tools and no access outside allowed dirs; keep LOS-031 In Progress until this passes. Configure NixOS ingress/egress firewall separately before claiming network isolation.
+1. Use a separate empty LifeOS sandbox and a deny-by-default agent exposing only lifeos-files_list_files/read_file (direct MCP tools, no Code Mode/subagents/skills). 2. In dev, start the backend before sidecar and reconnect MCP; inject configured meeting/journal paths into new chats. 3. In production, run a dedicated authenticated OpenCode service on :4098 with isolated config/data, mount the same absolute sandbox into the sidecar, and use the production MCP on host :7060. 4. Validate with tests and a fresh production chat; OS firewall/egress isolation is explicitly deferred by the user.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -85,4 +70,12 @@ User placed OPENCODE_API_KEY in ignored .env. Fixed prod-opencode-auth to verify
 Current provider key in ignored .env works via OPENCODE_API_KEY environment; dedicated user service active on :4098 and a fresh session with opencode-go/deepseek-v4-pro replied Ready. Production sidecar container is still 3-day-old image. The sidecar workflow publishes latest on main pushes touching sidecar/**, but gh CLI is unavailable locally so image publication has not been confirmed. No production cutover or firewall rules performed.
 
 Production cutover smoke test after user restarted backend/frontend/sidecar: all three containers up; backend and sidecar /health return 200; sidecar logs OpenCode 2.0.15 at host.containers.internal:4098, lifeos-files MCP connected, host-visible sandbox path. Disposable production sidecar session/chat returned 200 with a nonempty reply; the only tool used was lifeos-files_list_files (completed) against allowed journal folder; deleted the test session afterward. Main NixOS OpenCode remains separately on its original service; firewall ingress/egress isolation remains unconfigured.
+
+User explicitly deferred OS-level network restriction; it is not a completion requirement for this task. Fresh production session already returned a nonempty response using only a completed lifeos-files_list_files call against an allowed journal folder, and its disposable session was removed. Rechecked 30/30 sidecar tests, dedicated service active, backend/sidecar HTTP 200.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+LifeOS sessions now use an empty sandbox and deny-by-default agent with only two direct MCP file tools. Dev startup gates on backend readiness; new chats receive allowed note paths. Production runs a separate authenticated OpenCode service on :4098 with isolated data/config and a host-visible sandbox, connected to the production MCP on :7060 without changing the main server. Verified 30 sidecar tests, Go integration tests, service health and a disposable production chat with only lifeos-files_list_files. Per user decision, OS-level network firewall/egress restrictions are out of scope.
+<!-- SECTION:FINAL_SUMMARY:END -->
