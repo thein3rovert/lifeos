@@ -48,12 +48,6 @@ export function sandboxConfig(env = process.env) {
     },
     mcp: {
       servers: {
-        // Global MCPs are inherited unless explicitly disabled here.
-        backlog: { disabled: true },
-        obsidian: { disabled: true },
-        linear: { disabled: true },
-        kaneo: { disabled: true },
-        excalidraw: { disabled: true },
         'lifeos-files': {
           type: 'remote',
           url: mcpUrl,

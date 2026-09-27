@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 10:14'
+updated_date: '2026-09-27 11:28'
 labels:
   - sidecar
   - opencode
@@ -28,6 +28,8 @@ Sidecar currently pins OpenCode sessions to OPENCODE_DIRECTORY / PROJECT_DIR / c
 - [ ] #2 Agent cannot read project files via built-in file tools, only via lifeos-files MCP
 - [ ] #3 Existing agent, session, skill and permission flows still work
 - [ ] #4 README documents the sandbox behavior and config
+- [ ] #5 Production sidecar connects to a dedicated OpenCode process and sees the same host-visible sandbox path rather than container /app
+- [ ] #6 Production MCP targets the production backend and startup fails safely when it is unavailable
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -43,6 +45,10 @@ Sidecar currently pins OpenCode sessions to OPENCODE_DIRECTORY / PROJECT_DIR / c
 6. Restrict LifeOS agent: disable inherited MCPs, expose lifeos-files tools directly (codemode:false), deny all actions by default except its two MCP tool actions, cap steps, and remove subagent/skill execution. Test actual tools in a fresh sandbox session. Separate network-isolated service remains an additional deployment requirement; do not claim permissions alone isolate network.
 
 7. Pass the backend configured LIFEOS_MEETINGS_PATH and LIFEOS_JOURNAL_PATH into the first synthetic context of every floating-chat conversation, so LifeOS does not guess sandbox/home paths. Add Go regression test in server/tests and verify configured paths match MCP_ALLOWED_DIRS.
+
+8. Production: create a host-side dedicated OpenCode service with private XDG config/data, provider auth onboarding and HTTP password; bind-mount one absolute sandbox path at the same location inside sidecar; point sidecar at dedicated service and host-side production MCP URL (7060), provide backend health gating and a rollout check. Do not modify the NixOS main OpenCode service or claim firewall/network egress enforcement without explicit firewall setup.
+
+Production design refinement: use `opencode serve --service` with a private XDG state directory and generated authenticated service.json mounted into sidecar, rather than fixed HTTP Basic credentials. Standalone `serve` on installed v2.0.15 returned 401 for configured Basic on /api/*; generated service registration works with the SDK. Provider authentication must be completed interactively for isolated credentials before enabling production sidecar.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -63,4 +69,8 @@ Applied deny-by-default LifeOS agent policy (only lifeos-files_list_files/read_f
 The backend process already has valid meeting/work and journal paths in MCP_ALLOWED_DIRS, but CreateConversation only sends cached panels to the sidecar. Sidecar agent system omits those paths, so it guesses sandbox and /tmp/opencode; MCP correctly denies those requests.
 
 Fixed folder discovery for floating chat: backend passes its configured meetings and journals paths to the session synthetic context on creation. These paths already match the backend MCP_ALLOWED_DIRS. Added TestFloatingChatStartsWithAllowedNoteFolders in server/tests; focused and full Go suite pass. Backend must restart for this change and user must start a new conversation (existing sessions retain old context).
+
+Validated dedicated host service HTTP API with generated registration credentials (v2.0.15), and `podman compose config` resolves sidecar URL to host.containers.internal:4098, same absolute sandbox bind mount, host-side production MCP URL at 127.0.0.1:7060. Isolated provider store has no account yet: agent/MCP availability cannot be fully verified until `just prod-opencode-auth` is run. No changes to the main OpenCode server.
+
+Production infrastructure now uses dedicated host `opencode serve --service` on :4098 with separate XDG config/data/state, generated registration credentials shared only through a host-visible sandbox bind mount, and Compose sidecar points exclusively to that URL (not the main :4097). In a temporary isolated instance the sidecar client authenticated via the registration file (v2.0.15), and Podman Compose config resolved matching sandbox paths plus prod MCP host port 7060. Fresh isolated store has no provider credentials: agent/MCP catalog was empty and full prompt + MCP flow was NOT verifiable until interactive `just prod-opencode-auth`; therefore no live production rollout occurred. Port 4098 firewall/egress policy is also not implemented.
 <!-- SECTION:NOTES:END -->

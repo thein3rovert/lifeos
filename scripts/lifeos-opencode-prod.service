@@ -1,0 +1,13 @@
+[Unit]
+Description=LifeOS private production OpenCode server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/Documents/project/lifeos/scripts/run-lifeos-opencode.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

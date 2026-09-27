@@ -149,7 +149,20 @@ prod-pull:
 # Start all services using registry images (clean env to avoid direnv .env.dev)
 prod-up:
     @echo "🚀 Starting production services (registry images)..."
+    @systemctl --user is-active --quiet lifeos-opencode-prod.service || { echo "Start dedicated LifeOS OpenCode first: just prod-opencode-install"; exit 1; }
     @env -i HOME="${HOME}" PATH="${PATH}" USER="${USER}" bash -c "podman compose -f docker-compose.prod.yml up -d"
+
+# Onboard provider credentials into the isolated LifeOS OpenCode profile.
+prod-opencode-auth:
+    @./scripts/run-lifeos-opencode.sh auth
+
+# Install/start the host-only OpenCode service on port 4098.
+prod-opencode-install:
+    @systemctl --user link "{{justfile_directory()}}/scripts/lifeos-opencode-prod.service"
+    @systemctl --user enable --now lifeos-opencode-prod.service
+
+prod-opencode-status:
+    @systemctl --user status --no-pager lifeos-opencode-prod.service
 
 # Start specific service(s) using registry images
 prod-start *services:

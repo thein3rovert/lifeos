@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { test } from 'node:test';
 import {
   connectLifeOSMCP,
@@ -112,6 +114,28 @@ test('uses an explicit container endpoint and environment authentication', async
     headers: { authorization: 'Bearer container-secret' },
   });
   assert.deepEqual(result.location, { directory: '/project' });
+});
+
+test('uses the dedicated service registration instead of the main OpenCode server', async () => {
+  const dir = mkdtempSync('/tmp/opencode/lifeos-service-');
+  const file = path.join(dir, 'service.json');
+  writeFileSync(file, JSON.stringify({ version: '2.0.15', password: 'generated-secret' }));
+  let passed;
+  const result = await createOpenCodeClient(
+    { OPENCODE_URL: 'http://host.containers.internal:4098', OPENCODE_SERVICE_FILE: file },
+    {
+      ServiceClient: {
+        ensure: async () => assert.fail('must not discover the shared service'),
+        headers: (endpoint) => {
+          assert.deepEqual(endpoint.auth, { username: 'opencode', password: 'generated-secret' });
+          return { authorization: 'Basic dedicated' };
+        },
+      },
+      OpenCodeClient: { make: (options) => { passed = options; return {}; } },
+    },
+  );
+  assert.equal(result.baseUrl, 'http://host.containers.internal:4098');
+  assert.equal(passed.headers.authorization, 'Basic dedicated');
 });
 
 test('promptAndWait selects the completed assistant after its exact V2 user message', async () => {

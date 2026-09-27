@@ -29,6 +29,11 @@ services:
     volumes:
       - lifeos-data:/app
       - /home/thein3rovert/Documents/resources/work_Elanco:/home/thein3rovert/Documents/resources/work_Elanco:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:6060/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
     restart: unless-stopped
     networks:
       - lifeos-network
@@ -51,12 +56,18 @@ services:
       - "${SIDECAR_PORT:-7002}:3002"
     environment:
       - NODE_ENV=production
-      - OPENCODE_URL=${OPENCODE_URL:-http://host.containers.internal:4097}
-      - OPENCODE_DIRECTORY=${OPENCODE_DIRECTORY:-/app}
-      - OPENCODE_AUTHORIZATION=${OPENCODE_AUTHORIZATION:-}
-      - OPENCODE_TOKEN=${OPENCODE_TOKEN:-}
-      - OPENCODE_USERNAME=${OPENCODE_USERNAME:-}
-      - OPENCODE_PASSWORD=${OPENCODE_PASSWORD:-}
+      # Dedicated host server, never the user's shared OpenCode on :4097.
+      - OPENCODE_URL=http://host.containers.internal:${LIFEOS_OPENCODE_PORT:-4098}
+      - OPENCODE_SERVICE_FILE=${LIFEOS_SANDBOX_DIR:-/home/thein3rovert/.local/share/lifeos-opencode/sandbox}/.state/opencode/service.json
+      - OPENCODE_DIRECTORY=${LIFEOS_SANDBOX_DIR:-/home/thein3rovert/.local/share/lifeos-opencode/sandbox}
+      # This URL is used by OpenCode on the host, not by the sidecar container.
+      - LIFEOS_MCP_URL=http://127.0.0.1:${BACKEND_PORT:-7060}/mcp
+    volumes:
+      # Same absolute directory inside both processes so project config is visible.
+      - ${LIFEOS_SANDBOX_DIR:-/home/thein3rovert/.local/share/lifeos-opencode/sandbox}:${LIFEOS_SANDBOX_DIR:-/home/thein3rovert/.local/share/lifeos-opencode/sandbox}:rw
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - lifeos-network

@@ -109,3 +109,32 @@ OPENCODE_URL=http://host.docker.internal:4096 npm start # explicit server
 npm test # node --test — activity, agent, opencode, permissions-forms
 docker build -t sidecar . # CMD node index.js, EXPOSE 3002
 ```
+
+## Production (host OpenCode + Podman sidecar)
+
+Production uses a separate host-side OpenCode server on `:4098`, never the
+personal shared server on `:4097`. The sidecar bind-mounts the host sandbox
+directory at the **same absolute path** inside its container. Its project
+config is then visible to OpenCode on the host. The MCP URL in this config is
+the production backend's host port (`http://127.0.0.1:7060/mcp` by default).
+
+1. Keep `MCP_API_KEY` in the ignored `.env`. Optionally set
+   `LIFEOS_OPENCODE_PORT`, `LIFEOS_SANDBOX_DIR` (absolute), and
+   `LIFEOS_OPENCODE_MODEL`.
+2. Run `just prod-opencode-auth` to log your model provider into LifeOS's
+   separate credential store (this is interactive).
+3. Run `just prod-opencode-install` to install/start its user-systemd unit,
+   then `just prod-opencode-status` to check it.
+4. Publish or build a **new sidecar image** with the service-file client changes;
+   the existing production image cannot authenticate to this service.
+5. Run `just prod-up` to start the backend and sidecar. A healthy backend is
+   required before the sidecar starts; the sidecar also verifies MCP connects.
+
+The isolated server has its own OpenCode config/data/cache and generated service
+credentials. Its registration file lives under the shared sandbox path; the
+sidecar reads that file for authentication, without changing the main server.
+Only the two LifeOS file tools are enabled for LifeOS sessions; the vault is
+mounted read-only in the backend, not in the sidecar. **This is not a network
+firewall**: restrict port 4098 to the Podman gateway with NixOS firewall rules
+if needed, and separately allow only your model provider + MCP egress when
+strict network isolation is required.

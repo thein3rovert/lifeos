@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { OpenCode } from '@opencode/client';
 import { Service } from '@opencode/client/service';
 import { SANDBOX_DIR } from './sandbox.js';
@@ -45,7 +46,15 @@ export async function createOpenCodeClient(
   let baseUrl = env.OPENCODE_URL;
   let headers;
 
-  if (baseUrl) {
+  if (env.OPENCODE_SERVICE_FILE) {
+    // Dedicated production service: use its generated credentials, never the
+    // machine's default OpenCode service or a hard-coded shared password.
+    const registration = JSON.parse(readFileSync(env.OPENCODE_SERVICE_FILE, 'utf8'));
+    if (!registration.version?.startsWith('2.') || !registration.password || !baseUrl) {
+      throw new Error('Invalid LifeOS OpenCode service registration or URL');
+    }
+    headers = ServiceClient.headers({ auth: { username: 'opencode', password: registration.password } });
+  } else if (baseUrl) {
     headers = getExplicitHeaders(env);
   } else {
     const endpoint = await ServiceClient.ensure({

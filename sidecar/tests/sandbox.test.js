@@ -14,9 +14,7 @@ test('sandbox config denies everything except two LifeOS MCP tools', () => {
     { action: 'lifeos-files_list_files', resource: '*', effect: 'allow' },
     { action: 'lifeos-files_read_file', resource: '*', effect: 'allow' },
   ]);
-  for (const name of ['backlog', 'obsidian', 'linear', 'kaneo', 'excalidraw']) {
-    assert.equal(config.mcp.servers[name].disabled, true);
-  }
+  assert.deepEqual(Object.keys(config.mcp.servers), ['lifeos-files']);
 });
 
 test('sandbox config keeps the lifeos-files MCP', () => {
