@@ -5,15 +5,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { getLocation } from '../opencode.js';
-import { SANDBOX_DIR, ensureSandbox, sandboxConfig } from '../sandbox.js';
+import { LIFEOS_AGENT, SANDBOX_DIR, ensureSandbox, sandboxConfig } from '../sandbox.js';
 
-test('sandbox config denies built-in file and shell tools', () => {
+test('sandbox config denies everything except two LifeOS MCP tools', () => {
   const config = sandboxConfig({ LIFEOS_PORT: '6060' });
-  const denied = config.permissions
-    .filter((rule) => rule.effect === 'deny')
-    .map((rule) => rule.action);
-  for (const tool of ['shell', 'read', 'edit', 'glob', 'grep']) {
-    assert.ok(denied.includes(tool), `expected ${tool} to be denied`);
+  assert.deepEqual(config.permissions, [
+    { action: '*', resource: '*', effect: 'deny' },
+    { action: 'lifeos-files_list_files', resource: '*', effect: 'allow' },
+    { action: 'lifeos-files_read_file', resource: '*', effect: 'allow' },
+  ]);
+  for (const name of ['backlog', 'obsidian', 'linear', 'kaneo', 'excalidraw']) {
+    assert.equal(config.mcp.servers[name].disabled, true);
   }
 });
 
@@ -22,6 +24,7 @@ test('sandbox config keeps the lifeos-files MCP', () => {
   const mcp = config.mcp.servers['lifeos-files'];
   assert.equal(mcp.type, 'remote');
   assert.equal(mcp.url, 'http://localhost:6060/mcp');
+  assert.equal(mcp.codemode, false);
 });
 
 test('sessions default to the sandbox, not the project folder', () => {
@@ -35,11 +38,20 @@ test('explicit session folder still wins over the sandbox', () => {
   });
 });
 
+test('sandbox ships a locked-down lifeos agent', () => {
+  const config = sandboxConfig({ LIFEOS_PORT: '6060' });
+  const agent = config.agents[LIFEOS_AGENT];
+  assert.equal(agent.mode, 'primary');
+  assert.equal(agent.steps, 12);
+  assert.match(agent.system, /lifeos-files/);
+  assert.deepEqual(agent.permissions, config.permissions);
+});
+
 test('ensureSandbox writes the config file', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'lifeos-sandbox-'));
   const result = ensureSandbox({ OPENCODE_DIRECTORY: dir, LIFEOS_PORT: '6060' });
   assert.equal(result, dir);
   const saved = JSON.parse(readFileSync(path.join(dir, 'opencode.json'), 'utf8'));
   assert.ok(existsSync(path.join(dir, 'opencode.json')));
-  assert.ok(saved.permissions.some((rule) => rule.action === 'shell' && rule.effect === 'deny'));
+  assert.equal(saved.permissions[0].action, '*');
 });

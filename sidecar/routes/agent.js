@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getClient } from '../client.js';
 import { getLocation, messageText, promptAndWait, promptAndWaitDetailed, requestSignal } from '../opencode.js';
+import { LIFEOS_AGENT } from '../sandbox.js';
 import { schemas } from '../schemas/smartboard.js';
 import { streamSessionActivity } from '../activity.js';
 
@@ -188,7 +189,7 @@ router.post('/session', async (req, res) => {
   const client = getClient();
 
   try {
-    const session = await client.session.create({ title, location: getLocation() });
+    const session = await client.session.create({ title, location: getLocation(), agent: LIFEOS_AGENT });
     const sessionId = session.id;
     if (context) {
       await client.session.synthetic({
@@ -304,6 +305,7 @@ router.post('/chat', async (req, res) => {
       const session = await client.session.create({
         title: 'agent-chat',
         location: getLocation(),
+        agent: LIFEOS_AGENT,
       });
       activeSessionId = session.id;
       isNewSession = true;

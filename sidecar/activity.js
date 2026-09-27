@@ -29,6 +29,26 @@ function toolDetail(input = {}) {
   return undefined;
 }
 
+// Find an MCP call inside Code Mode source, e.g. tools["lifeos-files"]["list_files"](...).
+// Returns { server, tool, path } or null when the code calls no MCP tool.
+function mcpCall(input = {}) {
+  if (typeof input.code !== 'string') return null;
+  const called = input.code.match(/tools\["([^"]+)"\]\["([^"]+)"\]/);
+  if (!called) return null;
+  const path = input.code.match(/path:\s*"([^"]+)"/);
+  return { server: called[1], tool: called[2], path: path?.[1] };
+}
+
+// Remember one tool call by id so later events reuse its name and kind.
+function rememberTool(toolNames, id, name, kind) {
+  toolNames.set(id, { name, kind });
+}
+
+function recallTool(toolNames, id) {
+  const found = toolNames.get(id);
+  return typeof found === 'string' ? { name: found, kind: undefined } : found;
+}
+
 function activity(event, kind, status, title, detail, toolCallId) {
   return {
     id: event.id,
@@ -97,26 +117,34 @@ export function normalizeActivityEvent(event, sessionID, toolNames = new Map()) 
     case 'session.reasoning.ended':
       return activity(event, 'reasoning', 'completed', 'Reasoning complete');
     case 'session.tool.input.started': {
-      toolNames.set(data.id, data.name);
       const kind = toolKind(data.name);
+      rememberTool(toolNames, data.id, data.name, kind);
       return activity(event, kind, 'started', data.name, undefined, data.id);
     }
     case 'session.tool.called': {
-      const name = toolNames.get(data.id) || 'Tool';
-      const kind = toolKind(name, data.input);
-      return activity(event, kind, 'progress', name, toolDetail(data.input), data.id);
+      const known = recallTool(toolNames, data.id) || {};
+      const mcp = mcpCall(data.input);
+      // MCP calls run as Code Mode, so show server.tool instead of "execute".
+      const name = mcp ? `${mcp.server}.${mcp.tool}` : known.name || 'Tool';
+      const kind = mcp ? 'mcp' : known.kind || toolKind(name, data.input);
+      rememberTool(toolNames, data.id, name, kind);
+      const detail = mcp ? mcp.path : toolDetail(data.input);
+      return activity(event, kind, 'progress', name, detail, data.id);
     }
     case 'session.tool.progress': {
-      const name = toolNames.get(data.id) || 'Tool';
-      return activity(event, toolKind(name), 'progress', name, undefined, data.id);
+      const known = recallTool(toolNames, data.id) || {};
+      const name = known.name || 'Tool';
+      return activity(event, known.kind || toolKind(name), 'progress', name, undefined, data.id);
     }
     case 'session.tool.success': {
-      const name = toolNames.get(data.id) || 'Tool';
+      const known = recallTool(toolNames, data.id) || {};
+      const name = known.name || 'Tool';
       toolNames.delete(data.id);
-      return activity(event, toolKind(name), 'completed', name, undefined, data.id);
+      return activity(event, known.kind || toolKind(name), 'completed', name, undefined, data.id);
     }
     case 'session.tool.failed': {
-      const name = toolNames.get(data.id) || 'Tool';
+      const known = recallTool(toolNames, data.id) || {};
+      const name = known.name || 'Tool';
       toolNames.delete(data.id);
       return activity(event, 'error', 'failed', `${name} failed`, errorMessage(data.error), data.id);
     }

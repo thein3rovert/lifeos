@@ -39,6 +39,27 @@ test('normalizes status, reasoning, file, MCP, and error events without session 
   }
 });
 
+test('shows MCP calls that run as Code Mode under their own name', () => {
+  const tools = new Map();
+  normalizeActivityEvent(event('session.tool.input.started', {
+    sessionID: 'wanted', id: 'call-exec', name: 'execute',
+  }), 'wanted', tools);
+  const called = normalizeActivityEvent(event('session.tool.called', {
+    sessionID: 'wanted',
+    id: 'call-exec',
+    input: { code: 'const r = await tools["lifeos-files"]["list_files"]({ path: "/j" });\nreturn r;' },
+  }), 'wanted', tools);
+  const done = normalizeActivityEvent(event('session.tool.success', {
+    sessionID: 'wanted', id: 'call-exec',
+  }), 'wanted', tools);
+
+  assert.equal(called.kind, 'mcp');
+  assert.equal(called.title, 'lifeos-files.list_files');
+  assert.equal(called.detail, '/j');
+  assert.equal(done.kind, 'mcp');
+  assert.equal(done.title, 'lifeos-files.list_files');
+});
+
 test('streams only normalized events for the requested session', async () => {
   const client = {
     event: {

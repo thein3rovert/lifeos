@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getClient } from '../client.js';
 import { getLocation, messageText, promptAndWait } from '../opencode.js';
+import { LIFEOS_AGENT } from '../sandbox.js';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.post('/update', async (req, res) => {
     const session = await client.session.create({
       title: 'skill-update',
       location: getLocation(),
+      agent: LIFEOS_AGENT,
     });
     sessionId = session.id;
     console.log('Session created:', sessionId);

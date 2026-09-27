@@ -67,18 +67,26 @@ Sessions never start in project code. The sidecar builds an empty
 `.opencode-sandbox/` folder (next to `sidecar/`) and writes an
 `opencode.json` there on every startup:
 
-- Denies built-in `shell`, `read`, `edit`, `glob`, `grep`, `execute`
-- Keeps only the `lifeos-files` MCP (`http://localhost:${LIFEOS_PORT:-6060}/mcp`)
+- Denies all tools by default; allows only `lifeos-files_list_files` and
+  `lifeos-files_read_file` for the LifeOS agent
+- Disables Code Mode for this MCP, so its two tools are direct calls (no `execute`)
+- Denies inherited MCP tools and subagents/skills; caps turns at 12 (global
+  MCP connections can still appear as connected in the shared OpenCode service)
+- Connects `lifeos-files` at `http://localhost:${LIFEOS_PORT:-6060}/mcp`
 
-So the agent reads meeting/journal notes through MCP tools only. If you see
-`Tool shell` in live activity, the sandbox config is not loaded — restart via
-`just dev`.
+`just dev` starts the backend first and waits for `/health`. The sidecar then
+reconnects `lifeos-files` and refuses to serve chat unless it is connected.
+An older conversation keeps its old session location; start a new chat after
+changing the sandbox setup. The UI should show the two `lifeos-files_*` tools,
+not `execute`. OpenCode permissions control agent tools; they are not an OS or
+network sandbox. For a strict isolation boundary, run OpenCode in a separately
+network-restricted service and verify its provider and MCP egress rules.
 
 | Var | Default | Purpose |
 |-----|---------|---------|
 | `OPENCODE_DIRECTORY` | `.opencode-sandbox/` | session cwd, config written here too |
 | `LIFEOS_PORT` / `BACKEND_PORT` | `6060` | backend port used for the MCP URL |
-| `LIFEOS_MCP_URL` | `http://localhost:$PORT/mcp` | override MCP URL |
+| `LIFEOS_MCP_URL` | `http://localhost:$LIFEOS_PORT/mcp` | override MCP URL |
 | `MCP_API_KEY` | unset | Bearer key, passed through as `{env:MCP_API_KEY}` |
 
 ## Config
@@ -87,7 +95,7 @@ So the agent reads meeting/journal notes through MCP tools only. If you see
 |-----|---------|---------|
 | `PORT` | `3002` | listen port |
 | `OPENCODE_URL` | unset (auto-discover) | explicit V2 endpoint, required in Docker |
-| `OPENCODE_DIRECTORY` / `PROJECT_DIR` | `cwd` | location for sessions/config |
+| `OPENCODE_DIRECTORY` / `PROJECT_DIR` | `.opencode-sandbox/` | location for sessions/config |
 | `OPENCODE_AUTHORIZATION` | unset | full Authorization header |
 | `OPENCODE_TOKEN` | unset | Bearer token |
 | `OPENCODE_USERNAME` / `PASSWORD` | unset | Basic auth |

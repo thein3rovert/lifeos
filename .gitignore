@@ -61,3 +61,6 @@ package-lock.json
 !sidecar/package-lock.json
 /.next/
 logs
+
+# LifeOS OpenCode sandbox (generated at sidecar startup)
+.opencode-sandbox/
