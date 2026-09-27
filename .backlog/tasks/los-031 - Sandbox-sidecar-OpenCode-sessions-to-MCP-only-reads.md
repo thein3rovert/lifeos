@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 11:51'
+updated_date: '2026-09-27 11:53'
 labels:
   - sidecar
   - opencode
@@ -49,6 +49,8 @@ Sidecar currently pins OpenCode sessions to OPENCODE_DIRECTORY / PROJECT_DIR / c
 8. Production: create a host-side dedicated OpenCode service with private XDG config/data, provider auth onboarding and HTTP password; bind-mount one absolute sandbox path at the same location inside sidecar; point sidecar at dedicated service and host-side production MCP URL (7060), provide backend health gating and a rollout check. Do not modify the NixOS main OpenCode service or claim firewall/network egress enforcement without explicit firewall setup.
 
 Production design refinement: use `opencode serve --service` with a private XDG state directory and generated authenticated service.json mounted into sidecar, rather than fixed HTTP Basic credentials. Standalone `serve` on installed v2.0.15 returned 401 for configured Basic on /api/*; generated service registration works with the SDK. Provider authentication must be completed interactively for isolated credentials before enabling production sidecar.
+
+9. Rollout gate: verify the main-branch sidecar image build finished (build-sidecar.yml publishes latest), pull latest image, recreate only prod sidecar, then confirm its logs show dedicated :4098, host-visible sandbox and production lifeos-files MCP. Start a fresh production chat to verify only the two permitted MCP tools and no access outside allowed dirs; keep LOS-031 In Progress until this passes. Configure NixOS ingress/egress firewall separately before claiming network isolation.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -79,4 +81,6 @@ The isolated provider picker showed no options in the user terminal. Confirmed f
 Confirmed from the isolated V2 integration catalog that opencode-go supports method `key` and environment credential `OPENCODE_API_KEY`. Provider ID alone still displayed an empty picker in the user terminal; updated prod auth command to pass `--method key` and documented OPENCODE_API_KEY as the noninteractive alternative.
 
 User placed OPENCODE_API_KEY in ignored .env. Fixed prod-opencode-auth to verify the env key without launching broken CLI picker. Started dedicated user systemd service on :4098; fresh service initially lacks agent/MCP catalog until integration discovery, so sidecar now primes integration.list and agent.list before MCP reconnect. Verified fresh service shows LifeOS agent and connected production MCP, and isolated opencode-go/deepseek-v4-pro replied Ready in a test session. Production sidecar container remains old image; no live app cutover yet.
+
+Current provider key in ignored .env works via OPENCODE_API_KEY environment; dedicated user service active on :4098 and a fresh session with opencode-go/deepseek-v4-pro replied Ready. Production sidecar container is still 3-day-old image. The sidecar workflow publishes latest on main pushes touching sidecar/**, but gh CLI is unavailable locally so image publication has not been confirmed. No production cutover or firewall rules performed.
 <!-- SECTION:NOTES:END -->
