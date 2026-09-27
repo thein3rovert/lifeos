@@ -206,6 +206,19 @@ router.post('/session', async (req, res) => {
   }
 });
 
+// Delete the private OpenCode session when its LifeOS chat is removed.
+router.delete('/session/:sessionId', async (req, res) => {
+  const client = getClient();
+  try {
+    await client.session.remove({ sessionID: req.params.sessionId });
+    return res.sendStatus(204);
+  } catch (err) {
+    if (upstreamStatus(err) === 404) return res.sendStatus(204);
+    console.error('[Agent] Failed to delete session:', err);
+    return res.status(502).json({ error: 'Failed to delete agent session' });
+  }
+});
+
 // POST /agent/session/chat - Continue exactly one existing session.
 router.post('/session/chat', async (req, res) => {
   const { sessionId, message, requestId, delivery = 'queue', messageId } = req.body;

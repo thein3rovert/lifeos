@@ -106,6 +106,12 @@ test('creates an explicit V2 session and injects context without running the age
   assert.equal(state.prompt.length, 0);
 });
 
+test('deletes the exact private session for a removed chat', async () => {
+  const response = await fetch(`${baseURL}/agent/session/ses_session1`, { method: 'DELETE' });
+  assert.equal(response.status, 204);
+  assert.deepEqual(state.remove, [{ sessionID: 'ses_session1' }]);
+});
+
 test('strict continuation uses V2 prompt, wait, and message list without replacement', async () => {
   const missing = await post('/agent/session/chat', { sessionId: 'ses_missing', message: 'hello' });
   assert.equal(missing.status, 404);

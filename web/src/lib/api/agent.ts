@@ -19,6 +19,8 @@ export const agentApi = {
     fetcher<{ conversation: AgentConversation; messages: AgentConversationMessage[] }>(
       `/api/agent/conversations/${encodeURIComponent(id)}`
     ),
+  deleteConversation: (id: string) =>
+    fetcher<void>(`/api/agent/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   activityUrl: (id: string) =>
     apiUrl(`/api/agent/conversations/${encodeURIComponent(id)}/activity`),
   getInteractions: (id: string) =>
