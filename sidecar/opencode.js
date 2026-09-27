@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { OpenCode } from '@opencode/client';
 import { Service } from '@opencode/client/service';
+import { SANDBOX_DIR } from './sandbox.js';
 
 const DEFAULT_TIMEOUT_MS = 600_000;
 
 export function getLocation(env = process.env) {
   return {
-    directory: env.OPENCODE_DIRECTORY || env.PROJECT_DIR || process.cwd(),
+    directory: env.OPENCODE_DIRECTORY || env.PROJECT_DIR || SANDBOX_DIR,
   };
 }
 
@@ -92,14 +93,20 @@ export async function promptAndWaitDetailed(client, sessionID, text, signal, opt
     throw new Error('OpenCode completed the prompt but its user message was not returned');
   }
 
-  // Results are newest-first. The first completed assistant newer than this
-  // user is its response. This deliberately crosses a steered user message:
-  // steering folds that input into the execution already in progress, so both
-  // HTTP callers observe the same final assistant message. Queued input is
-  // delivered after the prior assistant and therefore still maps in order.
-  const assistant = result.data.slice(0, userIndex).findLast(
+  // Results are newest-first. Take assistants newer than this user message.
+  // Normally take the newest one that has text. The earliest one is
+  // sometimes a tool-only step with no text, which used to save as an
+  // empty reply. But a newer user message means a steered or concurrent
+  // prompt shares this run, so keep the earliest pick there so both
+  // callers see the same final assistant message.
+  const newer = result.data.slice(0, userIndex);
+  const crossed = newer.some((message) => message.type === 'user');
+  const completed = newer.filter(
     (message) => message.type === 'assistant' && message.time.completed,
   );
+  const assistant = crossed
+    ? completed[completed.length - 1]
+    : completed.find((message) => messageText(message)) || completed[completed.length - 1];
   if (!assistant) {
     throw new Error('OpenCode completed the prompt without a final assistant message');
   }
