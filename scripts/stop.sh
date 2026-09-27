@@ -30,8 +30,17 @@ echo -e "${RED}║      🛑 Stopping LifeOS Services      ║${NC}"
 echo -e "${RED}╚════════════════════════════════════════╝${NC}"
 echo ""
 
+# True when the process runs from inside this project folder.
+# Checked via /proc cwd, so only LifeOS dev processes match.
+is_project_process() {
+    local pid=$1
+    local cwd
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null || echo "")
+    [[ -n "$cwd" && "$cwd" == "$PROJECT_ROOT"* ]]
+}
+
 # Function to kill process on port
-# Only kills it if it looks like a LifeOS process, so browsers and other apps stay safe.
+# Only kills it if it runs from this project folder, so browsers and other apps stay safe.
 kill_port() {
     local port=$1
     local name=$2
@@ -43,14 +52,13 @@ kill_port() {
     fi
 
     for pid in $pids; do
-        local args=$(ps -o args= -p "$pid" 2>/dev/null || echo "")
-        if echo "$args" | grep -q "$PROJECT_ROOT\|opencode serve.*$OPENCODE_PORT\|lifeos\|sidecar\|vite.*$PROJECT_ROOT"; then
+        if is_project_process "$pid"; then
             echo -e "${YELLOW}[•]${NC} Stopping $name (port $port, PID: $pid)..."
             kill -9 "$pid" 2>/dev/null || true
             echo -e "${GREEN}[✓]${NC} $name stopped"
         else
             echo -e "${YELLOW}[!]${NC} Port $port is used by another app (PID: $pid), leaving it alone:"
-            echo "    $args"
+            echo "    $(ps -o args= -p "$pid" 2>/dev/null)"
         fi
     done
 }
@@ -61,14 +69,16 @@ kill_port "$PORT"          "Sidecar"
 kill_port "$LIFEOS_PORT"   "Backend"
 kill_port "$FRONTEND_DEV_PORT" "Frontend"
 
-# Also clean up leftover LifeOS processes.
-# Each pattern includes the project folder, so other apps are never touched.
+# Also clean up leftover LifeOS processes by folder, never by bare tool name,
+# so browsers and other projects are never touched.
 echo ""
 echo -e "${YELLOW}[•]${NC} Cleaning up any remaining processes..."
-pkill -f "opencode serve --port $OPENCODE_PORT" 2>/dev/null || true
-pkill -f "$PROJECT_ROOT/sidecar" 2>/dev/null || true
-pkill -f "$PROJECT_ROOT/server/cmd/server" 2>/dev/null || true
-pkill -f "$PROJECT_ROOT/web" 2>/dev/null || true
+for pid in $(pgrep -f "opencode serve|node index.js|server/cmd/server|vite" 2>/dev/null); do
+    if is_project_process "$pid"; then
+        echo -e "${YELLOW}[•]${NC} Stopping leftover PID $pid ($(ps -o args= -p "$pid" 2>/dev/null | head -c 80))..."
+        kill -9 "$pid" 2>/dev/null || true
+    fi
+done
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"

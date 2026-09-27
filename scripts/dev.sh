@@ -41,13 +41,19 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Stop any old LifeOS processes first, so new ones can use the ports.
-# Only touches our project folder, never browsers or other apps.
+# Only touches processes running from this project folder, never browsers or other apps.
+is_project_process() {
+    local pid=$1
+    local cwd
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null || echo "")
+    [[ -n "$cwd" && "$cwd" == "$PROJECT_ROOT"* ]]
+}
+
 stop_old() {
     local port=$1
     local pids=$(lsof -ti:$port 2>/dev/null || true)
     for pid in $pids; do
-        local args=$(ps -o args= -p "$pid" 2>/dev/null || echo "")
-        if echo "$args" | grep -q "$PROJECT_ROOT\|opencode serve.*$OPENCODE_PORT\|lifeos\|sidecar\|vite.*$PROJECT_ROOT"; then
+        if is_project_process "$pid"; then
             echo "Stopping old process on port $port (PID: $pid)..."
             kill -9 "$pid" 2>/dev/null || true
         else
@@ -60,9 +66,11 @@ stop_old "$OPENCODE_PORT"
 stop_old "$PORT"
 stop_old "$LIFEOS_PORT"
 stop_old "$FRONTEND_DEV_PORT"
-pkill -f "$PROJECT_ROOT/sidecar" 2>/dev/null || true
-pkill -f "$PROJECT_ROOT/server/cmd/server" 2>/dev/null || true
-pkill -f "$PROJECT_ROOT/web" 2>/dev/null || true
+for pid in $(pgrep -f "node index.js|server/cmd/server" 2>/dev/null); do
+    if is_project_process "$pid"; then
+        kill -9 "$pid" 2>/dev/null || true
+    fi
+done
 sleep 1
 
 # Create logs directory
@@ -108,8 +116,8 @@ else
     echo ""
 fi
 
-# 2. Start Sidecar
-start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && env -u OPENCODE_URL PORT=$PORT OPENCODE_DIRECTORY=$PROJECT_ROOT npm start" "$PORT"
+# 2. Start Sidecar (sessions live in an empty sandbox, never project code)
+start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && env -u OPENCODE_URL PORT=$PORT OPENCODE_DIRECTORY=$PROJECT_ROOT/.opencode-sandbox npm start" "$PORT"
 sleep 2
 
 # 3. Start Go Backend (wrap in `nix develop` so we get the right Go version)
