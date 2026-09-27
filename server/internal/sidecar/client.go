@@ -10,8 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -219,19 +221,55 @@ func (c *Client) SendAgentSessionChat(req AgentSessionChatRequest) (AgentSession
 }
 
 func (c *Client) ListAgentInteractions(sessionID string) (AgentInteractions, error) {
+	empty := AgentInteractions{
+		Permissions: []json.RawMessage{},
+		Forms:       []json.RawMessage{},
+	}
 	var permissions struct {
 		Permissions []json.RawMessage `json:"permissions"`
 	}
+	// Fetch current session pending permission req
+	// from sidecar into {permissions} (Not all session
+	// needs permisson so empty is returned)
+	// TODO: Move to a method {handleSessionPermission}
 	if err := c.getJSON("/agent/session/"+url.PathEscape(sessionID)+"/permissions", &permissions); err != nil {
+		// Session is gone (old or expired). Return empty, not an error, so UI stays quiet.
+		if isNotFound(err) {
+			return empty, nil
+		}
+		log.Printf("[sidecar] interactions permissions failed: %v", err)
 		return AgentInteractions{}, err
 	}
+
+	// Fetch current session pending form req
+	// from sidecar into {forms} (Not all session
+	// needs forms so empty is returned)
+	// TODO: Move to a method {handleSessionForms}
 	var forms struct {
 		Forms []json.RawMessage `json:"forms"`
 	}
 	if err := c.getJSON("/agent/session/"+url.PathEscape(sessionID)+"/forms", &forms); err != nil {
+		// Same here. No session means no pending work to show.
+		if isNotFound(err) {
+			return empty, nil
+		}
+		log.Printf("[sidecar] interactions forms failed: %v", err)
 		return AgentInteractions{}, err
 	}
-	return AgentInteractions{Permissions: permissions.Permissions, Forms: forms.Forms}, nil
+
+	out := AgentInteractions{Permissions: permissions.Permissions, Forms: forms.Forms}
+	if out.Permissions == nil {
+		out.Permissions = []json.RawMessage{}
+	}
+	if out.Forms == nil {
+		out.Forms = []json.RawMessage{}
+	}
+	return out, nil
+}
+
+// Check if a sidecar error means session not found (404).
+func isNotFound(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "returned 404")
 }
 
 func (c *Client) GetAgentForm(sessionID, formID string) (json.RawMessage, error) {

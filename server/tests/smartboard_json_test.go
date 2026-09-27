@@ -1,15 +1,16 @@
-package service
+package tests
 
 import (
 	"strings"
 	"testing"
+
+	service "github.com/thein3rovert/lifeos/server/internal/services"
 )
 
 // Check every panel prompt tells AI to return JSON only.
-func TestPromptsAskForJSONOnly(t *testing.T) {
-	svc := &SmartBoardService{meetingsPath: "/m", journalPath: "/j"}
+func TestPanelPromptsAskForJSONOnly(t *testing.T) {
 	for _, panel := range []string{"things-to-remember", "suggestions", "achievements", "blockers"} {
-		prompt, err := svc.getPromptForPanel(panel, "")
+		prompt, err := service.PanelPrompt(panel, "/m", "/j", "")
 		if err != nil {
 			t.Fatalf("%s prompt error: %v", panel, err)
 		}
@@ -21,7 +22,7 @@ func TestPromptsAskForJSONOnly(t *testing.T) {
 
 // Check markdown is removed so AI text can parse.
 func TestCleanJSONStripsMarkdown(t *testing.T) {
-	got := cleanJSONResponse("```json\n[{\"id\":\"1\"}]\n```")
+	got := service.CleanJSONResponse("```json\n[{\"id\":\"1\"}]\n```")
 	if strings.TrimSpace(got) != `[{"id":"1"}]` {
 		t.Fatalf("bad clean: %q", got)
 	}
@@ -29,7 +30,7 @@ func TestCleanJSONStripsMarkdown(t *testing.T) {
 
 // Check {items:[...]} wrapper is opened to array.
 func TestUnwrapItemsWrapper(t *testing.T) {
-	got := unwrapJSONArray("things-to-remember", `{"items": [{"id":"1"}]}`)
+	got := service.UnwrapPanelJSONArray("things-to-remember", `{"items": [{"id":"1"}]}`)
 	if strings.TrimSpace(got) != `[{"id":"1"}]` {
 		t.Fatalf("bad unwrap: %q", got)
 	}
@@ -37,7 +38,7 @@ func TestUnwrapItemsWrapper(t *testing.T) {
 
 // Check users see short friendly text, not raw error.
 func TestFriendlyErrorHidesRaw(t *testing.T) {
-	err := friendlyPanelError("achievements")
+	err := service.FriendlyPanelError("achievements")
 	if err == nil || !strings.Contains(err.Error(), "temporarily unavailable") {
 		t.Fatalf("bad friendly error: %v", err)
 	}

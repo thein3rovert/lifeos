@@ -23,7 +23,7 @@ OUTPUT CONTRACT (MUST FOLLOW):
 - If unsure, return [] rather than prose.`
 
 // Short message for users when AI output breaks. Real error stays in logs for you.
-func friendlyPanelError(panelType string) error {
+func FriendlyPanelError(panelType string) error {
 	return fmt.Errorf("Smart board %s is temporarily unavailable, showing last saved data", panelType)
 }
 
@@ -37,7 +37,7 @@ func logRawResponse(panelType, response string) {
 }
 
 // If AI returns {items:[...]} instead of [...], pull out the array so parsing still works.
-func unwrapJSONArray(panelType, cleaned string) string {
+func UnwrapPanelJSONArray(panelType, cleaned string) string {
 	trimmed := strings.TrimSpace(cleaned)
 	if !strings.HasPrefix(trimmed, "{") {
 		return cleaned
@@ -254,7 +254,7 @@ Use the MCP file access tools proactively without asking permission. Be concise.
 		}
 	}
 	if err != nil {
-		return nil, friendlyPanelError(panelType)
+		return nil, FriendlyPanelError(panelType)
 	}
 
 	// Keep old user edits (like status) when new AI data comes in.
@@ -287,10 +287,13 @@ func (s *SmartBoardService) UpdateItemContent(panelType, itemID string, fields m
 	return s.store.UpdateItemContent(panelType, itemID, fields)
 }
 
-// getPromptForPanel returns the AI prompt for a specific panel type.
-// If existingItemsJSON is non-empty, the AI is asked to reuse existing IDs
-// for items it semantically recognizes (enables merge-on-refresh).
+// Build the AI prompt for one panel. Needs folder paths so AI knows what to read.
 func (s *SmartBoardService) getPromptForPanel(panelType, existingItemsJSON string) (string, error) {
+	return PanelPrompt(panelType, s.meetingsPath, s.journalPath, existingItemsJSON)
+}
+
+// Same as above but works without a service. Tests use this version.
+func PanelPrompt(panelType, meetingsPath, journalPath, existingItemsJSON string) (string, error) {
 	// Calculate date ranges
 	now := time.Now()
 	sevenDaysAgo := now.AddDate(0, 0, -7).Format("2006-01-02")
@@ -348,7 +351,7 @@ Rules:
 - Only include actionable or decision-critical items
 - Exclude routine/completed tasks
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
-- Return valid JSON only, no markdown or explanation`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
+- Return valid JSON only, no markdown or explanation`, meetingsPath, journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
 
 	case "suggestions":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -380,7 +383,7 @@ Focus on:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
+Return valid JSON only, no markdown or explanation.`, meetingsPath, journalPath, sevenDaysAgo) + reuseBlock + jsonContract, nil
 
 	case "achievements":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -411,7 +414,7 @@ Rules:
 - Sort by date (newest first)
 - Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS)
 
-Return valid JSON only, no markdown or explanation.`, s.journalPath, weekStart) + reuseBlock + jsonContract, nil
+Return valid JSON only, no markdown or explanation.`, journalPath, weekStart) + reuseBlock + jsonContract, nil
 
 	case "blockers":
 		return fmt.Sprintf(`IMPORTANT: Re-scan the directories now. Do NOT rely on previous knowledge - files may have been added or updated since your last check.
@@ -443,7 +446,7 @@ Look for phrases like:
 
 Include an "id" field per item (empty string if new, otherwise reused per ID REUSE INSTRUCTIONS).
 
-Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalPath, threeDaysAgo) + reuseBlock + jsonContract, nil
+Return valid JSON only, no markdown or explanation.`, meetingsPath, journalPath, threeDaysAgo) + reuseBlock + jsonContract, nil
 
 	default:
 		return "", fmt.Errorf("unknown panel type: %s", panelType)
@@ -453,7 +456,7 @@ Return valid JSON only, no markdown or explanation.`, s.meetingsPath, s.journalP
 // parseAIResponse parses the AI response into the appropriate data structure
 func (s *SmartBoardService) parseAIResponse(panelType, response string) (interface{}, error) {
 	// Clean markdown code blocks if present
-	cleaned := cleanJSONResponse(response)
+	cleaned := CleanJSONResponse(response)
 
 	// Log raw response if cleaning produced empty result (AI didn't return JSON)
 	if cleaned == "" {
@@ -461,7 +464,7 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 	}
 
 	// Unwrap {items:[...]} / {suggestions:[...]} style wrappers from prompt-only models.
-	cleaned = unwrapJSONArray(panelType, cleaned)
+	cleaned = UnwrapPanelJSONArray(panelType, cleaned)
 
 	response = cleaned
 
@@ -517,7 +520,7 @@ func (s *SmartBoardService) parseAIResponse(panelType, response string) (interfa
 }
 
 // Clean AI text so we can parse it. Removes markdown and finds JSON part.
-func cleanJSONResponse(response string) string {
+func CleanJSONResponse(response string) string {
 	// Cut empty space.
 	response = strings.TrimSpace(response)
 
