@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 11:53'
+updated_date: '2026-09-27 12:00'
 labels:
   - sidecar
   - opencode
@@ -83,4 +83,6 @@ Confirmed from the isolated V2 integration catalog that opencode-go supports met
 User placed OPENCODE_API_KEY in ignored .env. Fixed prod-opencode-auth to verify the env key without launching broken CLI picker. Started dedicated user systemd service on :4098; fresh service initially lacks agent/MCP catalog until integration discovery, so sidecar now primes integration.list and agent.list before MCP reconnect. Verified fresh service shows LifeOS agent and connected production MCP, and isolated opencode-go/deepseek-v4-pro replied Ready in a test session. Production sidecar container remains old image; no live app cutover yet.
 
 Current provider key in ignored .env works via OPENCODE_API_KEY environment; dedicated user service active on :4098 and a fresh session with opencode-go/deepseek-v4-pro replied Ready. Production sidecar container is still 3-day-old image. The sidecar workflow publishes latest on main pushes touching sidecar/**, but gh CLI is unavailable locally so image publication has not been confirmed. No production cutover or firewall rules performed.
+
+Production cutover smoke test after user restarted backend/frontend/sidecar: all three containers up; backend and sidecar /health return 200; sidecar logs OpenCode 2.0.15 at host.containers.internal:4098, lifeos-files MCP connected, host-visible sandbox path. Disposable production sidecar session/chat returned 200 with a nonempty reply; the only tool used was lifeos-files_list_files (completed) against allowed journal folder; deleted the test session afterward. Main NixOS OpenCode remains separately on its original service; firewall ingress/egress isolation remains unconfigured.
 <!-- SECTION:NOTES:END -->
