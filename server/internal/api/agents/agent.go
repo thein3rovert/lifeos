@@ -105,6 +105,19 @@ func (h *AgentChatHandler) ListConversations(w http.ResponseWriter, _ *http.Requ
 	api.RespondJSON(w, http.StatusOK, map[string]any{"conversations": conversations})
 }
 
+// DeleteConversation deletes one saved conversation and its private session.
+func (h *AgentChatHandler) DeleteConversation(w http.ResponseWriter, r *http.Request) {
+	if err := h.agentChatService.DeleteConversation(r.PathValue("conversationId")); err != nil {
+		if errors.Is(err, store.ErrAgentConversationNotFound) {
+			api.RespondError(w, http.StatusNotFound, "conversation not found")
+		} else {
+			api.RespondError(w, http.StatusBadGateway, "could not delete conversation")
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetConversation returns one floating-chat conversation and its messages.
 func (h *AgentChatHandler) GetConversation(w http.ResponseWriter, r *http.Request) {
 	conversation, messages, err := h.agentChatService.GetConversation(r.PathValue("conversationId"))

@@ -167,6 +167,7 @@ func runHTTPServer() {
 	mux.HandleFunc("POST /api/agent/conversations", agentAPI.CreateConversation)
 	mux.HandleFunc("GET /api/agent/conversations", agentAPI.ListConversations)
 	mux.HandleFunc("GET /api/agent/conversations/{conversationId}", agentAPI.GetConversation)
+	mux.HandleFunc("DELETE /api/agent/conversations/{conversationId}", agentAPI.DeleteConversation)
 	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/activity", agentAPI.StreamConversationActivity)
 	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/interactions", agentAPI.ListConversationInteractions)
 	mux.HandleFunc("GET /api/agent/conversations/{conversationId}/forms/{formId}", agentAPI.GetConversationForm)

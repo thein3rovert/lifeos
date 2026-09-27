@@ -30,6 +30,12 @@ func (s *agentConversationStoreStub) CreateConversation(conversation *model.Agen
 	return nil
 }
 
+func (s *agentConversationStoreStub) DeleteConversation(_, _ string) error {
+	s.conversation = nil
+	s.messages = nil
+	return nil
+}
+
 func (s *agentConversationStoreStub) ListConversations(source string) ([]model.AgentConversation, error) {
 	s.requestedWith = source
 	return []model.AgentConversation{}, nil

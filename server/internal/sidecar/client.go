@@ -209,6 +209,23 @@ func (c *Client) CreateAgentSession(title, context string) (string, error) {
 	return out.SessionID, nil
 }
 
+// DeleteAgentSession removes an OpenCode session belonging to a LifeOS chat.
+func (c *Client) DeleteAgentSession(sessionID string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.baseURL+"/agent/session/"+url.PathEscape(sessionID), nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("sidecar session deletion returned %d", resp.StatusCode)
+	}
+	return nil
+}
+
 // SendAgentSessionChat continues the exact session ID supplied. The sidecar
 // returns an error instead of silently creating a replacement session.
 // POST /agent/session/chat

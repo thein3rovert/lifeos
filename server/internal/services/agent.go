@@ -96,6 +96,19 @@ func (s *AgentChatService) ListConversations() ([]model.AgentConversation, error
 	return s.conversationStore.ListConversations(model.AgentConversationSource)
 }
 
+// DeleteConversation removes the OpenCode session, then its saved LifeOS chat.
+// Leave the local history alone if OpenCode could not remove the session.
+func (s *AgentChatService) DeleteConversation(id string) error {
+	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
+	if err != nil {
+		return err
+	}
+	if err := s.sidecar.DeleteAgentSession(conversation.OpenCodeSessionID); err != nil {
+		return fmt.Errorf("delete agent session: %w", err)
+	}
+	return s.conversationStore.DeleteConversation(id, model.AgentConversationSource)
+}
+
 func (s *AgentChatService) GetConversation(id string) (*model.AgentConversation, []model.AgentMessage, error) {
 	conversation, err := s.conversationStore.GetConversation(id, model.AgentConversationSource)
 	if err != nil {

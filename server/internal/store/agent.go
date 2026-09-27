@@ -13,6 +13,7 @@ var ErrAgentConversationNotFound = errors.New("agent conversation not found")
 
 type AgentConversationStore interface {
 	CreateConversation(*model.AgentConversation) error
+	DeleteConversation(id, source string) error
 	ListConversations(source string) ([]model.AgentConversation, error)
 	GetConversation(id, source string) (*model.AgentConversation, error)
 	UpdateConversationTitle(id, source, title string) error
@@ -20,6 +21,27 @@ type AgentConversationStore interface {
 	GetMessage(id, conversationID string) (*model.AgentMessage, error)
 	UpdateMessageDelivery(id, conversationID, status, deliveryError string) error
 	ListMessages(conversationID string) ([]model.AgentMessage, error)
+}
+
+// Remove the conversation and its messages together, but only for this source.
+func (s *SQLAgentConversationStore) DeleteConversation(id, source string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`DELETE FROM agent_messages WHERE conversation_id IN
+		(SELECT id FROM agent_conversations WHERE id = ? AND source = ?)`, id, source); err != nil {
+		return err
+	}
+	result, err := tx.Exec(`DELETE FROM agent_conversations WHERE id = ? AND source = ?`, id, source)
+	if err != nil {
+		return err
+	}
+	if err := agentConversationResultError(result); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 type SQLAgentConversationStore struct {
