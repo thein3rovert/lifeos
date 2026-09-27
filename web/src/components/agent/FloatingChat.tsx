@@ -8,10 +8,13 @@ import {
   Minimize2,
   RefreshCw,
   Square,
+  Trash2,
   X,
 } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui';
 import { RenderMarkdown } from '@/components/ui/RenderMarkdown';
 import { api } from '@/lib/api';
 import { createClientId } from '@/lib/clientId';
@@ -98,6 +101,9 @@ export function FloatingChat() {
   const [isActivityExpanded, setIsActivityExpanded] = useState(true);
   const [activityConnection, setActivityConnection] = useState<ActivityConnection>('idle');
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [confirmConversation, setConfirmConversation] = useState<AgentConversation | null>(null);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [contexts, setContexts] = useState<AgentMessageContext[]>([]);
@@ -174,6 +180,26 @@ export function FloatingChat() {
       setHistoryError(getErrorMessage(error));
     } finally {
       setIsHistoryLoading(false);
+    }
+  };
+
+  const deleteConversation = async (conversation: AgentConversation) => {
+    setDeletingConversationId(conversation.id);
+    setDeleteError(null);
+    try {
+      await api.agent.deleteConversation(conversation.id);
+      setConversations((current) => current.filter((item) => item.id !== conversation.id));
+      if (activeConversation?.id === conversation.id) {
+        setActiveConversation(null);
+        setMessages([]);
+        setView('history');
+      }
+      setConfirmConversation(null);
+    } catch (error) {
+      setDeleteError(`Could not delete conversation: ${getErrorMessage(error)}`);
+      setConfirmConversation(null);
+    } finally {
+      setDeletingConversationId(null);
     }
   };
 
@@ -700,20 +726,43 @@ export function FloatingChat() {
                 </div>
               ) : (
                 <div className="space-y-1">
+                  {deleteError && (
+                    <p role="alert" className="px-3 py-2 text-xs text-red-400">
+                      {deleteError}
+                    </p>
+                  )}
                   {conversations.map((conversation) => (
-                    <button
-                      type="button"
+                    <div
                       key={conversation.id}
-                      onClick={() => void openConversation(conversation)}
-                      className="w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/10"
+                      className="flex items-center rounded-lg hover:bg-white/10"
                     >
-                      <span className="block truncate text-sm text-primary">
-                        {conversation.title || 'Untitled conversation'}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-secondary">
-                        {new Date(conversation.updatedAt).toLocaleString()}
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => void openConversation(conversation)}
+                        className="min-w-0 flex-1 px-3 py-2.5 text-left"
+                      >
+                        <span className="block truncate text-sm text-primary">
+                          {conversation.title || 'Untitled conversation'}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-secondary">
+                          {new Date(conversation.updatedAt).toLocaleString()}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Delete conversation"
+                        title={`Delete ${conversation.title || 'Untitled conversation'}`}
+                        disabled={deletingConversationId === conversation.id || isSending}
+                        onClick={() => setConfirmConversation(conversation)}
+                        className="mr-2 rounded p-2 text-secondary hover:bg-red-500/15 hover:text-red-300 disabled:opacity-50"
+                      >
+                        {deletingConversationId === conversation.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -751,7 +800,7 @@ export function FloatingChat() {
                       className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] whitespace-pre-wrap rounded-lg px-4 py-2 text-sm ${
+                        className={`min-w-0 max-w-[80%] break-words rounded-lg px-4 py-2 text-sm ${
                           item.role === 'user'
                             ? 'bg-highlight text-white'
                             : 'bg-white/10 text-primary'
@@ -770,11 +819,11 @@ export function FloatingChat() {
                           </div>
                         )}
                         {item.role === 'assistant' ? (
-                          <div className="prose prose-invert prose-sm max-w-none">
-                            <RenderMarkdown>{item.content}</RenderMarkdown>
+                          <div className="min-w-0">
+                            <RenderMarkdown variant="chat">{item.content}</RenderMarkdown>
                           </div>
                         ) : (
-                          item.content
+                          <span className="whitespace-pre-wrap">{item.content}</span>
                         )}
                         {item.role === 'user' && item.deliveryMode && item.deliveryStatus && (
                           <div className="mt-1.5 flex items-center justify-end gap-2 text-[11px] text-white/75">
@@ -1258,6 +1307,48 @@ export function FloatingChat() {
           </button>
         </div>
       </div>
+      {confirmConversation &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <Dialog
+            isOpen={true}
+            onClose={() => {
+              if (!deletingConversationId) setConfirmConversation(null);
+            }}
+            className="w-full max-w-sm"
+          >
+            <DialogHeader
+              title="Delete conversation?"
+              icon={<Trash2 className="h-4 w-4 text-red-400" />}
+              onClose={() => setConfirmConversation(null)}
+            />
+            <DialogBody>
+              <p className="text-sm text-secondary">
+                Delete{' '}
+                <strong className="text-primary">
+                  {confirmConversation.title || 'Untitled conversation'}
+                </strong>{' '}
+                and all its messages? This cannot be undone.
+              </p>
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                disabled={!!deletingConversationId}
+                onClick={() => setConfirmConversation(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                isLoading={!!deletingConversationId}
+                onClick={() => void deleteConversation(confirmConversation)}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </Dialog>,
+          document.body
+        )}
     </div>
   );
 }

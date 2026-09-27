@@ -10,6 +10,7 @@ vi.mock('@/lib/api', () => ({
       createConversation: vi.fn(),
       listConversations: vi.fn(),
       getConversation: vi.fn(),
+      deleteConversation: vi.fn(),
       activityUrl: vi.fn(),
       getInteractions: vi.fn(),
       replyPermission: vi.fn(),
@@ -139,10 +140,45 @@ describe('FloatingChat', () => {
     expect(screen.getByText('Start with the release checklist.')).toBeTruthy();
   });
 
+  it('confirms before deleting only the chosen conversation', async () => {
+    const other = { ...conversation, id: 'conversation-2', title: 'Other chat' };
+    vi.mocked(api.agent.listConversations).mockResolvedValue({
+      conversations: [conversation, other],
+    });
+    vi.mocked(api.agent.deleteConversation).mockResolvedValue(undefined);
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    await screen.findByRole('button', { name: /Plan the week/ });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete conversation' })[0]);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(api.agent.deleteConversation).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete conversation' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() =>
+      expect(api.agent.deleteConversation).toHaveBeenCalledWith('conversation-1')
+    );
+    expect(screen.queryByRole('button', { name: /Plan the week/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Other chat/ })).toBeTruthy();
+  });
+
+  it('keeps a conversation visible if deleting it fails', async () => {
+    vi.mocked(api.agent.deleteConversation).mockRejectedValue(new Error('Service unavailable'));
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    await screen.findByRole('button', { name: /Plan the week/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete conversation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Plan the week/ })).toBeTruthy();
+  });
+
   it('continues the selected conversation', async () => {
     vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
     vi.mocked(api.agent.sendMessage).mockResolvedValue({
       conversation: { ...conversation, updatedAt: '2026-09-23T11:00:00Z' },
+      userMessage: transcript[0],
       message: {
         id: 'message-3',
         role: 'assistant',
@@ -180,6 +216,7 @@ describe('FloatingChat', () => {
     vi.mocked(api.agent.createConversation).mockResolvedValue({ conversation: newConversation });
     vi.mocked(api.agent.sendMessage).mockResolvedValue({
       conversation: newConversation,
+      userMessage: transcript[0],
       message: {
         id: 'message-4',
         role: 'assistant',
@@ -219,6 +256,7 @@ describe('FloatingChat', () => {
     vi.mocked(api.agent.getConversation).mockResolvedValue({ conversation, messages: transcript });
     vi.mocked(api.agent.sendMessage).mockResolvedValue({
       conversation,
+      userMessage: transcript[0],
       message: {
         id: 'message-insecure-origin',
         role: 'assistant',
@@ -282,6 +320,7 @@ describe('FloatingChat', () => {
     vi.mocked(api.agent.createConversation).mockResolvedValue({ conversation });
     vi.mocked(api.agent.sendMessage).mockResolvedValue({
       conversation,
+      userMessage: transcript[0],
       message: {
         id: 'message-context-response',
         role: 'assistant',
@@ -373,7 +412,28 @@ describe('FloatingChat', () => {
     expect(await screen.findByRole('heading', { name: 'Summary' })).toBeTruthy();
     expect(screen.getByText('Important').tagName).toBe('STRONG');
     expect(screen.getByText('First item').closest('li')).toBeTruthy();
-    expect(screen.getByText('**plain user text**').tagName).toBe('DIV');
+    expect(screen.getByText('**plain user text**').tagName).toBe('SPAN');
+    expect(screen.getByText('**plain user text**').className).toContain('whitespace-pre-wrap');
+    expect(screen.getByRole('heading', { name: 'Summary' }).closest('.break-words')).toBeTruthy();
+  });
+
+  it('keeps code and tables inside assistant chat bubbles', async () => {
+    vi.mocked(api.agent.getConversation).mockResolvedValue({
+      conversation,
+      messages: [
+        {
+          ...markdownTranscript[0],
+          content: '```sh\necho hi\n```\n\n| Topic | State |\n| --- | --- |\n| Launch | Ready |',
+        },
+      ],
+    });
+    render(<FloatingChat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand agent chat' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Plan the week/ }));
+    expect((await screen.findByText(/echo hi/)).closest('pre')?.className).toContain(
+      'overflow-x-auto'
+    );
+    expect(screen.getByRole('table').parentElement?.className).toContain('overflow-x-auto');
   });
 
   it('expands and restores the chat panel within viewport bounds', async () => {
