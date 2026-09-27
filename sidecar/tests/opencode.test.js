@@ -120,3 +120,26 @@ test('promptAndWait selects the completed assistant after its exact V2 user mess
   assert.deepEqual(calls.map(([name]) => name), ['prompt', 'wait', 'list']);
   assert.match(calls[0][1].id, /^msg_/);
 });
+
+test('promptAndWait skips tool-only steps with no text', async () => {
+  const messages = [
+    { id: 'msg_old', type: 'user', time: { created: 1 }, text: 'old' },
+  ];
+  const client = {
+    session: {
+      prompt: async (input) => {
+        messages.push({ id: input.id, type: 'user', time: { created: 2 }, text: input.text });
+        messages.push({ id: 'msg_tools', type: 'assistant', time: { created: 3, completed: 4 }, content: [{ type: 'reasoning' }, { type: 'tool' }] });
+        messages.push({ id: 'msg_final', type: 'assistant', time: { created: 5, completed: 6 }, content: [{ type: 'text', text: 'real answer' }] });
+        return { id: 'inbox-1', type: 'user' };
+      },
+      wait: async () => {},
+    },
+    message: {
+      list: async () => ({ data: [...messages].reverse(), cursor: {} }),
+    },
+  };
+
+  const result = await promptAndWait(client, 'ses_test', 'new prompt');
+  assert.equal(messageText(result), 'real answer');
+});
