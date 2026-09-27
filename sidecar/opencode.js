@@ -15,6 +15,13 @@ export function getLocation(env = process.env) {
 // Reconnect our MCP after the backend is ready. OpenCode may have saved an
 // earlier connection failure, so checking the config file alone is not enough.
 export async function connectLifeOSMCP(client, location) {
+  // On a fresh isolated service, load this location's agent/provider config
+  // before asking for its MCP. Otherwise the first connect can return 404.
+  await client.integration.list({ location });
+  const agents = await client.agent.list({ location });
+  if (!agents.data.some((agent) => agent.id === 'lifeos')) {
+    throw new Error('LifeOS agent configuration was not loaded');
+  }
   await client.mcp.connect({ server: 'lifeos-files', location });
   const servers = await client.mcp.list({ location });
   const lifeos = servers.data.find((server) => server.name === 'lifeos-files');

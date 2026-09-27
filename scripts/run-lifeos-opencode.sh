@@ -63,7 +63,12 @@ unset OPENCODE_SERVER_PASSWORD
 
 cd "$LIFEOS_SANDBOX_DIR"
 if [[ "${1:-}" == "auth" ]]; then
-    # Skip both pickers. OpenCode Go supports key auth and OPENCODE_API_KEY.
-    exec opencode auth login "${LIFEOS_OPENCODE_MODEL%%/*}" --method key
+    # OpenCode Go can read this key directly. Do not open the broken CLI picker.
+    if [[ -z "${OPENCODE_API_KEY:-}" ]]; then
+        echo "Set OPENCODE_API_KEY in the ignored .env file, then run this again." >&2
+        exit 1
+    fi
+    echo "OpenCode Go key is configured for the isolated LifeOS service. No login needed."
+    exit 0
 fi
 exec opencode serve --service --hostname 0.0.0.0 --port "$LIFEOS_OPENCODE_PORT"

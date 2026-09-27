@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 11:41'
+updated_date: '2026-09-27 11:51'
 labels:
   - sidecar
   - opencode
@@ -77,4 +77,6 @@ Production infrastructure now uses dedicated host `opencode serve --service` on 
 The isolated provider picker showed no options in the user terminal. Confirmed from the dedicated V2 server integration catalog that `opencode-go` exists; changed `just prod-opencode-auth` to call auth login with the provider ID from LIFEOS_OPENCODE_MODEL directly, skipping the picker.
 
 Confirmed from the isolated V2 integration catalog that opencode-go supports method `key` and environment credential `OPENCODE_API_KEY`. Provider ID alone still displayed an empty picker in the user terminal; updated prod auth command to pass `--method key` and documented OPENCODE_API_KEY as the noninteractive alternative.
+
+User placed OPENCODE_API_KEY in ignored .env. Fixed prod-opencode-auth to verify the env key without launching broken CLI picker. Started dedicated user systemd service on :4098; fresh service initially lacks agent/MCP catalog until integration discovery, so sidecar now primes integration.list and agent.list before MCP reconnect. Verified fresh service shows LifeOS agent and connected production MCP, and isolated opencode-go/deepseek-v4-pro replied Ready in a test session. Production sidecar container remains old image; no live app cutover yet.
 <!-- SECTION:NOTES:END -->

@@ -121,11 +121,10 @@ the production backend's host port (`http://127.0.0.1:7060/mcp` by default).
 1. Keep `MCP_API_KEY` in the ignored `.env`. Optionally set
    `LIFEOS_OPENCODE_PORT`, `LIFEOS_SANDBOX_DIR` (absolute), and
    `LIFEOS_OPENCODE_MODEL`.
-2. Run `just prod-opencode-auth` to log your configured model provider into
-   LifeOS's separate credential store. It selects OpenCode Go and API-key mode
-   directly; paste your key at the key prompt, never into a chat message.
-   Alternatively, set `OPENCODE_API_KEY` in `.env` to use the provider's
-   environment credential instead of the interactive command.
+2. Set `OPENCODE_API_KEY` in the ignored `.env` to reuse your existing OpenCode
+   Go API key. `just prod-opencode-auth` verifies it is set without printing it;
+   the dedicated service reads it from its environment. Do not paste a key into
+   the OpenCode CLI's "Connect an integration" picker; it is not a key prompt.
 3. Run `just prod-opencode-install` to install/start its user-systemd unit,
    then `just prod-opencode-status` to check it.
 4. Publish or build a **new sidecar image** with the service-file client changes;

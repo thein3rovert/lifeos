@@ -20,8 +20,16 @@ test('reconnects the sandbox MCP before accepting chat', async () => {
       calls.push(['list', input]);
       return { data: [{ name: 'lifeos-files', status: { status: 'connected' } }] };
     },
-  } }, location);
+  }, integration: { list: async (input) => {
+    calls.push(['integrations', input]);
+    return { data: [] };
+  } }, agent: { list: async (input) => {
+    calls.push(['agents', input]);
+    return { data: [{ id: 'lifeos' }] };
+  } } }, location);
   assert.deepEqual(calls, [
+    ['integrations', { location }],
+    ['agents', { location }],
     ['connect', { server: 'lifeos-files', location }],
     ['list', { location }],
   ]);
@@ -32,7 +40,7 @@ test('refuses to start chat when sandbox MCP is still unavailable', async () => 
   await assert.rejects(connectLifeOSMCP({ mcp: {
     connect: async () => {},
     list: async () => ({ data: [{ name: 'lifeos-files', status: { status: 'failed' } }] }),
-  } }, location), /not connected: failed/);
+  }, integration: { list: async () => ({ data: [] }) }, agent: { list: async () => ({ data: [{ id: 'lifeos' }] }) } }, location), /not connected: failed/);
 });
 
 test('builds explicit-server authentication headers from environment', () => {
