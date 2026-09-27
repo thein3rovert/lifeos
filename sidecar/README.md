@@ -61,6 +61,26 @@ sidecar/
 
 Activity SSE (`activity.js`): subscribes `client.event.subscribe()`, filters by exact `data.sessionID`, maps `session.tool.*`, `session.status`, `permission.*`, `form.*`, `compaction.*` to `{ id, kind: status|tool|file|mcp|reasoning|error, status, title, detail }`.
 
+## Sandbox (MCP-only reads)
+
+Sessions never start in project code. The sidecar builds an empty
+`.opencode-sandbox/` folder (next to `sidecar/`) and writes an
+`opencode.json` there on every startup:
+
+- Denies built-in `shell`, `read`, `edit`, `glob`, `grep`, `execute`
+- Keeps only the `lifeos-files` MCP (`http://localhost:${LIFEOS_PORT:-6060}/mcp`)
+
+So the agent reads meeting/journal notes through MCP tools only. If you see
+`Tool shell` in live activity, the sandbox config is not loaded — restart via
+`just dev`.
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `OPENCODE_DIRECTORY` | `.opencode-sandbox/` | session cwd, config written here too |
+| `LIFEOS_PORT` / `BACKEND_PORT` | `6060` | backend port used for the MCP URL |
+| `LIFEOS_MCP_URL` | `http://localhost:$PORT/mcp` | override MCP URL |
+| `MCP_API_KEY` | unset | Bearer key, passed through as `{env:MCP_API_KEY}` |
+
 ## Config
 
 | Var | Default | Purpose |
