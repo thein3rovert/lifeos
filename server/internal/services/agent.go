@@ -32,6 +32,8 @@ type AgentChatService struct {
 	noteStore         store.NoteStore
 	smartBoardStore   store.SmartBoardStore
 	sidecar           *sidecar.Client
+	meetingsPath      string
+	journalPath       string
 }
 
 func NewAgentChatService(
@@ -41,8 +43,9 @@ func NewAgentChatService(
 	smartBoardStore store.SmartBoardStore,
 	sc *sidecar.Client,
 	conversationStore store.AgentConversationStore,
+	notePaths ...string,
 ) *AgentChatService {
-	return &AgentChatService{
+	svc := &AgentChatService{
 		skillStore:        skillStore,
 		msgStore:          msgStore,
 		conversationStore: conversationStore,
@@ -50,6 +53,10 @@ func NewAgentChatService(
 		smartBoardStore:   smartBoardStore,
 		sidecar:           sc,
 	}
+	if len(notePaths) >= 2 {
+		svc.meetingsPath, svc.journalPath = notePaths[0], notePaths[1]
+	}
+	return svc
 }
 
 const newAgentConversationTitle = "New conversation"
@@ -64,7 +71,13 @@ type SendAgentMessageInput struct {
 }
 
 func (s *AgentChatService) CreateConversation() (*model.AgentConversation, error) {
-	sessionID, err := s.sidecar.CreateAgentSession("lifeos-floating-chat", s.latestPanelsContext(7))
+	context := s.latestPanelsContext(7)
+	// Tell the agent which folders the MCP can read. Otherwise it guesses
+	// its sandbox or home folder and the MCP correctly denies those paths.
+	if s.meetingsPath != "" && s.journalPath != "" {
+		context = fmt.Sprintf("LifeOS MCP note folders (use lifeos-files tools only):\nMeetings: %s\nJournals: %s\nDo not search other paths.\n\n%s", s.meetingsPath, s.journalPath, context)
+	}
+	sessionID, err := s.sidecar.CreateAgentSession("lifeos-floating-chat", context)
 	if err != nil {
 		return nil, fmt.Errorf("create agent session: %w", err)
 	}

@@ -191,6 +191,32 @@ func TestAgentChatServiceCreatesThenStrictlyContinuesSession(t *testing.T) {
 	}
 }
 
+func TestFloatingChatStartsWithAllowedNoteFolders(t *testing.T) {
+	var context string
+	sidecarServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Context string `json:"context"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Fatal(err)
+		}
+		context = input.Context
+		_ = json.NewEncoder(w).Encode(map[string]string{"sessionId": "session-1"})
+	}))
+	defer sidecarServer.Close()
+
+	svc := service.NewAgentChatService(nil, nil, nil, nil, sidecar.New(sidecarServer.URL),
+		&agentConversationStoreStub{}, "/vault/work/meeting", "/vault/journal")
+	if _, err := svc.CreateConversation(); err != nil {
+		t.Fatal(err)
+	}
+	for _, wanted := range []string{"Meetings: /vault/work/meeting", "Journals: /vault/journal", "lifeos-files tools only", "Do not search other paths"} {
+		if !strings.Contains(context, wanted) {
+			t.Fatalf("conversation context missing %q: %q", wanted, context)
+		}
+	}
+}
+
 func TestAgentChatServiceResolvesContextForPromptAndPersistsReferences(t *testing.T) {
 	db, err := store.NewSQLiteStore(filepath.Join(t.TempDir(), "lifeos.db"))
 	if err != nil {

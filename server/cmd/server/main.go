@@ -103,7 +103,7 @@ func runHTTPServer() {
 	sidecarClient := sidecar.New(cfg.SidecarURL)
 
 	// ── Initialize services ─────────────────────────────────────
-	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, smartBoardStore, sidecarClient, agentConversationStore)
+	agentChatService := service.NewAgentChatService(skillStore, chatMsgStore, noteStore, smartBoardStore, sidecarClient, agentConversationStore, cfg.MeetingsPath, cfg.JournalPath)
 	noteService := service.NewNoteService(noteStore, skillStore)
 	skillAIService := service.NewSkillAIService(skillStore, noteStore, sidecarClient)
 	smartBoardService := service.NewSmartBoardService(smartBoardStore, agentChatService, cfg.MeetingsPath, cfg.JournalPath)
