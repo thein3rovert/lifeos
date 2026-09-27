@@ -50,6 +50,8 @@ export async function createOpenCodeClient(
   };
 }
 
+// Parse user/assistant message from opencode
+// into plain text
 export function messageText(message) {
   if (message.type === 'assistant') {
     return message.content
@@ -63,6 +65,9 @@ export function messageText(message) {
   return '';
 }
 
+// Send user message as queued, wait for agent to go idea
+// thn find the newesr completed assistant reply and return
+// it
 export async function promptAndWaitDetailed(client, sessionID, text, signal, options = {}) {
   const messageID = options.messageID || `msg_${randomUUID().replaceAll('-', '')}`;
   const delivery = options.delivery || 'queue';
