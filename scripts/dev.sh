@@ -116,12 +116,24 @@ else
     echo ""
 fi
 
-# 2. Start Sidecar (sessions live in an empty sandbox, never project code)
-start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && env -u OPENCODE_URL PORT=$PORT OPENCODE_DIRECTORY=$PROJECT_ROOT/.opencode-sandbox npm start" "$PORT"
-sleep 2
-
-# 3. Start Go Backend (wrap in `nix develop` so we get the right Go version)
+# 2. Start Go Backend first. The MCP server lives here, so the sidecar needs
+# it before OpenCode can connect to lifeos-files.
 start_service "Backend" "cd $PROJECT_ROOT && CORS_ORIGINS='$CORS_ORIGINS' LIFEOS_PORT=$LIFEOS_PORT nix develop -c go run server/cmd/server/main.go" "$LIFEOS_PORT"
+ready=0
+for attempt in $(seq 1 60); do
+    if curl --silent --fail --max-time 2 "http://127.0.0.1:$LIFEOS_PORT/health" > /dev/null; then
+        ready=1
+        break
+    fi
+    sleep 1
+done
+if [[ "$ready" != 1 ]]; then
+    echo -e "${RED}Backend did not become healthy. Check $LOG_DIR/Backend.log${NC}"
+    exit 1
+fi
+
+# 3. Start Sidecar (sessions live in an empty sandbox, never project code)
+start_service "Sidecar" "cd $PROJECT_ROOT/sidecar && env -u OPENCODE_URL PORT=$PORT OPENCODE_DIRECTORY=$PROJECT_ROOT/.opencode-sandbox npm start" "$PORT"
 sleep 2
 
 # 4. Start Vite Frontend

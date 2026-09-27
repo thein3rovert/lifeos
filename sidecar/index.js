@@ -1,7 +1,7 @@
 import { Agent, setGlobalDispatcher } from 'undici';
 import { createApp } from './app.js';
 import { setClient } from './client.js';
-import { createOpenCodeClient } from './opencode.js';
+import { connectLifeOSMCP, createOpenCodeClient } from './opencode.js';
 import { ensureSandbox } from './sandbox.js';
 
 // Configure global dispatcher with longer timeouts to prevent
@@ -20,13 +20,13 @@ async function initOpencode() {
   try {
     // Build the empty sandbox first so sessions never start in project code.
     const sandboxDir = ensureSandbox();
-    if (!process.env.OPENCODE_DIRECTORY && !process.env.PROJECT_DIR) {
-      process.env.OPENCODE_DIRECTORY = sandboxDir;
-    }
+    process.env.OPENCODE_DIRECTORY = sandboxDir;
     const { client, baseUrl, location } = await createOpenCodeClient();
     const info = await client.server.info();
     await client.location.get({ location });
+    await connectLifeOSMCP(client, location);
     console.log(`Connected to OpenCode ${info.version} at ${baseUrl}`);
+    console.log('Connected to lifeos-files MCP');
     console.log('OpenCode location:', location.directory);
 
     // Set the shared client instance

@@ -11,6 +11,17 @@ export function getLocation(env = process.env) {
   };
 }
 
+// Reconnect our MCP after the backend is ready. OpenCode may have saved an
+// earlier connection failure, so checking the config file alone is not enough.
+export async function connectLifeOSMCP(client, location) {
+  await client.mcp.connect({ server: 'lifeos-files', location });
+  const servers = await client.mcp.list({ location });
+  const lifeos = servers.data.find((server) => server.name === 'lifeos-files');
+  if (lifeos?.status?.status !== 'connected') {
+    throw new Error(`lifeos-files MCP is not connected: ${lifeos?.status?.status || 'missing'}`);
+  }
+}
+
 export function getExplicitHeaders(env = process.env) {
   if (env.OPENCODE_AUTHORIZATION) {
     return { authorization: env.OPENCODE_AUTHORIZATION };

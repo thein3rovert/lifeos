@@ -1,12 +1,37 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  connectLifeOSMCP,
   createOpenCodeClient,
   getExplicitHeaders,
   getLocation,
   messageText,
   promptAndWait,
 } from '../opencode.js';
+
+test('reconnects the sandbox MCP before accepting chat', async () => {
+  const calls = [];
+  const location = { directory: '/empty-sandbox' };
+  await connectLifeOSMCP({ mcp: {
+    connect: async (input) => calls.push(['connect', input]),
+    list: async (input) => {
+      calls.push(['list', input]);
+      return { data: [{ name: 'lifeos-files', status: { status: 'connected' } }] };
+    },
+  } }, location);
+  assert.deepEqual(calls, [
+    ['connect', { server: 'lifeos-files', location }],
+    ['list', { location }],
+  ]);
+});
+
+test('refuses to start chat when sandbox MCP is still unavailable', async () => {
+  const location = { directory: '/empty-sandbox' };
+  await assert.rejects(connectLifeOSMCP({ mcp: {
+    connect: async () => {},
+    list: async () => ({ data: [{ name: 'lifeos-files', status: { status: 'failed' } }] }),
+  } }, location), /not connected: failed/);
+});
 
 test('builds explicit-server authentication headers from environment', () => {
   assert.deepEqual(getExplicitHeaders({ OPENCODE_AUTHORIZATION: 'Custom secret' }), {
