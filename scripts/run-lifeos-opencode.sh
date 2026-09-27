@@ -63,7 +63,7 @@ unset OPENCODE_SERVER_PASSWORD
 
 cd "$LIFEOS_SANDBOX_DIR"
 if [[ "${1:-}" == "auth" ]]; then
-    # Skip the integration picker; it may render as an empty prompt in some terminals.
-    exec opencode auth login "${LIFEOS_OPENCODE_MODEL%%/*}"
+    # Skip both pickers. OpenCode Go supports key auth and OPENCODE_API_KEY.
+    exec opencode auth login "${LIFEOS_OPENCODE_MODEL%%/*}" --method key
 fi
 exec opencode serve --service --hostname 0.0.0.0 --port "$LIFEOS_OPENCODE_PORT"

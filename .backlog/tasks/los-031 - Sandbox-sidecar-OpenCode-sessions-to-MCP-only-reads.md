@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 11:38'
+updated_date: '2026-09-27 11:41'
 labels:
   - sidecar
   - opencode
@@ -75,4 +75,6 @@ Validated dedicated host service HTTP API with generated registration credential
 Production infrastructure now uses dedicated host `opencode serve --service` on :4098 with separate XDG config/data/state, generated registration credentials shared only through a host-visible sandbox bind mount, and Compose sidecar points exclusively to that URL (not the main :4097). In a temporary isolated instance the sidecar client authenticated via the registration file (v2.0.15), and Podman Compose config resolved matching sandbox paths plus prod MCP host port 7060. Fresh isolated store has no provider credentials: agent/MCP catalog was empty and full prompt + MCP flow was NOT verifiable until interactive `just prod-opencode-auth`; therefore no live production rollout occurred. Port 4098 firewall/egress policy is also not implemented.
 
 The isolated provider picker showed no options in the user terminal. Confirmed from the dedicated V2 server integration catalog that `opencode-go` exists; changed `just prod-opencode-auth` to call auth login with the provider ID from LIFEOS_OPENCODE_MODEL directly, skipping the picker.
+
+Confirmed from the isolated V2 integration catalog that opencode-go supports method `key` and environment credential `OPENCODE_API_KEY`. Provider ID alone still displayed an empty picker in the user terminal; updated prod auth command to pass `--method key` and documented OPENCODE_API_KEY as the noninteractive alternative.
 <!-- SECTION:NOTES:END -->
