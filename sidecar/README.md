@@ -121,8 +121,9 @@ the production backend's host port (`http://127.0.0.1:7060/mcp` by default).
 1. Keep `MCP_API_KEY` in the ignored `.env`. Optionally set
    `LIFEOS_OPENCODE_PORT`, `LIFEOS_SANDBOX_DIR` (absolute), and
    `LIFEOS_OPENCODE_MODEL`.
-2. Run `just prod-opencode-auth` to log your model provider into LifeOS's
-   separate credential store (this is interactive).
+2. Run `just prod-opencode-auth` to log your configured model provider into
+   LifeOS's separate credential store. It selects the provider automatically;
+   the subsequent sign-in is interactive.
 3. Run `just prod-opencode-install` to install/start its user-systemd unit,
    then `just prod-opencode-status` to check it.
 4. Publish or build a **new sidecar image** with the service-file client changes;

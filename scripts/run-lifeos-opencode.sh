@@ -63,6 +63,7 @@ unset OPENCODE_SERVER_PASSWORD
 
 cd "$LIFEOS_SANDBOX_DIR"
 if [[ "${1:-}" == "auth" ]]; then
-    exec opencode auth login
+    # Skip the integration picker; it may render as an empty prompt in some terminals.
+    exec opencode auth login "${LIFEOS_OPENCODE_MODEL%%/*}"
 fi
 exec opencode serve --service --hostname 0.0.0.0 --port "$LIFEOS_OPENCODE_PORT"

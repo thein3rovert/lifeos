@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - thein3rovert
 created_date: '2026-09-27 07:59'
-updated_date: '2026-09-27 11:28'
+updated_date: '2026-09-27 11:38'
 labels:
   - sidecar
   - opencode
@@ -73,4 +73,6 @@ Fixed folder discovery for floating chat: backend passes its configured meetings
 Validated dedicated host service HTTP API with generated registration credentials (v2.0.15), and `podman compose config` resolves sidecar URL to host.containers.internal:4098, same absolute sandbox bind mount, host-side production MCP URL at 127.0.0.1:7060. Isolated provider store has no account yet: agent/MCP availability cannot be fully verified until `just prod-opencode-auth` is run. No changes to the main OpenCode server.
 
 Production infrastructure now uses dedicated host `opencode serve --service` on :4098 with separate XDG config/data/state, generated registration credentials shared only through a host-visible sandbox bind mount, and Compose sidecar points exclusively to that URL (not the main :4097). In a temporary isolated instance the sidecar client authenticated via the registration file (v2.0.15), and Podman Compose config resolved matching sandbox paths plus prod MCP host port 7060. Fresh isolated store has no provider credentials: agent/MCP catalog was empty and full prompt + MCP flow was NOT verifiable until interactive `just prod-opencode-auth`; therefore no live production rollout occurred. Port 4098 firewall/egress policy is also not implemented.
+
+The isolated provider picker showed no options in the user terminal. Confirmed from the dedicated V2 server integration catalog that `opencode-go` exists; changed `just prod-opencode-auth` to call auth login with the provider ID from LIFEOS_OPENCODE_MODEL directly, skipping the picker.
 <!-- SECTION:NOTES:END -->
